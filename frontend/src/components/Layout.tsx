@@ -1,0 +1,247 @@
+import { useState, useEffect, useRef } from 'react'
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom'
+import {
+  Video, BookOpen, BarChart3, Columns3, Users, Settings,
+  Search, Sun, Moon, Menu, Bell, LogOut, ChevronDown, Folder
+} from 'lucide-react'
+import { cn } from '../lib/utils'
+
+const navigation = [
+  { name: 'Studio', href: '/studio', icon: Video },
+  { name: 'Biblioteca', href: '/biblioteca', icon: BookOpen },
+  { name: 'Programas', href: '/programs', icon: BookOpen },
+  { name: 'Kanban', href: '/kanban', icon: Columns3 },
+  { name: 'Templates', href: '/templates', icon: Folder },
+  { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
+  { name: 'Usuarios', href: '/users', icon: Users },
+  { name: 'Ajustes', href: '/settings', icon: Settings },
+]
+
+export default function Layout() {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [isDark, setIsDark] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [notifCount] = useState(0)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const searchRef = useRef<HTMLInputElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('theme')
+    const dark = saved === 'dark'
+    setIsDark(dark)
+    applyTheme(dark)
+  }, [])
+
+  useEffect(() => { setMobileOpen(false) }, [location.pathname])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+    if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [userMenuOpen])
+
+  const applyTheme = (dark: boolean) => {
+    const root = document.documentElement
+    if (dark) {
+      root.classList.add('dark')
+      root.style.setProperty('--bg', '#0a0a0b')
+      root.style.setProperty('--bg-card', '#141415')
+      root.style.setProperty('--bg-hover', 'rgba(255,255,255,0.04)')
+      root.style.setProperty('--text', '#fafafa')
+      root.style.setProperty('--text-secondary', '#a1a1aa')
+      root.style.setProperty('--text-muted', '#52525b')
+      root.style.setProperty('--border', 'rgba(255,255,255,0.06)')
+      root.style.setProperty('--accent', '#0d9488')
+      root.style.setProperty('--accent-bg', 'rgba(13,148,136,0.1)')
+      root.style.setProperty('--bg-primary', '#0a0a0b')
+      root.style.setProperty('--bg-secondary', '#18181b')
+      root.style.setProperty('--text-primary', '#ffffff')
+      root.style.setProperty('--input-bg', '#18181b')
+      root.style.setProperty('--input-border', '#3f3f46')
+    } else {
+      root.classList.remove('dark')
+      root.style.setProperty('--bg', '#fafafa')
+      root.style.setProperty('--bg-card', '#ffffff')
+      root.style.setProperty('--bg-hover', 'rgba(0,0,0,0.04)')
+      root.style.setProperty('--text', '#09090b')
+      root.style.setProperty('--text-secondary', '#52525b')
+      root.style.setProperty('--text-muted', '#a1a1aa')
+      root.style.setProperty('--border', 'rgba(0,0,0,0.06)')
+      root.style.setProperty('--accent', '#0d9488')
+      root.style.setProperty('--accent-bg', 'rgba(13,148,136,0.08)')
+      root.style.setProperty('--bg-primary', '#fafafa')
+      root.style.setProperty('--bg-secondary', '#f1f5f9')
+      root.style.setProperty('--text-primary', '#09090b')
+      root.style.setProperty('--input-bg', '#ffffff')
+      root.style.setProperty('--input-border', '#e2e8f0')
+    }
+  }
+
+  const toggleTheme = () => {
+    const newDark = !isDark
+    setIsDark(newDark)
+    localStorage.setItem('theme', newDark ? 'dark' : 'light')
+    applyTheme(newDark)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('user')
+    setUserMenuOpen(false)
+    navigate('/login')
+  }
+
+  const getUserInfo = () => {
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (!token) return { name: 'Usuario', email: '' }
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return { name: payload.name || 'Usuario', email: payload.email || '' }
+    } catch { return { name: 'Usuario', email: '' } }
+  }
+
+  const user = getUserInfo()
+  const initials = user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+
+  const isActive = (href: string) => {
+    if (href === '/studio') return location.pathname === '/studio' || location.pathname === '/'
+    return location.pathname.startsWith(href)
+  }
+
+  const sidebar = (
+    <div className="flex flex-col h-full bg-[var(--bg)]">
+      <div className="h-14 flex items-center px-4 border-b border-[var(--border)]">
+        <Link to="/studio" className="flex items-center gap-2.5 group">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 via-cyan-500 to-violet-500 flex items-center justify-center shadow-lg shadow-teal-500/20 group-hover:shadow-teal-500/40 group-hover:scale-105 transition-all duration-300 animate-pulse-slow">
+            <span className="text-sm font-black text-white tracking-tight" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>WS</span>
+          </div>
+          <span className="font-semibold text-sm text-[var(--text)] tracking-tight">Wagner</span>
+        </Link>
+      </div>
+
+      <nav className="flex-1 py-3 px-2 space-y-0.5">
+        {navigation.map((item) => {
+          const active = isActive(item.href)
+          return (
+            <Link key={item.name} to={item.href}
+              className={cn(
+                'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150',
+                active
+                  ? 'bg-[var(--accent-bg)] text-[var(--accent)] font-medium'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)]'
+              )}
+            >
+              <item.icon className="w-4 h-4 shrink-0" />
+              <span>{item.name}</span>
+            </Link>
+          )
+        })}
+      </nav>
+
+      <div className="p-2 border-t border-[var(--border)] relative" ref={userMenuRef}>
+        <button
+          onClick={() => setUserMenuOpen(!userMenuOpen)}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+        >
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-semibold text-xs shrink-0">
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-xs font-medium text-[var(--text)] truncate">{user.name}</p>
+          </div>
+          <ChevronDown className={cn('w-3.5 h-3.5 text-[var(--text-muted)] transition-transform', userMenuOpen && 'rotate-180')} />
+        </button>
+
+        {userMenuOpen && (
+          <div className="absolute bottom-full left-2 right-2 mb-1 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shadow-2xl shadow-black/20 overflow-hidden z-50">
+            <div className="p-3 border-b border-[var(--border)]">
+              <p className="text-sm font-medium text-[var(--text)]">{user.name}</p>
+              <p className="text-xs text-[var(--text-muted)] truncate">{user.email}</p>
+            </div>
+            <div className="py-1">
+              <button
+                onClick={() => { navigate('/settings'); setUserMenuOpen(false) }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Configuracion</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Cerrar Sesion</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="min-h-screen flex bg-[var(--bg)]">
+      <aside className="hidden md:flex fixed left-0 top-0 h-full w-48 z-40 border-r border-[var(--border)] bg-[var(--bg)]">
+        {sidebar}
+      </aside>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <aside className="fixed left-0 top-0 h-full w-60 z-50 border-r border-[var(--border)] bg-[var(--bg)] shadow-2xl">
+            {sidebar}
+          </aside>
+        </div>
+      )}
+
+      <main className="flex-1 md:ml-48">
+        <header className="h-14 flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 bg-[var(--bg)] border-b border-[var(--border)]">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <button onClick={() => setMobileOpen(true)}
+              className="p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] md:hidden">
+              <Menu className="w-4 h-4" />
+            </button>
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none" />
+              <input ref={searchRef} type="text" placeholder="Buscar..."
+                className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button onClick={toggleTheme}
+              className="p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"
+              title={isDark ? 'Modo claro' : 'Modo oscuro'}>
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button className="p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors relative">
+              <Bell className="w-4 h-4" />
+              {notifCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-teal-500 text-[9px] font-bold text-white flex items-center justify-center">
+                  {notifCount}
+                </span>
+              )}
+            </button>
+            <button onClick={() => navigate('/studio')}
+              className="ml-2 py-1.5 px-3 text-sm rounded-lg font-medium bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-500 hover:to-cyan-500 transition-all shadow-sm">
+              + Nuevo
+            </button>
+          </div>
+        </header>
+
+        <div className="p-4 md:p-6 min-h-[calc(100vh-3.5rem)]">
+          <Outlet />
+        </div>
+      </main>
+    </div>
+  )
+}

@@ -1,0 +1,158 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: onboarding-hub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: KonektorDB2024!
+      POSTGRES_DB: onboarding_hub
+    ports:
+    - 5435:5432
+    volumes:
+    - postgres_data:/var/lib/postgresql/data
+    networks:
+    - onboarding-net
+    - traefik-public
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U admin -d onboarding_hub
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: redis:7-alpine
+    container_name: onboarding-hub-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+    - 6381:6379
+    volumes:
+    - redis_data:/data
+    networks:
+    - onboarding-net
+    - traefik-public
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  seaweedfs-master:
+    image: chrislusf/seaweedfs:latest
+    container_name: onboarding-hub-seaweedfs-master
+    restart: unless-stopped
+    command: master -volumeSizeLimitMB=100 -mdir=/data -port=9333
+    ports:
+    - 9333:9333
+    volumes:
+    - seaweedfs_master_data:/data
+    networks:
+    - onboarding-net
+    - traefik-public
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs:latest
+    container_name: onboarding-hub-seaweedfs-volume
+    restart: unless-stopped
+    command: volume -mserver=seaweedfs-master:9333 -port=8080
+    ports:
+    - 8080:8080
+    volumes:
+    - seaweedfs_volume_data:/data
+    depends_on:
+    - seaweedfs-master
+    networks:
+    - onboarding-net
+    - traefik-public
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs:latest
+    container_name: onboarding-hub-seaweedfs-filer
+    restart: unless-stopped
+    environment:
+      GODEBUG: fips140=off
+    command: filer -master=seaweedfs-master:9333 -s3 -s3.port=8333 -s3.allowEmptyFolder=true
+      -s3.config=/etc/seaweedfs/s3.json
+    ports:
+    - 8889:8888
+    - 9006:8333
+    volumes:
+    - ./seaweedfs-filer.toml:/etc/seaweedfs/filer.toml
+    - ./seaweedfs-s3.json:/etc/seaweedfs/s3.json
+    depends_on:
+    - seaweedfs-master
+    - seaweedfs-volume
+    networks:
+    - onboarding-net
+    - traefik-public
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: onboarding-hub-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: '4001'
+      DATABASE_URL: postgresql://admin:KonektorDB2024!@postgres:5432/onboarding_hub
+      REDIS_URL: redis://redis:6379/2
+      REDIS_PREFIX: 'oh:'
+      SEAWEEDFS_ENDPOINT: host.docker.internal
+      SEAWEEDFS_PORT: '9000'
+      SEAWEEDFS_ACCESS_KEY: admin
+      SEAWEEDFS_SECRET_KEY: KonektorMinio2024!
+      SEAWEEDFS_BUCKET: onboarding-hub
+      SEAWEEDFS_USE_SSL: 'false'
+      SEAWEEDFS_PUBLIC_URL: http://178.104.175.22:9000
+      WHISPER_URL: http://host.docker.internal:8178
+      MIMO_API_KEY: sk-svpxxtdb1msughagb7meegv4gqzyvuhmlg8xp1izpjnay0rs
+      MIMO_BASE_URL: https://api.xiaomimimo.com/v1
+      MIMO_MODEL: mimo-v2-omni
+      JWT_SECRET: onboarding-hub-secret-key-2024
+      JWT_EXPIRES_IN: 7d
+      FRONTEND_URL: https://academy.wagnersolutionsai.com
+      CORS_ORIGIN: http://localhost:8090,http://168.138.175.0:8090,https://academy.wagnersolutionsai.com,http://academy.wagnersolutionsai.com
+    ports:
+    - 4001:4001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+    - onboarding-net
+    - traefik-public
+    extra_hosts:
+    - host.docker.internal:172.18.0.1
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: onboarding-hub-frontend
+    restart: unless-stopped
+    labels:
+    - traefik.enable=true
+    - "traefik.http.routers.academy.rule=Host(`academy.wagnersolutionsai.com`)"
+    - traefik.http.routers.academy.tls=true
+    - traefik.http.routers.academy.tls.certresolver=letsencrypt
+    - traefik.http.services.onboarding.loadbalancer.server.port=80
+    - traefik.docker.network=traefik-public
+    ports:
+    - 8090:80
+    depends_on:
+    - backend
+    networks:
+    - onboarding-net
+    - traefik-public
+volumes:
+  postgres_data: {}
+  redis_data: {}
+  seaweedfs_master_data: {}
+  seaweedfs_volume_data: {}
+networks:
+  onboarding-net:
+    driver: bridge
+  traefik-public:
+    external: true

@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif;
+    background-color: var(--bg, #fafafa);
+    color: var(--text, #09090b);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: rgba(13, 148, 136, 0.15); }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 10px; }
+}
+
+@layer components {
+  .page-header {
+    @apply mb-6;
+  }
+  .page-header h1 {
+    @apply text-xl font-semibold text-[var(--text,#09090b)];
+  }
+  .page-header p {
+    @apply text-sm text-[var(--text-secondary,#52525b)] mt-0.5;
+  }
+
+  .card {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border, rgba(0,0,0,0.06));
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: all 0.15s ease;
+  }
+  .card-hover:hover {
+    border-color: rgba(13, 148, 136, 0.2);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg font-medium text-sm transition-all duration-150;
+    padding: 0.5rem 1rem;
+  }
+  .btn-primary {
+    @apply btn text-white;
+    background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+  }
+  .btn-secondary {
+    @apply btn;
+    background: var(--bg-hover, rgba(0,0,0,0.04));
+    color: var(--text-secondary, #52525b);
+    border: 1px solid var(--border, rgba(0,0,0,0.06));
+  }
+  .btn-secondary:hover {
+    color: var(--text, #09090b);
+    border-color: var(--text-muted, #a1a1aa);
+  }
+  .btn-ghost {
+    @apply btn;
+    color: var(--text-secondary, #52525b);
+  }
+  .btn-ghost:hover {
+    background: var(--bg-hover, rgba(0,0,0,0.04));
+    color: var(--text, #09090b);
+  }
+  .btn-danger {
+    @apply btn text-red-600;
+  }
+  .btn-danger:hover {
+    background: rgba(239, 68, 68, 0.08);
+  }
+  .btn-sm { @apply py-1 px-2.5 text-xs; }
+  .btn-icon { @apply p-2; }
+
+  .input {
+    @apply w-full rounded-lg text-sm transition-colors;
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border, rgba(0,0,0,0.06));
+    color: var(--text, #09090b);
+    padding: 0.5rem 0.75rem;
+  }
+  .input:focus {
+    outline: none;
+    border-color: #0d9488;
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.1);
+  }
+  .input::placeholder { color: var(--text-muted, #a1a1aa); }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium;
+  }
+  .badge-teal { background: rgba(13, 148, 136, 0.08); color: #0d9488; }
+  .badge-emerald { background: rgba(16, 185, 129, 0.08); color: #059669; }
+  .badge-amber { background: rgba(245, 158, 11, 0.08); color: #d97706; }
+  .badge-rose { background: rgba(244, 63, 94, 0.08); color: #e11d48; }
+  .badge-gray { background: rgba(0,0,0,0.04); color: #52525b; }
+
+  .stat-card {
+    @apply card;
+  }
+  .stat-card .stat-value {
+    @apply text-2xl font-bold text-[var(--text,#09090b)];
+  }
+  .stat-card .stat-label {
+    @apply text-xs text-[var(--text-muted,#a1a1aa)] mt-1;
+  }
+  .stat-card .stat-change {
+    @apply text-xs font-medium flex items-center gap-0.5;
+  }
+  .stat-card .stat-change.up { @apply text-emerald-600; }
+  .stat-card .stat-change.down { @apply text-rose-600; }
+
+  .tab-group {
+    @apply flex items-center gap-0.5 p-0.5 rounded-lg;
+    background: var(--bg-hover, rgba(0,0,0,0.04));
+  }
+  .tab-item {
+    @apply px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer;
+    color: var(--text-muted, #a1a1aa);
+  }
+  .tab-item:hover { color: var(--text, #09090b); }
+  .tab-item.active {
+    background: #ffffff;
+    color: #09090b;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+  }
+  .modal-content {
+    @apply relative w-full max-w-md rounded-xl shadow-2xl p-6;
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border, rgba(0,0,0,0.06));
+  }
+
+  .empty-state {
+    @apply card text-center py-12;
+  }
+  .empty-state .empty-icon {
+    @apply w-12 h-12 mx-auto mb-3 opacity-30;
+    color: var(--text-muted, #a1a1aa);
+  }
+  .empty-state h3 {
+    @apply text-base font-semibold text-[var(--text,#09090b)] mb-1;
+  }
+  .empty-state p {
+    @apply text-sm text-[var(--text-muted,#a1a1aa)];
+  }
+}
+
+@layer utilities {
+  .animate-fade-in { animation: fadeIn 0.2s ease-out; }
+  .animate-slide-up { animation: slideUp 0.25s ease-out; }
+  @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+  @keyframes slideUp { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
+}
+
+
+.animate-pulse-slow { animation: pulseSlow 3s ease-in-out infinite; }
+@keyframes pulseSlow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.05); } }
