@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="200" viewBox="0 0 1280 200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0d9488"/>
+      <stop offset="100%" style="stop-color:#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="200" fill="url(#bg)" rx="12"/>
+  <text x="60" y="90" font-family="Inter, system-ui, sans-serif" font-size="48" font-weight="800" fill="#ffffff">Onboarding Hub</text>
+  <text x="60" y="130" font-family="Inter, system-ui, sans-serif" font-size="20" fill="#94a3b8">Plataforma de onboarding corporativo · Grabación · IA · Gestión de contenido</text>
+  <rect x="60" y="150" width="200" height="4" rx="2" fill="url(#accent)"/>
+  <text x="1060" y="100" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#64748b" text-anchor="end">WagnerSolutionsAI</text>
+  <text x="1060" y="122" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#475569" text-anchor="end">Apache 2.0 License</text>
+  <text x="1060" y="140" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#475569" text-anchor="end">v1.0.0</text>
+</svg>
