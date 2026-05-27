@@ -15,6 +15,12 @@
   <a href="https://academy.wagnersolutionsai.com">
     <img src="https://img.shields.io/badge/Demo-Academy-0d9488?style=for-the-badge&logo=react&logoColor=white" alt="Demo">
   </a>
+  <a href="https://github.com/SebaWag/onboarding-hub/stargazers">
+    <img src="https://img.shields.io/github/stars/SebaWag/onboarding-hub?style=for-the-badge&color=0d9488" alt="Stars">
+  </a>
+  <a href="https://github.com/SebaWag/onboarding-hub/blob/main/CONTRIBUTING.md">
+    <img src="https://img.shields.io/badge/Contributions-Welcome-0d9488?style=for-the-badge" alt="Contributions Welcome">
+  </a>
 </p>
 
 ---
@@ -24,6 +30,13 @@
 **Plataforma de onboarding corporativo** con grabación de tutoriales, inteligencia artificial y gestión de contenido. Diseñada para que equipos de RRHH, L&D y operations puedan crear, gestionar y distribuir programas de onboarding interactivos con video, evaluación y seguimiento en tiempo real.
 
 > 🚀 Desarrollado por [WagnerSolutionsAI](https://wagnersolutionsai.com) — Digitalización soberana para empresas.
+
+---
+
+<p align="center">
+  <b>⭐ ¿Te gusta este proyecto? ¡Danos una estrella en GitHub!</b><br>
+  <sub>Tu ⭐ nos ayuda a crecer y llegar a más personas.</sub>
+</p>
 
 ---
 
@@ -166,6 +179,8 @@ onboarding-hub/
 ├── docker-compose.yml     # Infraestructura completa
 ├── .env.example           # Template de configuración
 ├── init-ssl.sh            # Script de certificados SSL
+├── CODE_OF_CONDUCT.md     # Código de conducta
+├── CONTRIBUTING.md        # Guía de contribución
 ├── LICENSE                # Apache 2.0
 └── README.md
 ```
@@ -174,7 +189,7 @@ onboarding-hub/
 
 ## 🤝 Contribuir
 
-¿Te interesa contribuir? ¡Genial! El proyecto está en etapa temprana y toda ayuda suma.
+¿Te interesa contribuir? ¡Genial! Lee nuestra [guía de contribución](CONTRIBUTING.md) para empezar.
 
 1. Fork el repositorio
 2. Crea una rama (`git checkout -b feature/nueva-funcionalidad`)
@@ -196,6 +211,11 @@ Si encuentras un bug, por favor [abre un issue](https://github.com/SebaWag/onboa
 Este proyecto está bajo la licencia **Apache 2.0**. Ver el archivo [LICENSE](LICENSE) para más detalles.
 
 ---
+
+<p align="center">
+  <b>⭐ Si este proyecto te fue útil, ¡danos una estrella en GitHub!</b><br>
+  <sub>Ayúdanos a que más personas descubran Onboarding Hub 🚀</sub>
+</p>
 
 <p align="center">
   Hecho con ❤️ por <a href="https://wagnersolutionsai.com">WagnerSolutionsAI</a>
