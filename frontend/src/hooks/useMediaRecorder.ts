@@ -74,7 +74,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
 
   useEffect(() => { return () => { cleanup() } }, [cleanup])
 
-  const startRecording = useCallback(async (mode: RecordingMode, processedCameraStream?: MediaStream | null): Promise<boolean> => {
+  const startRecording = useCallback(async (mode: RecordingMode, processedCameraStream?: MediaStream | null, background?: { mode: string; color?: string; image?: string } | null): Promise<boolean> => {
     try {
       cleanup()
       
@@ -213,6 +213,27 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
               
               // Aplicar chroma-key directamente sobre los píxeles de la cámara
               if (processedCameraStream && processedCameraStream.getVideoTracks().length > 0) {
+                // Obtener color de fondo desde la configuración del background
+                let bgR = 30, bgG = 41, bgB = 59 // default oscuro
+                if (background && background.color) {
+                  bgR = parseInt(background.color.slice(1,3), 16) || 30
+                  bgG = parseInt(background.color.slice(3,5), 16) || 41
+                  bgB = parseInt(background.color.slice(5,7), 16) || 59
+                }
+                // Si es modo imagen, dibujar la imagen de fondo primero
+                if (background && background.mode === 'image' && background.image) {
+                  const bgImg = new Image()
+                  bgImg.crossOrigin = 'anonymous'
+                  bgImg.src = background.image
+                  ctx.save()
+                  ctx.beginPath()
+                  ctx.arc(camX + camW/2, camY + camH/2, camW/2, 0, Math.PI * 2)
+                  ctx.clip()
+                  if (bgImg.complete && bgImg.naturalWidth > 0) {
+                    ctx.drawImage(bgImg, camX, camY, camW, camH)
+                  }
+                  ctx.restore()
+                }
                 const imgData = ctx.getImageData(camX, camY, camW, camH)
                 const d = imgData.data
                 for (let i = 0; i < d.length; i += 4) {
@@ -220,7 +241,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
                   const max = Math.max(r, g, b), min = Math.min(r, g, b)
                   const isSkin = r > 80 && g > 40 && b > 20 && (max - min) > 15 && r > g && r > b
                   if (!isSkin) {
-                    d[i] = 30; d[i+1] = 41; d[i+2] = 59; d[i+3] = 255 // color oscuro
+                    d[i] = bgR; d[i+1] = bgG; d[i+2] = bgB; d[i+3] = 255
                   }
                 }
                 ctx.putImageData(imgData, camX, camY)
