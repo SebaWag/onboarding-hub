@@ -153,52 +153,36 @@ export function useBackgroundRemoval() {
       // === MediaPipe ML SEGMENTATION ===
       try {
         const result = segmenterRef.current.segment(video, { timestamp: Date.now() })
-        const mask = result.categoryMask
-            // imageData removed - mask applied differently
-        const maskData = mask.getAsFloat32Array()
-        // pixels = imageData.data
-
-        // Draw background first
-        if (bg.mode === 'image' && bg.image) {
-          drawBgImage(ctx, w, h, bg.image)
-        } else if (bg.color) {
-          ctx.fillStyle = bg.color
-          ctx.fillRect(0, 0, w, h)
-        }
-
-        // Composite video with mask
-        const videoCanvas = document.createElement('canvas')
-        videoCanvas.width = w
-        videoCanvas.height = h
-        const vCtx = videoCanvas.getContext('2d')!
-        vCtx.drawImage(video, 0, 0, w, h)
-        const videoData = vCtx.getImageData(0, 0, w, h).data
-
-        const outputData = ctx.getImageData(0, 0, w, h)
-        const out = outputData.data
-
-        const maskW = mask.width
-        const maskH = mask.height
-        const scaleX = w / maskW
-        const scaleY = h / maskH
+        const confArr = result.confidenceMasks?.[0]?.getAsFloat32Array?.() ?? result.categoryMask.getAsFloat32Array()
+        const mw = result.categoryMask.width
+        const mh = result.categoryMask.height
+        const mc = document.createElement("canvas")
+        mc.width = w; mc.height = h
+        const mctx = mc.getContext("2d")!
+        const imgData = mctx.createImageData(w, h)
+        const px = imgData.data
+        const sx = w / mw; const sy = h / mh
         for (let y = 0; y < h; y++) {
           for (let x = 0; x < w; x++) {
-            const maskX = Math.floor(x / scaleX)
-            const maskY = Math.floor(y / scaleY)
-            const maskIdx = maskY * maskW + maskX
-            const confidence = maskData[maskIdx]
-            const idx = (y * w + x) * 4
-            if (confidence > 0.5) {
-              out[idx] = videoData[idx]
-              out[idx + 1] = videoData[idx + 1]
-              out[idx + 2] = videoData[idx + 2]
-              out[idx + 3] = 255
-            }
+            const mi = Math.floor(y / sy) * mw + Math.floor(x / sx)
+            const isBg = confArr[mi] > 0.5
+            const val = isBg ? 0 : 255
+            const pi = (y * w + x) * 4
+            px[pi] = val; px[pi+1] = val; px[pi+2] = val; px[pi+3] = 255
           }
         }
-        ctx.putImageData(outputData, 0, 0)
+        mctx.putImageData(imgData, 0, 0)
+        if (bg.mode === "image" && bg.image) { drawBgImage(ctx, w, h, bg.image) }
+        else if (bg.color) { ctx.fillStyle = bg.color; ctx.fillRect(0, 0, w, h) }
+        const pc = document.createElement("canvas")
+        pc.width = w; pc.height = h
+        const pctx = pc.getContext("2d")!
+        pctx.drawImage(video, 0, 0, w, h)
+        pctx.globalCompositeOperation = "destination-in"
+        pctx.drawImage(mc, 0, 0)
+        pctx.globalCompositeOperation = "source-over"
+        ctx.drawImage(pc, 0, 0)
       } catch (err) {
-        // Fallback: just show video
         ctx.drawImage(video, 0, 0, w, h)
       }
     } else {
