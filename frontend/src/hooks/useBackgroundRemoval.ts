@@ -177,18 +177,24 @@ export function useBackgroundRemoval() {
         const outputData = ctx.getImageData(0, 0, w, h)
         const out = outputData.data
 
-        const threshold = 0.5
-        for (let i = 0; i < maskData.length; i++) {
-          const confidence = maskData[i]
-          if (confidence < threshold) {
-            // Person pixel → show video
-            const idx = i * 4
-            out[idx] = videoData[idx]
-            out[idx + 1] = videoData[idx + 1]
-            out[idx + 2] = videoData[idx + 2]
-            out[idx + 3] = 255
+        const maskW = mask.width
+        const maskH = mask.height
+        const scaleX = w / maskW
+        const scaleY = h / maskH
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const maskX = Math.floor(x / scaleX)
+            const maskY = Math.floor(y / scaleY)
+            const maskIdx = maskY * maskW + maskX
+            const confidence = maskData[maskIdx]
+            const idx = (y * w + x) * 4
+            if (confidence > 0.5) {
+              out[idx] = videoData[idx]
+              out[idx + 1] = videoData[idx + 1]
+              out[idx + 2] = videoData[idx + 2]
+              out[idx + 3] = 255
+            }
           }
-          // else → keep background (already drawn)
         }
         ctx.putImageData(outputData, 0, 0)
       } catch (err) {
