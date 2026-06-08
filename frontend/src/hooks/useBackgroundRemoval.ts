@@ -154,7 +154,7 @@ export function useBackgroundRemoval() {
       try {
         const result = segmenterRef.current.segment(video, { timestamp: Date.now() })
         const mask = result.categoryMask
-        const imageData = ctx.getImageData(0, 0, w, h)
+            // imageData removed - mask applied differently
         const maskData = mask.getAsFloat32Array()
         // pixels = imageData.data
 
