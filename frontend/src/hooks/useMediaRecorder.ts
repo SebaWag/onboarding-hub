@@ -180,6 +180,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         
         // Dibujar frames en el canvas
         let frameCount = 0
+        let processedVideoEl: HTMLVideoElement | null = null
         const drawFrame = () => {
           try {
             // Fondo: pantalla completa
@@ -194,16 +195,16 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
             // Dibujar cámara con efecto de fondo si aplica
             if (processedCameraStream && processedCameraStream.getVideoTracks().length > 0) {
               // Usar el stream ya procesado (con background) desde el canvas de BackgroundRemoval
-              if (!drawFrame.processedVideo) {
-                drawFrame.processedVideo = document.createElement("video")
-                drawFrame.processedVideo.muted = true
-                drawFrame.processedVideo.playsInline = true
-                drawFrame.processedVideo.autoplay = true
-                drawFrame.processedVideo.style.position = "fixed"
-                drawFrame.processedVideo.style.top = "-9999px"
-                document.body.appendChild(drawFrame.processedVideo)
+              if (!processedVideoEl) {
+                processedVideoEl = document.createElement("video")
+                processedVideoEl.muted = true
+                processedVideoEl.playsInline = true
+                processedVideoEl.autoplay = true
+                processedVideoEl.style.position = "fixed"
+                processedVideoEl.style.top = "-9999px"
+                document.body.appendChild(processedVideoEl)
               }
-              const pv = drawFrame.processedVideo
+              const pv = processedVideoEl
               if (pv.srcObject !== processedCameraStream) {
                 pv.srcObject = processedCameraStream
                 pv.play().catch(() => {})
