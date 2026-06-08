@@ -180,7 +180,7 @@ export function useBackgroundRemoval() {
         const threshold = 0.5
         for (let i = 0; i < maskData.length; i++) {
           const confidence = maskData[i]
-          if (confidence > threshold) {
+          if (confidence < threshold) {
             // Person pixel → show video
             const idx = i * 4
             out[idx] = videoData[idx]
