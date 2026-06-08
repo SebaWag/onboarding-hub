@@ -182,14 +182,8 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         let frameCount = 0
         const drawFrame = () => {
           try {
-            // Fondo: pantalla
+            // Fondo: pantalla completa
             ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
-            
-            // Si hay processedStream (background), usarlo; si no, usar cámara raw
-            const camSource = processedCameraStream && processedCameraStream.getVideoTracks().length > 0
-              ? processedCameraStream
-              : null
-            const camVideoEl = cameraVideoRef.current
             
             // Cámara en esquina inferior derecha
             const camW = 400
@@ -197,21 +191,35 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
             const camX = canvas.width - camW - 20
             const camY = canvas.height - camH - 20
             
-            // Borde blanco
-            ctx.fillStyle = '#ffffff'
-            ctx.fillRect(camX - 4, camY - 4, camW + 8, camH + 8)
-            
-            // Cámara
-            if (camSource && camSource !== cameraStream) {
-              const pVideo = document.createElement("video")
-              pVideo.srcObject = camSource
-              pVideo.muted = true
-              pVideo.playsInline = true
-              pVideo.autoplay = true
-              ctx.drawImage(pVideo, camX, camY, camW, camH)
-              setTimeout(() => { try { pVideo.play() } catch(e) {} }, 100)
-            } else if (camVideoEl) {
-              ctx.drawImage(camVideoEl, camX, camY, camW, camH)
+            // Dibujar cámara con efecto de fondo si aplica
+            if (processedCameraStream && processedCameraStream.getVideoTracks().length > 0) {
+              // Usar el stream ya procesado (con background) desde el canvas de BackgroundRemoval
+              if (!drawFrame.processedVideo) {
+                drawFrame.processedVideo = document.createElement("video")
+                drawFrame.processedVideo.muted = true
+                drawFrame.processedVideo.playsInline = true
+                drawFrame.processedVideo.autoplay = true
+                drawFrame.processedVideo.style.position = "fixed"
+                drawFrame.processedVideo.style.top = "-9999px"
+                document.body.appendChild(drawFrame.processedVideo)
+              }
+              const pv = drawFrame.processedVideo
+              if (pv.srcObject !== processedCameraStream) {
+                pv.srcObject = processedCameraStream
+                pv.play().catch(() => {})
+              }
+              // Recortar cuadrado para la preview circular
+              ctx.save()
+              ctx.beginPath()
+              ctx.arc(camX + camW/2, camY + camH/2, camW/2, 0, Math.PI * 2)
+              ctx.clip()
+              ctx.drawImage(pv, camX, camY, camW, camH)
+              ctx.restore()
+            } else if (cameraVideoRef.current) {
+              // Sin background: dibujar cámara raw con borde
+              ctx.fillStyle = '#ffffff'
+              ctx.fillRect(camX - 4, camY - 4, camW + 8, camH + 8)
+              ctx.drawImage(cameraVideoRef.current, camX, camY, camW, camH)
             }
             
             frameCount++
@@ -221,9 +229,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
           } catch (e) {
             // Ignorar errores de draw durante seek
           }
-        }
-        
-        // Usar setInterval para asegurar frames constantes
+        }// Usar setInterval para asegurar frames constantes
         intervalRef.current = window.setInterval(drawFrame, 1000 / 30) // 30 FPS
         
         // Capturar stream del canvas
