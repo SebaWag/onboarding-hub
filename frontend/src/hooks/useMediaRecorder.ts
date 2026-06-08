@@ -182,6 +182,9 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         let frameCount = 0
         
         
+        let bgImageCached: HTMLImageElement | null = null
+        let bgImageLoaded = false
+
         const drawFrame = () => {
           try {
             // 1. Fondo: pantalla
