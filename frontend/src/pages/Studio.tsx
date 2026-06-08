@@ -66,7 +66,7 @@ export default function Studio() {
     let mode: RecordingMode = 'screen-camera'
     if (screenEnabled && !cameraEnabled) mode = 'screen'
     else if (!screenEnabled && cameraEnabled) mode = 'camera'
-    await startRecording(mode, processedStream, background)
+    await startRecording(mode, processedStream)
   }
 
   const handleUploadRecording = async (blob: Blob) => {

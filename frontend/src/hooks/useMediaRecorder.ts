@@ -74,7 +74,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
 
   useEffect(() => { return () => { cleanup() } }, [cleanup])
 
-  const startRecording = useCallback(async (mode: RecordingMode, processedCameraStream?: MediaStream | null, background?: { mode: string; color?: string; image?: string } | null): Promise<boolean> => {
+  const startRecording = useCallback(async (mode: RecordingMode, processedCameraStream?: MediaStream | null): Promise<boolean> => {
     try {
       cleanup()
       
@@ -187,8 +187,6 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         let frameCount = 0
         
         
-        let bgImageCached: HTMLImageElement | null = null
-        let bgImageLoaded = false
 
         const drawFrame = () => {
           try {
