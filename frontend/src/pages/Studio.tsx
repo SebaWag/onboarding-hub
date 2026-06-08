@@ -74,7 +74,8 @@ export default function Studio() {
     try {
       const formData = new FormData()
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-      formData.append('video', blob, 'recording-' + timestamp + '.webm')
+      formData.append("duration_seconds", String(recordingTime))
+      formData.append("video",, blob, 'recording-' + timestamp + '.webm')
       formData.append('title', 'Grabacion ' + new Date().toLocaleString())
       const token = localStorage.getItem('auth_token')
       const response = await fetch('/api/videos/upload', {
