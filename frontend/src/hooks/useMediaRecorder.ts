@@ -103,11 +103,16 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
       // 2. Obtener cámara
       if (cameraEnabled && (mode === 'camera' || mode === 'screen-camera')) {
         try {
-          cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-            audio: false
-          })
-          console.log('[RECORDER] ✅ Cámara capturada')
+          if (processedCameraStream && processedCameraStream.getVideoTracks().length > 0) {
+            cameraStream = processedCameraStream
+            console.log('[RECORDER] ✅ Usando cámara con background procesado')
+          } else {
+            cameraStream = await navigator.mediaDevices.getUserMedia({
+              video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+              audio: false
+            })
+            console.log('[RECORDER] ✅ Cámara capturada')
+          }
         } catch (err: any) {
           console.warn('[RECORDER] ⚠️ Sin cámara')
         }
@@ -214,45 +219,11 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
               // Dibujar cámara
               ctx.drawImage(cameraVideoRef.current, camX, camY, camW, camH)
               
-              // Aplicar chroma-key directamente sobre los píxeles de la cámara
+              // La cámara ya viene con el background procesado desde processedCameraStream
+              // Solo dibujar el stream que ya tiene el background aplicado
               if (processedCameraStream && processedCameraStream.getVideoTracks().length > 0) {
-                // Obtener color de fondo desde la configuración del background
-                let bgR = 30, bgG = 41, bgB = 59 // default oscuro
-                if (background && background.color) {
-                  bgR = parseInt(background.color.slice(1,3), 16) || 30
-                  bgG = parseInt(background.color.slice(3,5), 16) || 41
-                  bgB = parseInt(background.color.slice(5,7), 16) || 59
-                }
-                // Si es modo imagen, dibujar la imagen de fondo primero (con caché)
-                if (background && background.mode === 'image' && background.image) {
-                  if (!bgImageCached || bgImageCached.dataset.src !== background.image) {
-                    bgImageCached = new Image()
-                    bgImageCached.crossOrigin = 'anonymous'
-                    bgImageCached.src = background.image
-                    bgImageCached.dataset.src = background.image
-                    bgImageLoaded = false
-                    bgImageCached.onload = () => { bgImageLoaded = true }
-                  }
-                  if (bgImageLoaded) {
-                    ctx.save()
-                    ctx.beginPath()
-                    ctx.arc(camX + camW/2, camY + camH/2, camW/2, 0, Math.PI * 2)
-                    ctx.clip()
-                    ctx.drawImage(bgImageCached, camX, camY, camW, camH)
-                    ctx.restore()
-                  }
-                }
-                const imgData = ctx.getImageData(camX, camY, camW, camH)
-                const d = imgData.data
-                for (let i = 0; i < d.length; i += 4) {
-                  const r = d[i], g = d[i+1], b = d[i+2]
-                  const max = Math.max(r, g, b), min = Math.min(r, g, b)
-                  const isSkin = r > 80 && g > 40 && b > 20 && (max - min) > 15 && r > g && r > b
-                  if (!isSkin) {
-                    d[i] = bgR; d[i+1] = bgG; d[i+2] = bgB; d[i+3] = 255
-                  }
-                }
-                ctx.putImageData(imgData, camX, camY)
+                // El stream ya está procesado, solo dibujarlo 
+                // No se necesita chroma-key ni pixel manipulation
               }
               
               ctx.restore()
