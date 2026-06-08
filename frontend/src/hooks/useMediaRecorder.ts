@@ -180,7 +180,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         
         // Dibujar frames en el canvas
         let frameCount = 0
-        let bgColor = '#ffffff' // default no-bg
+        
         
         const drawFrame = () => {
           try {
@@ -243,7 +243,20 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
           } catch (e) {
             // Ignorar errores
           }
-        }// Capturar stream del canvas
+        }
+        // Usar requestAnimationFrame para renderizado suave
+        let lastFrameTime = 0
+        const fpsInterval = 1000 / 30
+        const rafLoop = (timestamp: number) => {
+          const elapsed = timestamp - lastFrameTime
+          if (elapsed >= fpsInterval) {
+            lastFrameTime = timestamp - (elapsed % fpsInterval)
+            drawFrame()
+          }
+          intervalRef.current = requestAnimationFrame(rafLoop) as unknown as number
+        }
+        intervalRef.current = requestAnimationFrame(rafLoop) as unknown as number
+        // Capturar stream del canvas
         const canvasStream = canvas.captureStream(30)
         console.log('[RECORDER] ✅ Canvas stream capturado:', canvasStream.getVideoTracks().length, 'tracks')
         
