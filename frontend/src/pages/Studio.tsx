@@ -66,7 +66,20 @@ export default function Studio() {
     let mode: RecordingMode = 'screen-camera'
     if (screenEnabled && !cameraEnabled) mode = 'screen'
     else if (!screenEnabled && cameraEnabled) mode = 'camera'
-    await startRecording(mode, processedStream)
+    // Obtener cámara ANTES de grabar si hay background activo
+    if (background.mode !== 'none' && !processedStream) {
+      try {
+        const cam = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480, facingMode: 'user' },
+          audio: false
+        })
+        const bg = await startBackgroundRemoval(cam)
+        if (bg) setPreviewCameraStream(bg)
+      } catch (e) {
+        console.warn('No se pudo obtener cámara para background:', e)
+      }
+    }
+    await startRecording(mode, processedStream || previewCameraStream)
   }
 
   const handleUploadRecording = async (blob: Blob) => {
