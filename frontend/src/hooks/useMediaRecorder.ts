@@ -220,19 +220,24 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
                   bgG = parseInt(background.color.slice(3,5), 16) || 41
                   bgB = parseInt(background.color.slice(5,7), 16) || 59
                 }
-                // Si es modo imagen, dibujar la imagen de fondo primero
+                // Si es modo imagen, dibujar la imagen de fondo primero (con caché)
                 if (background && background.mode === 'image' && background.image) {
-                  const bgImg = new Image()
-                  bgImg.crossOrigin = 'anonymous'
-                  bgImg.src = background.image
-                  ctx.save()
-                  ctx.beginPath()
-                  ctx.arc(camX + camW/2, camY + camH/2, camW/2, 0, Math.PI * 2)
-                  ctx.clip()
-                  if (bgImg.complete && bgImg.naturalWidth > 0) {
-                    ctx.drawImage(bgImg, camX, camY, camW, camH)
+                  if (!bgImageCached || bgImageCached.dataset.src !== background.image) {
+                    bgImageCached = new Image()
+                    bgImageCached.crossOrigin = 'anonymous'
+                    bgImageCached.src = background.image
+                    bgImageCached.dataset.src = background.image
+                    bgImageCachedLoaded = false
+                    bgImageCached.onload = () => { bgImageCachedLoaded = true }
                   }
-                  ctx.restore()
+                  if (bgImageCachedLoaded) {
+                    ctx.save()
+                    ctx.beginPath()
+                    ctx.arc(camX + camW/2, camY + camH/2, camW/2, 0, Math.PI * 2)
+                    ctx.clip()
+                    ctx.drawImage(bgImageCached, camX, camY, camW, camH)
+                    ctx.restore()
+                  }
                 }
                 const imgData = ctx.getImageData(camX, camY, camW, camH)
                 const d = imgData.data
