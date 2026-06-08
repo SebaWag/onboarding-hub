@@ -65,7 +65,7 @@ export function useBackgroundRemoval() {
         segmenterRef.current = await SelfieSegmenter.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath:
-              'https://storage.googleapis.com/mediapipe-models/selfie_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite',
+              'https://storage.googleapis.com/mediapipe-assets/selfie_segmentation_landscape.tflite',
             delegate: 'GPU',
           },
           runningMode: 'VIDEO',
