@@ -220,7 +220,7 @@ export function useBackgroundRemoval() {
       for (let i = 0; i < d.length; i += 4) {
         const r = d[i], g = d[i+1], b = d[i+2]
         const max = Math.max(r, g, b), min = Math.min(r, g, b)
-        const isSkin = r > 80 && g > 40 && b > 20 && (max - min) > 15 && r > g && r > b
+        const isSkin = r > 60 && g > 25 && b > 15 && (max) > 50 && r > g * 0.7 && r > b * 0.6 || (r > 30 && g > 20 && b > 15 && max > 80 && max - min > 20)
         if (!isSkin) {
           d[i] = bgPixel[i]; d[i+1] = bgPixel[i+1]; d[i+2] = bgPixel[i+2]; d[i+3] = 255
         }
