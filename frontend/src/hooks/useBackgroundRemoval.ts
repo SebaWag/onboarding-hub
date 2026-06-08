@@ -197,31 +197,35 @@ export function useBackgroundRemoval() {
       }
     } else {
       // === FALLBACK: COLOR-BASED DETECTION ===
-      ctx.drawImage(video, 0, 0, w, h)
-      const imgData = ctx.getImageData(0, 0, w, h)
-      const d = imgData.data
-
-      // Draw background first
+      // 1. Draw background (image or color) FIRST
       if (bg.mode === 'image' && bg.image) {
         drawBgImage(ctx, w, h, bg.image)
       } else if (bg.color) {
         ctx.fillStyle = bg.color
         ctx.fillRect(0, 0, w, h)
       }
-
-      // Simple chroma-key: detect non-skin pixels in the video
+      
+      // 2. SAVE background pixels BEFORE drawing video
+      const bgPixels = ctx.getImageData(0, 0, w, h)
+      const bg = bgPixels.data
+      
+      // 3. Draw video on top
+      ctx.drawImage(video, 0, 0, w, h)
+      
+      // 4. Get combined pixels (video on top of background)
+      const combined = ctx.getImageData(0, 0, w, h)
+      const d = combined.data
+      
+      // 5. For non-skin pixels, show background instead of video
       for (let i = 0; i < d.length; i += 4) {
         const r = d[i], g = d[i+1], b = d[i+2]
         const max = Math.max(r, g, b), min = Math.min(r, g, b)
         const isSkin = r > 80 && g > 40 && b > 20 && (max - min) > 15 && r > g && r > b
-        if (isSkin) {
-          // Show original video pixel
-          d[i] = d[i]; d[i+1] = d[i+1]; d[i+2] = d[i+2]; d[i+3] = 255
-        } else {
-          d[i+3] = 0 // Transparent → shows background
+        if (!isSkin) {
+          d[i] = bg[i]; d[i+1] = bg[i+1]; d[i+2] = bg[i+2]; d[i+3] = 255
         }
       }
-      ctx.putImageData(imgData, 0, 0)
+      ctx.putImageData(combined, 0, 0)
     }
 
     animRef.current = requestAnimationFrame(processFrame)
