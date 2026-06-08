@@ -180,74 +180,70 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         
         // Dibujar frames en el canvas
         let frameCount = 0
-        let processedVideoEl: HTMLVideoElement | null = null
+        let bgColor = '#ffffff' // default no-bg
+        
         const drawFrame = () => {
           try {
-            // Fondo: pantalla completa
+            // 1. Fondo: pantalla
             ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
             
-            // Cámara en esquina inferior derecha
+            // 2. Cámara en esquina inferior derecha (área circular)
             const camW = 400
             const camH = 300
             const camX = canvas.width - camW - 20
             const camY = canvas.height - camH - 20
             
-            // Dibujar cámara con efecto de fondo si aplica
-            if (processedCameraStream && processedCameraStream.getVideoTracks().length > 0) {
-              // Usar el stream ya procesado (con background) desde el canvas de BackgroundRemoval
-              if (!processedVideoEl) {
-                processedVideoEl = document.createElement("video")
-                processedVideoEl.muted = true
-                processedVideoEl.playsInline = true
-                processedVideoEl.autoplay = true
-                processedVideoEl.style.position = "fixed"
-                processedVideoEl.style.top = "-9999px"
-                document.body.appendChild(processedVideoEl)
-              }
-              const pv = processedVideoEl
-              if (pv.srcObject !== processedCameraStream) {
-                pv.srcObject = processedCameraStream
-                pv.play().catch(() => {})
-              }
-              // Recortar cuadrado para la preview circular
+            // 3. Dibujar cámara
+            if (cameraVideoRef.current) {
+              // Guardar el área de la cámara
               ctx.save()
               ctx.beginPath()
               ctx.arc(camX + camW/2, camY + camH/2, camW/2, 0, Math.PI * 2)
               ctx.clip()
-              ctx.drawImage(pv, camX, camY, camW, camH)
-              ctx.restore()
-            } else if (cameraVideoRef.current) {
-              // Sin background: dibujar cámara raw con borde
-              ctx.fillStyle = '#ffffff'
-              ctx.fillRect(camX - 4, camY - 4, camW + 8, camH + 8)
+              
+              // Dibujar fondo del background (si aplica)
+              if (processedCameraStream && processedCameraStream.getVideoTracks().length > 0) {
+                // Si hay un background activo, usar colores sólidos como fallback
+                ctx.fillStyle = '#1e293b'
+                ctx.fillRect(camX, camY, camW, camH)
+              }
+              
+              // Dibujar cámara
               ctx.drawImage(cameraVideoRef.current, camX, camY, camW, camH)
+              
+              // Aplicar chroma-key directamente sobre los píxeles de la cámara
+              if (processedCameraStream && processedCameraStream.getVideoTracks().length > 0) {
+                const imgData = ctx.getImageData(camX, camY, camW, camH)
+                const d = imgData.data
+                for (let i = 0; i < d.length; i += 4) {
+                  const r = d[i], g = d[i+1], b = d[i+2]
+                  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+                  const isSkin = r > 80 && g > 40 && b > 20 && (max - min) > 15 && r > g && r > b
+                  if (!isSkin) {
+                    d[i] = 30; d[i+1] = 41; d[i+2] = 59; d[i+3] = 255 // color oscuro
+                  }
+                }
+                ctx.putImageData(imgData, camX, camY)
+              }
+              
+              ctx.restore()
+              
+              // Borde blanco del círculo
+              ctx.beginPath()
+              ctx.arc(camX + camW/2, camY + camH/2, camW/2 + 2, 0, Math.PI * 2)
+              ctx.strokeStyle = '#ffffff'
+              ctx.lineWidth = 3
+              ctx.stroke()
             }
             
             frameCount++
-            if (frameCount % 30 === 0) {
+            if (frameCount % 60 === 0) {
               console.log('[RECORDER] 🎬 Frame:', frameCount)
             }
           } catch (e) {
-            // Ignorar errores de draw durante seek
+            // Ignorar errores
           }
-        }
-        // Usar requestAnimationFrame para renderizado suave y sincronizado
-        let lastFrameTime = 0
-        const fpsInterval = 1000 / 30
-        const rafLoop = (timestamp: number) => {
-          const elapsed = timestamp - lastFrameTime
-          if (elapsed >= fpsInterval) {
-            lastFrameTime = timestamp - (elapsed % fpsInterval)
-            drawFrame()
-          }
-          if (intervalRef.current !== -1) {
-            intervalRef.current = requestAnimationFrame(rafLoop) as unknown as number
-          }
-        }
-        intervalRef.current = -1 // Señal: estamos en modo rAF
-        requestAnimationFrame(rafLoop)
-        
-        // Capturar stream del canvas
+        }// Capturar stream del canvas
         const canvasStream = canvas.captureStream(30)
         console.log('[RECORDER] ✅ Canvas stream capturado:', canvasStream.getVideoTracks().length, 'tracks')
         
