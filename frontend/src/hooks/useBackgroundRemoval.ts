@@ -65,7 +65,7 @@ export function useBackgroundRemoval() {
         segmenterRef.current = await SelfieSegmenter.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath:
-              'https://storage.googleapis.com/mediapipe-assets/selfie_segmentation_landscape.tflite',
+              'https://storage.googleapis.com/mediapipe-models/selfie_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite',
             delegate: 'GPU',
           },
           runningMode: 'VIDEO',
@@ -112,7 +112,7 @@ export function useBackgroundRemoval() {
     let img = bgImageRef.current
     if (!img || img.dataset.src !== src) {
       img = new Image()
-      img.crossOrigin = 'anonymous'
+      // img.crossOrigin deleted - same origin
       img.src = src
       img.dataset.src = src
       bgImageRef.current = img
@@ -153,66 +153,77 @@ export function useBackgroundRemoval() {
       // === MediaPipe ML SEGMENTATION ===
       try {
         const result = segmenterRef.current.segment(video, { timestamp: Date.now() })
-        const confArr = result.confidenceMasks?.[0]?.getAsFloat32Array?.() ?? result.categoryMask.getAsFloat32Array()
-        const mw = result.categoryMask.width
-        const mh = result.categoryMask.height
-        const mc = document.createElement("canvas")
-        mc.width = w; mc.height = h
-        const mctx = mc.getContext("2d")!
-        const imgData = mctx.createImageData(w, h)
-        const px = imgData.data
-        const sx = w / mw; const sy = h / mh
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const mi = Math.floor(y / sy) * mw + Math.floor(x / sx)
-            const isBg = confArr[mi] > 0.5
-            const val = isBg ? 0 : 255
-            const pi = (y * w + x) * 4
-            px[pi] = val; px[pi+1] = val; px[pi+2] = val; px[pi+3] = 255
-          }
+        const mask = result.categoryMask
+            // imageData removed - mask applied differently
+        const maskData = mask.getAsFloat32Array()
+        // pixels = imageData.data
+
+        // Draw background first
+        if (bg.mode === 'image' && bg.image) {
+          drawBgImage(ctx, w, h, bg.image)
+        } else if (bg.color) {
+          ctx.fillStyle = bg.color
+          ctx.fillRect(0, 0, w, h)
         }
-        mctx.putImageData(imgData, 0, 0)
-        if (bg.mode === "image" && bg.image) { drawBgImage(ctx, w, h, bg.image) }
-        else if (bg.color) { ctx.fillStyle = bg.color; ctx.fillRect(0, 0, w, h) }
-        const pc = document.createElement("canvas")
-        pc.width = w; pc.height = h
-        const pctx = pc.getContext("2d")!
-        pctx.drawImage(video, 0, 0, w, h)
-        pctx.globalCompositeOperation = "destination-in"
-        pctx.drawImage(mc, 0, 0)
-        pctx.globalCompositeOperation = "source-over"
-        ctx.drawImage(pc, 0, 0)
+
+        // Composite video with mask
+        const videoCanvas = document.createElement('canvas')
+        videoCanvas.width = w
+        videoCanvas.height = h
+        const vCtx = videoCanvas.getContext('2d')!
+        vCtx.drawImage(video, 0, 0, w, h)
+        const videoData = vCtx.getImageData(0, 0, w, h).data
+
+        const outputData = ctx.getImageData(0, 0, w, h)
+        const out = outputData.data
+
+        const threshold = 0.5
+        for (let i = 0; i < maskData.length; i++) {
+          const confidence = maskData[i]
+          if (confidence > threshold) {
+            // Person pixel → show video
+            const idx = i * 4
+            out[idx] = videoData[idx]
+            out[idx + 1] = videoData[idx + 1]
+            out[idx + 2] = videoData[idx + 2]
+            out[idx + 3] = 255
+          }
+          // else → keep background (already drawn)
+        }
+        ctx.putImageData(outputData, 0, 0)
       } catch (err) {
+        // Fallback: just show video
         ctx.drawImage(video, 0, 0, w, h)
       }
     } else {
       // === FALLBACK: COLOR-BASED DETECTION ===
-      // 1. Draw background (image or color) FIRST
+      ctx.drawImage(video, 0, 0, w, h)
+      const bgPixels = ctx.getImageData(0, 0, w, h)
+      const bgArr = bgPixels.data
+      const d = bgPixels.data
+      
+      ctx.drawImage(video, 0, 0, w, h)
+      const combined = ctx.getImageData(0, 0, w, h)
+      const d2 = combined.data
+
+      // Draw background first
       if (bg.mode === 'image' && bg.image) {
         drawBgImage(ctx, w, h, bg.image)
       } else if (bg.color) {
         ctx.fillStyle = bg.color
         ctx.fillRect(0, 0, w, h)
       }
-      
-      // 2. SAVE background pixels BEFORE drawing video
-      const bgPixels = ctx.getImageData(0, 0, w, h)
-      const bgPixel = bgPixels.data
-      
-      // 3. Draw video on top
-      ctx.drawImage(video, 0, 0, w, h)
-      
-      // 4. Get combined pixels (video on top of background)
-      const combined = ctx.getImageData(0, 0, w, h)
-      const d = combined.data
-      
-      // 5. For non-skin pixels, show background instead of video
+
+      // Simple chroma-key: detect non-skin pixels in the video
       for (let i = 0; i < d.length; i += 4) {
         const r = d[i], g = d[i+1], b = d[i+2]
-        const max = Math.max(r, g, b), min = Math.min(r, g, b)
-        const isSkin = r > 60 && g > 25 && b > 15 && (max) > 50 && r > g * 0.7 && r > b * 0.6 || (r > 30 && g > 20 && b > 15 && max > 80 && max - min > 20)
-        if (!isSkin) {
-          d[i] = bgPixel[i]; d[i+1] = bgPixel[i+1]; d[i+2] = bgPixel[i+2]; d[i+3] = 255
+        const max = Math.max(r, g, b)
+        const isSkin = (r > 60 && g > 25 && b > 15 && max > 50 && r > g * 0.65 && r > b * 0.55) || (r > 40 && g > 20 && b > 15 && max > 80 && r > g * 0.6)
+        if (isSkin) {
+          // Show original video pixel
+          d2[i] = bgArr[i]; d2[i+1] = bgArr[i+1]; d2[i+2] = bgArr[i+2]; d2[i+3] = 255
+        } else {
+          d[i+3] = 0 // Transparent → shows background
         }
       }
       ctx.putImageData(combined, 0, 0)
