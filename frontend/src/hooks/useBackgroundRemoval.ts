@@ -207,7 +207,7 @@ export function useBackgroundRemoval() {
       
       // 2. SAVE background pixels BEFORE drawing video
       const bgPixels = ctx.getImageData(0, 0, w, h)
-      const bg = bgPixels.data
+      const bgPixel = bgPixels.data
       
       // 3. Draw video on top
       ctx.drawImage(video, 0, 0, w, h)
@@ -222,7 +222,7 @@ export function useBackgroundRemoval() {
         const max = Math.max(r, g, b), min = Math.min(r, g, b)
         const isSkin = r > 80 && g > 40 && b > 20 && (max - min) > 15 && r > g && r > b
         if (!isSkin) {
-          d[i] = bg[i]; d[i+1] = bg[i+1]; d[i+2] = bg[i+2]; d[i+3] = 255
+          d[i] = bgPixel[i]; d[i+1] = bgPixel[i+1]; d[i+2] = bgPixel[i+2]; d[i+3] = 255
         }
       }
       ctx.putImageData(combined, 0, 0)
