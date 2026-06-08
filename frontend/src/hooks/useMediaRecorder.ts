@@ -51,7 +51,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
 
   const cleanup = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+    if (intervalRef.current) { cancelAnimationFrame(intervalRef.current); intervalRef.current = null }
     if (mediaRecorderRef.current?.state !== 'inactive') { try { mediaRecorderRef.current?.stop() } catch (e) {} }
     
     streamsRef.current.screen?.getTracks().forEach(t => t.stop())
@@ -229,8 +229,22 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
           } catch (e) {
             // Ignorar errores de draw durante seek
           }
-        }// Usar setInterval para asegurar frames constantes
-        intervalRef.current = window.setInterval(drawFrame, 1000 / 30) // 30 FPS
+        }
+        // Usar requestAnimationFrame para renderizado suave y sincronizado
+        let lastFrameTime = 0
+        const fpsInterval = 1000 / 30
+        const rafLoop = (timestamp: number) => {
+          const elapsed = timestamp - lastFrameTime
+          if (elapsed >= fpsInterval) {
+            lastFrameTime = timestamp - (elapsed % fpsInterval)
+            drawFrame()
+          }
+          if (intervalRef.current !== -1) {
+            intervalRef.current = requestAnimationFrame(rafLoop) as unknown as number
+          }
+        }
+        intervalRef.current = -1 // Señal: estamos en modo rAF
+        requestAnimationFrame(rafLoop)
         
         // Capturar stream del canvas
         const canvasStream = canvas.captureStream(30)
@@ -303,7 +317,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
 
       recorder.onstop = () => {
         console.log('[RECORDER] ⏹️ Grabación detenida, chunks:', chunksRef.current.length)
-        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+        if (intervalRef.current) { cancelAnimationFrame(intervalRef.current); intervalRef.current = null }
         if (chunksRef.current.length > 0) {
           const blob = new Blob(chunksRef.current, { type: mimeType })
           console.log('[RECORDER] 🎬 Blob final:', blob.size, 'bytes')
@@ -352,7 +366,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
 
   const stopRecording = useCallback(() => {
     console.log('[RECORDER] ⏹️ Deteniendo...')
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+    if (intervalRef.current) { cancelAnimationFrame(intervalRef.current); intervalRef.current = null }
     if (mediaRecorderRef.current?.state !== 'inactive') {
       mediaRecorderRef.current?.stop()
     }
