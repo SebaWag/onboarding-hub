@@ -227,10 +227,10 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
                     bgImageCached.crossOrigin = 'anonymous'
                     bgImageCached.src = background.image
                     bgImageCached.dataset.src = background.image
-                    bgImageCachedLoaded = false
-                    bgImageCached.onload = () => { bgImageCachedLoaded = true }
+                    bgImageLoaded = false
+                    bgImageCached.onload = () => { bgImageLoaded = true }
                   }
-                  if (bgImageCachedLoaded) {
+                  if (bgImageLoaded) {
                     ctx.save()
                     ctx.beginPath()
                     ctx.arc(camX + camW/2, camY + camH/2, camW/2, 0, Math.PI * 2)
