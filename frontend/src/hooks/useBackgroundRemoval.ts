@@ -52,7 +52,9 @@ export function useBackgroundRemoval() {
       setModelLoading(true)
       try {
         // Dynamic import of MediaPipe Tasks Vision
-        const { SelfieSegmenter, FilesetResolver } = await import(
+        const visionModule = await import('@mediapipe/tasks-vision')
+        const SelfieSegmenter = (visionModule as any).SelfieSegmenter
+        const { FilesetResolver } = await import(
           '@mediapipe/tasks-vision'
         )
         if (cancelled) return
@@ -154,7 +156,7 @@ export function useBackgroundRemoval() {
         const mask = result.categoryMask
         const imageData = ctx.getImageData(0, 0, w, h)
         const maskData = mask.getAsFloat32Array()
-        const pixels = imageData.data
+        // pixels = imageData.data
 
         // Draw background first
         if (bg.mode === 'image' && bg.image) {

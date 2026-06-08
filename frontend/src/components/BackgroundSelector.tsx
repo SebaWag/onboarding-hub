@@ -1,4 +1,4 @@
-import { X, Check, Camera, Sparkles, Image as ImageIcon } from 'lucide-react'
+import { X, Check, Camera, Sparkles } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { BACKGROUNDS } from '../hooks/useBackgroundRemoval'
 import type { BackgroundOption } from '../hooks/useBackgroundRemoval'
