@@ -74,7 +74,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
 
   useEffect(() => { return () => { cleanup() } }, [cleanup])
 
-  const startRecording = useCallback(async (mode: RecordingMode = 'screen-camera'): Promise<boolean> => {
+  const startRecording = useCallback(async (mode: RecordingMode, processedCameraStream?: MediaStream | null): Promise<boolean> => {
     try {
       cleanup()
       
@@ -185,6 +185,12 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
             // Fondo: pantalla
             ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
             
+            // Si hay processedStream (background), usarlo; si no, usar cámara raw
+            const camSource = processedCameraStream && processedCameraStream.getVideoTracks().length > 0
+              ? processedCameraStream
+              : null
+            const camVideoEl = cameraVideoRef.current
+            
             // Cámara en esquina inferior derecha
             const camW = 400
             const camH = 300
@@ -196,7 +202,17 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
             ctx.fillRect(camX - 4, camY - 4, camW + 8, camH + 8)
             
             // Cámara
-            ctx.drawImage(cameraVideo, camX, camY, camW, camH)
+            if (camSource && camSource !== cameraStream) {
+              const pVideo = document.createElement("video")
+              pVideo.srcObject = camSource
+              pVideo.muted = true
+              pVideo.playsInline = true
+              pVideo.autoplay = true
+              ctx.drawImage(pVideo, camX, camY, camW, camH)
+              setTimeout(() => { try { pVideo.play() } catch(e) {} }, 100)
+            } else if (camVideoEl) {
+              ctx.drawImage(camVideoEl, camX, camY, camW, camH)
+            }
             
             frameCount++
             if (frameCount % 30 === 0) {
