@@ -27,7 +27,7 @@ export default function Studio() {
   const [micEnabled, setMicEnabled] = useState(true)
   const [activeTab, setActiveTab] = useState('record')
   const [bgSelectorOpen, setBgSelectorOpen] = useState(false)
-  const [previewCameraStream, setPreviewCameraStream] = useState<MediaStream | null>(null); void setPreviewCameraStream
+  const [cameraPreviewStream, setCameraPreviewStream] = useState<MediaStream | null>(null)
   const { processedStream, isModelReady, background, changeBackground, startBackgroundRemoval } = useBackgroundRemoval()
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
   const [videos, setVideos] = useState<VideoItem[]>([])
@@ -66,20 +66,35 @@ export default function Studio() {
     let mode: RecordingMode = 'screen-camera'
     if (screenEnabled && !cameraEnabled) mode = 'screen'
     else if (!screenEnabled && cameraEnabled) mode = 'camera'
-    // Obtener cámara ANTES de grabar si hay background activo
-    if (background.mode !== 'none' && !processedStream) {
+
+    // Determinar qué stream de cámara usar (con o sin background)
+    let cameraStreamForRecording: MediaStream | null = null
+
+    if (background.mode !== 'none') {
       try {
-        const cam = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480, facingMode: 'user' },
-          audio: false
-        })
-        const bg = await startBackgroundRemoval(cam)
-        if (bg) setPreviewCameraStream(bg)
+        // Si ya hay un processedStream del hook, usarlo directo
+        if (processedStream) {
+          cameraStreamForRecording = processedStream
+        } else {
+          // Obtener cámara fresh e iniciar background processing
+          const cam = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480, facingMode: 'user' },
+            audio: false
+          })
+          // startBackgroundRemoval retorna el stream procesado DIRECTAMENTE
+          // (no esperamos al estado de React que puede no estar actualizado)
+          const bgStream = await startBackgroundRemoval(cam)
+          if (bgStream) {
+            cameraStreamForRecording = bgStream
+            setCameraPreviewStream(bgStream)
+          }
+        }
       } catch (e) {
-        console.warn('No se pudo obtener cámara para background:', e)
+        console.warn('[Studio] No se pudo obtener cámara con background:', e)
       }
     }
-    await startRecording(mode, processedStream || previewCameraStream)
+
+    await startRecording(mode, cameraStreamForRecording)
   }
 
   const handleUploadRecording = async (blob: Blob) => {
@@ -203,7 +218,7 @@ export default function Studio() {
                 {cameraEnabled && (
                   <div className="absolute bottom-4 right-4 w-28 h-28 z-10">
                     <div className="w-full h-full rounded-full overflow-hidden border-[3px] border-white/30 shadow-2xl">
-                      <CameraPreview stream={previewCameraStream || cameraStream} enabled={cameraEnabled} processedStream={processedStream} background={background} isBgReady={isModelReady} className="w-full h-full" />
+                      <CameraPreview stream={cameraPreviewStream || cameraStream} enabled={cameraEnabled} processedStream={processedStream} background={background} className="w-full h-full" />
                     </div>
                   </div>
                 )}
@@ -366,7 +381,7 @@ export default function Studio() {
         isModelReady={isModelReady}
         onSelect={(option) => {
           changeBackground(option)
-          const streamToUse = previewCameraStream || cameraStream
+          const streamToUse = cameraPreviewStream || cameraStream
           if (option.mode !== "none" && streamToUse) {
             startBackgroundRemoval(streamToUse)
           }

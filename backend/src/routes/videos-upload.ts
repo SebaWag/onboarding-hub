@@ -76,7 +76,7 @@ router.post('/upload', authenticate, upload.single('video'), async (req: AuthReq
       `INSERT INTO videos (org_id, title, description, storage_key, duration_seconds, metadata, created_by, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'ready')
        RETURNING *`,
-      [orgId, title, description, storageKey, Math.floor(file.size / 100000), JSON.stringify(metadata), userId]
+      [orgId, title, description, storageKey, parseInt(req.body.duration_seconds) || Math.floor(file.size / 1000000) || 0, JSON.stringify(metadata), userId]
     );
 
     const video = result.rows[0];
