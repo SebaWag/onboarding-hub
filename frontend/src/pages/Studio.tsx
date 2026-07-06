@@ -97,6 +97,27 @@ export default function Studio() {
     await startRecording(mode, cameraStreamForRecording)
   }
 
+
+  const getVideoDuration = (blob: Blob): Promise<number> => {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(blob)
+      const video = document.createElement('video')
+      video.preload = 'metadata'
+      video.onloadedmetadata = () => {
+        const dur = video.duration
+        URL.revokeObjectURL(url)
+        video.remove()
+        resolve(Math.round(dur))
+      }
+      video.onerror = () => {
+        URL.revokeObjectURL(url)
+        video.remove()
+        resolve(0)
+      }
+      video.src = url
+    })
+  }
+
   const handleUploadRecording = async (blob: Blob) => {
     setUploadStatus('uploading')
     try {
