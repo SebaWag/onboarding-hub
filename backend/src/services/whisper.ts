@@ -44,7 +44,7 @@ class WhisperService {
         -F "temperature_inc=0.2" \
         -F "response_format=verbose_json"`
 
-      const resultRaw = execSync(curlCmd, { maxBuffer: 50 * 1024 * 1024, timeout: 300000 }).toString()
+      const resultRaw = execSync(curlCmd, { maxBuffer: 50 * 1024 * 1024, timeout: 600000 }).toString()
       const result = JSON.parse(resultRaw)
 
       console.log('Transcription complete:', result.text?.length || 0, 'chars')

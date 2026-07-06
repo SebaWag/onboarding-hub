@@ -100,9 +100,13 @@ export default function Studio() {
   const handleUploadRecording = async (blob: Blob) => {
     setUploadStatus('uploading')
     try {
+      // Calcular duracion REAL desde el blob (el timer de React se desincroniza en background)
+      const actualDuration = await getVideoDuration(blob)
+      console.log('[UPLOAD] Duracion real:', actualDuration, 's | Timer decia:', recordingTime, 's')
+
       const formData = new FormData()
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-      formData.append("duration_seconds", String(recordingTime))
+      formData.append("duration_seconds", String(actualDuration))
       formData.append("video", blob, 'recording-' + timestamp + '.webm');
       formData.append('title', 'Grabacion ' + new Date().toLocaleString())
       const token = localStorage.getItem('auth_token')
