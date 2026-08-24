@@ -21,6 +21,9 @@
   <a href="https://github.com/SebaWag/onboarding-hub/blob/main/CONTRIBUTING.md">
     <img src="https://img.shields.io/badge/Contributions-Welcome-0d9488?style=for-the-badge" alt="Contributions Welcome">
   </a>
+  <a href="https://github.com/SebaWag/onboarding-hub/actions">
+    <img src="https://img.shields.io/github/actions/workflow/status/SebaWag/onboarding-hub/ci.yml?style=for-the-badge&color=0d9488" alt="CI">
+  </a>
 </p>
 
 ---
