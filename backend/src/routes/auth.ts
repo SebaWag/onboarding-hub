@@ -4,10 +4,9 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import { query } from '../db';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
+import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/env';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'onboarding-hub-secret';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 // POST /api/auth/register
 router.post('/register', async (req: AuthRequest, res: Response) => {

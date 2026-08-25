@@ -11,6 +11,7 @@ import {
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { SEAWEEDFS_ACCESS_KEY, SEAWEEDFS_SECRET_KEY } from '../config/env';
 
 // =====================================================
 // SeaweedFS Storage Service (S3-compatible)
@@ -32,8 +33,8 @@ const s3Client = new S3Client({
   endpoint: `http://${process.env.SEAWEEDFS_ENDPOINT || 'localhost'}:${process.env.SEAWEEDFS_PORT || '8333'}`,
   region: 'us-east-1',
   credentials: {
-    accessKeyId: process.env.SEAWEEDFS_ACCESS_KEY || 'minioadmin',
-    secretAccessKey: process.env.SEAWEEDFS_SECRET_KEY || 'minioadmin123',
+    accessKeyId: SEAWEEDFS_ACCESS_KEY,
+    secretAccessKey: SEAWEEDFS_SECRET_KEY,
   },
   forcePathStyle: true,
 });

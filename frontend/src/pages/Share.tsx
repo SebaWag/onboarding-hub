@@ -170,29 +170,13 @@ export default function Share() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  // Construir URL del video a través del proxy
+  // Construir URL del video.
+  // El proxy /api/storage ahora exige autenticacion; esta pagina es publica
+  // (viewers de share links no tienen sesion), por lo que usamos la
+  // stream_url absoluta que entrega el backend (SEAWEEDFS_PUBLIC_URL).
   const getVideoSrc = () => {
     if (!video) return ''
-    // Si stream_url es una URL absoluta de SeaweedFS, extraer el storage_key y usar el proxy
-    if (video.stream_url) {
-      try {
-        const url = new URL(video.stream_url)
-        // Extraer path después del bucket name (ej: /onboarding-hub/videos/org/file.webm)
-        const pathParts = url.pathname.split('/')
-        // Remover el primer slash vacío y el bucket name
-        const keyParts = pathParts.slice(2) // skip empty + bucket
-        if (keyParts.length > 0) {
-          return `/api/storage/${keyParts.join('/')}`
-        }
-      } catch {
-        // Si no es URL válida, puede ser ya un path relativo
-        if (video.stream_url.startsWith('/api/')) {
-          return video.stream_url
-        }
-        return `/api/storage/${video.stream_url}`
-      }
-    }
-    return ''
+    return video.stream_url || ''
   }
 
   if (isLoading) {
