@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { AuthRequest } from '../types';
 import { authenticate } from '../middleware/auth';
-import { getFileStream, BUCKET_NAME } from '../services/storage';
+import { getFileStream } from '../services/storage';
 
 const router = Router();
 

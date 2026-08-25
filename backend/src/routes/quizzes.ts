@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import { query } from '../db';
+import { internalError } from '../utils/http';
 
 const router = Router();
 
@@ -41,7 +42,7 @@ router.get('/content/:contentId', authenticate, async (req: AuthRequest, res: Re
 
     res.json({ success: true, data: result.rows[0] });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -113,7 +114,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({ success: true, data: result.rows[0] });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -230,7 +231,7 @@ router.post('/:id/submit', authenticate, async (req: AuthRequest, res: Response)
       }
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 

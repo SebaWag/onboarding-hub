@@ -3,13 +3,14 @@ import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import { query } from '../db';
 import { chatWithContext, analyzeVideo, analyzeImage } from '../services/ai/mimo-provider';
+import { internalError } from '../utils/http';
 
 const router = Router();
 
 // POST /api/chat - Chat con IA contextual
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { message, conversation_id, module_id } = req.body;
+    const { message, conversation_id,  } = req.body;
     const userId = req.user!.id;
 
     if (!message) {
@@ -82,7 +83,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (err: any) {
     console.error('Chat error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -111,7 +112,7 @@ Cuando analices un video:
     });
   } catch (err: any) {
     console.error('Video analysis error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -133,7 +134,7 @@ router.post('/image', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (err: any) {
     console.error('Image analysis error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -152,7 +153,7 @@ router.get('/conversations', authenticate, async (req: AuthRequest, res: Respons
 
     res.json({ success: true, data: result.rows });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -169,7 +170,7 @@ router.get('/conversations/:id/messages', authenticate, async (req: AuthRequest,
 
     res.json({ success: true, data: result.rows });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 

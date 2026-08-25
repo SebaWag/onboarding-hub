@@ -34,7 +34,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 
     const result = await query(sql, params);
     res.json({ success: true, data: result.rows });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener flujos' });
   }
 });
@@ -66,7 +66,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     flow.checklists = checklistsResult.rows;
 
     res.json({ success: true, data: flow });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener flujo' });
   }
 });
@@ -81,7 +81,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       [name, description, role_type, program_id, estimated_days || 30, req.user!.id, branching_rules || {}, auto_assign_rule || {}, metadata || {}]
     );
     res.status(201).json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al crear flujo' });
   }
 });
@@ -105,7 +105,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, error: 'Flujo no encontrado' });
     }
     res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al actualizar flujo' });
   }
 });
@@ -116,7 +116,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     await query('DELETE FROM onboarding_flows WHERE id = $1', [id]);
     res.json({ success: true, message: 'Flujo eliminado' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al eliminar flujo' });
   }
 });
@@ -171,7 +171,7 @@ router.post('/from-template/:templateId', authenticate, async (req: AuthRequest,
     flow.steps = stepsResult.rows;
 
     res.status(201).json({ success: true, data: flow });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al crear flujo desde template' });
   }
 });
@@ -198,7 +198,7 @@ router.post('/:flowId/steps', authenticate, async (req: AuthRequest, res: Respon
       [flowId, name, description, nextOrder, step_type || 'task', module_id, content_id, is_required !== false, estimated_hours, branch_logic || {}]
     );
     res.status(201).json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al agregar paso' });
   }
 });
@@ -220,7 +220,7 @@ router.put('/steps/:stepId', authenticate, async (req: AuthRequest, res: Respons
       return res.status(404).json({ success: false, error: 'Paso no encontrado' });
     }
     res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al actualizar paso' });
   }
 });
@@ -231,7 +231,7 @@ router.delete('/steps/:stepId', authenticate, async (req: AuthRequest, res: Resp
     const { stepId } = req.params;
     await query('DELETE FROM flow_steps WHERE id = $1', [stepId]);
     res.json({ success: true, message: 'Paso eliminado' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al eliminar paso' });
   }
 });
@@ -251,7 +251,7 @@ router.post('/steps/:stepId/dependencies', authenticate, async (req: AuthRequest
       [stepId, depends_on_step_id, dependency_type || 'completion', min_score]
     );
     res.status(201).json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al agregar dependencia' });
   }
 });
@@ -266,7 +266,7 @@ router.get('/steps/:stepId/dependencies', authenticate, async (req: AuthRequest,
       [stepId]
     );
     res.json({ success: true, data: result.rows });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener dependencias' });
   }
 });
@@ -347,7 +347,7 @@ router.get('/:flowId/progress', authenticate, async (req: AuthRequest, res: Resp
     progress.steps = stepsProgressResult.rows;
 
     res.json({ success: true, data: progress });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener progreso' });
   }
 });
@@ -457,7 +457,7 @@ router.get('/checklists/:checklistId', authenticate, async (req: AuthRequest, re
       : 0;
 
     res.json({ success: true, data: checklist });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener checklist' });
   }
 });
@@ -479,7 +479,7 @@ router.post('/checklists/items/:itemId/complete', authenticate, async (req: Auth
     );
 
     res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al completar item' });
   }
 });
@@ -498,7 +498,7 @@ router.post('/approvals', authenticate, async (req: AuthRequest, res: Response) 
       [approval_type, reference_id, reference_type, req.user!.id, approver_id, comments]
     );
     res.status(201).json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al solicitar aprobación' });
   }
 });
@@ -513,7 +513,7 @@ router.get('/approvals/pending', authenticate, async (req: AuthRequest, res: Res
       [req.user!.id]
     );
     res.json({ success: true, data: result.rows });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener aprobaciones' });
   }
 });
@@ -539,7 +539,7 @@ router.put('/approvals/:approvalId', authenticate, async (req: AuthRequest, res:
     }
 
     res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al procesar aprobación' });
   }
 });
@@ -563,7 +563,7 @@ router.get('/templates/list', authenticate, async (req: AuthRequest, res: Respon
 
     const result = await query(sql, params);
     res.json({ success: true, data: result.rows });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener templates' });
   }
 });
@@ -600,7 +600,7 @@ router.get('/metrics/overview', authenticate, async (req: AuthRequest, res: Resp
         pending_approvals: parseInt(pendingApprovals.rows[0].total)
       }
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener métricas' });
   }
 });
@@ -617,7 +617,7 @@ router.get('/metrics/users', authenticate, async (req: AuthRequest, res: Respons
        ORDER BY ufp.progress_percentage DESC`
     );
     res.json({ success: true, data: result.rows });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener métricas de usuarios' });
   }
 });

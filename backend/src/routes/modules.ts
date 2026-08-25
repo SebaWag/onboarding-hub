@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { query } from '../db';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
+import { internalError } from '../utils/http';
 
 const router = Router();
 
@@ -37,7 +38,7 @@ router.get('/program/:programId', authenticate, async (req: AuthRequest, res: Re
     res.json({ success: true, data: modules });
   } catch (err: any) {
     console.error('Modules fetch error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -66,7 +67,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     res.status(201).json({ success: true, data: result.rows[0] });
   } catch (err: any) {
     console.error('Create module error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -92,7 +93,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: result.rows[0] });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -103,7 +104,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     await query('DELETE FROM modules WHERE id = $1', [id]);
     res.json({ success: true, message: 'Module deleted' });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 

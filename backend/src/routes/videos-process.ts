@@ -114,7 +114,7 @@ router.post('/:id/process', authenticate, async (req: AuthRequest, res: Response
       );
       // Cleanup
       if (fs.existsSync(videoPath)) {
-        try { fs.unlinkSync(videoPath); } catch (e) {}
+        try { fs.unlinkSync(videoPath); } catch {}
       }
       throw error;
     }

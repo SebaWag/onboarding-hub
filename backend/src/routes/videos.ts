@@ -5,6 +5,7 @@ import { query } from '../db';
 import { uploadBuffer, getFileBuffer } from '../services/storage';
 import fs from 'fs';
 import { execSync } from 'child_process';
+import { internalError } from '../utils/http';
 
 const router = Router();
 
@@ -60,7 +61,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: result.rows });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -116,7 +117,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     );
 
     res.status(201).json({ success: true, data: result.rows[0] });
-  } catch (err: any) {
+  } catch {
   }
 });
 
@@ -166,7 +167,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: result.rows[0] });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -200,7 +201,7 @@ router.post('/:id/thumbnail', authenticate, async (req: AuthRequest, res: Respon
     
     res.json({ success: true, data: { thumbnail_url: result.url } });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -216,7 +217,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     await query("DELETE FROM videos WHERE id = $1", [id]);
     res.json({ success: true, message: "Video deleted" });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -251,6 +252,6 @@ router.post("/:id/generate-thumbnail", authenticate, async (req: AuthRequest, re
     
     res.json({ success: true, data: { thumbnail_url: result.url } });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
