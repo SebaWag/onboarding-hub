@@ -8,6 +8,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { errorHandler } from './middleware/errorHandler';
+import { APP_VERSION } from './config/env';
+import pool from './db';
 import healthRoutes from './routes/health';
 import authRoutes from './routes/auth';
 import chatRoutes from './routes/chat';
@@ -78,7 +80,7 @@ app.use('/api/users', usersRoutes);
 app.get('/', (req, res) => {
   res.json({
     name: 'OnboardingHub API',
-    version: '1.4.0',
+    version: APP_VERSION,
     status: 'running',
     services: {
       whisper: process.env.WHISPER_URL || 'http://localhost:8178',
@@ -109,10 +111,10 @@ app.get('/', (req, res) => {
 app.use(errorHandler);
 
 // Start
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`
   ╔═══════════════════════════════════════════╗
-  ║         OnboardingHub API v1.4          ║
+  ║         OnboardingHub API                ║
   ║         Port: ${PORT}                        ║
   ╠═══════════════════════════════════════════╣
   ║  Services:                                ║
@@ -120,11 +122,23 @@ app.listen(PORT, () => {
   ║  • SeaweedFS: ${(SEAWEEDFS_ENDPOINT + ':' + SEAWEEDFS_PORT).substring(0, 28)}
   ║  • MiMo: ${(process.env.MIMO_BASE_URL || 'https://api.xiaomimimo.com/v1').substring(0, 30)}
   ╠═══════════════════════════════════════════╣
-  ║  New in v1.4:                             ║
-  ║  • SeaweedFS migration complete          ║
-  ║  • S3-compatible storage client          ║
   ╚═══════════════════════════════════════════╝
   `);
 });
+
+// Graceful shutdown: drena conexiones HTTP y cierra el pool de PG.
+const shutdown = (signal: string): void => {
+  console.log(`\n${signal} recibido: cerrando servidor...`);
+  server.close(() => {
+    pool.end().then(() => {
+      console.log('Servidor y pool cerrados limpiamente.');
+      process.exit(0);
+    });
+  });
+  // Force-kill si algo cuelga el drenaje
+  setTimeout(() => process.exit(1), 10_000).unref();
+};
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 export default app;

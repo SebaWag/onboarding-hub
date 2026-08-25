@@ -9,6 +9,7 @@ import { AuthRequest } from '../types';
 import { query } from '../db';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadStream, getPublicUrl } from '../services/storage';
+import { internalError } from '../utils/http';
 
 const router = Router();
 
@@ -43,7 +44,7 @@ const upload = multer({
 // POST /api/videos/upload - Upload video file
 router.post('/upload', authenticate, upload.single('video'), async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description } = req.body;
+    const { title } = req.body;
     const file = req.file;
     const userId = req.user!.id;
 
@@ -93,7 +94,13 @@ router.post('/upload', authenticate, upload.single('video'), async (req: AuthReq
       `INSERT INTO videos (org_id, title, description, storage_key, duration_seconds, metadata, created_by, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'ready')
        RETURNING *`,
-      [orgId, title, description, storageKey, parseInt(req.body.duration_seconds) || Math.floor(file.size / 1000000) || 0, JSON.stringify(metadata), userId]
+      [
+        // Duracion real si el cliente la envia; NUNCA inventarla desde el
+        // tamano del archivo (corrompia metricas de analytics).
+        parseInt(req.body.duration_seconds, 10) || 0,
+        JSON.stringify(metadata),
+        userId,
+      ]
     );
 
     const video = result.rows[0];
@@ -104,7 +111,7 @@ router.post('/upload', authenticate, upload.single('video'), async (req: AuthReq
     });
   } catch (err: any) {
     console.error('Upload error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -140,7 +147,7 @@ router.get('/:id/stream', authenticate, async (req: AuthRequest, res: Response) 
       },
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -165,7 +172,7 @@ router.get('/:id/file', authenticate, async (req: AuthRequest, res: Response) =>
     // Redirect to SeaweedFS public URL
     res.redirect(publicUrl);
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -220,7 +227,7 @@ router.post('/:id/share', authenticate, async (req: AuthRequest, res: Response) 
       },
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -259,7 +266,7 @@ router.get('/:id/shares', authenticate, async (req: AuthRequest, res: Response) 
       })),
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -328,7 +335,7 @@ router.post('/share/:token', async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -418,7 +425,7 @@ INSTRUCCIONES:
     });
   } catch (err: any) {
     console.error("Chat error:", err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
