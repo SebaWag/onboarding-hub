@@ -50,8 +50,12 @@ export default function Share() {
   const fetchVideo = async (pwd?: string) => {
     try {
       setIsLoading(true)
-      const url = pwd ? `/api/videos/share/${token}?password=${pwd}` : `/api/videos/share/${token}`
-      const response = await fetch(url)
+      // La contrasena viaja en el BODY del POST (nunca en query string)
+      const response = await fetch(`/api/videos/share/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pwd ? { password: pwd } : {}),
+      })
       const data = await response.json()
       if (!response.ok) {
         if (data.requires_password) {
