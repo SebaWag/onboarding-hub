@@ -99,8 +99,9 @@ services:
       DATABASE_URL: postgresql://admin:${POSTGRES_PASSWORD}@postgres:5432/onboarding_hub
       REDIS_URL: redis://redis:6379/2
       REDIS_PREFIX: 'oh:'
-      SEAWEEDFS_ENDPOINT: host.docker.internal
-      SEAWEEDFS_PORT: '9000'
+      # DNS interno del filer dentro de onboarding-net (puerto S3 del filer)
+      SEAWEEDFS_ENDPOINT: seaweedfs-filer
+      SEAWEEDFS_PORT: '8333'
       SEAWEEDFS_ACCESS_KEY: admin
       SEAWEEDFS_SECRET_KEY: ${SEAWEEDFS_SECRET_KEY}
       SEAWEEDFS_BUCKET: onboarding-hub

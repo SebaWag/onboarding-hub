@@ -1,0 +1,18 @@
+# SeaweedFS Filer configuration
+# https://github.com/seaweedfs/seaweedfs/wiki/Filer-Server-API
+#
+# Este archivo define la configuración del filer montado por docker-compose.
+# Sin secciones activas, SeaweedFS usa sus defaults (metadata store local
+# leveldb2 sobre el volumen /data del contenedor), que es suficiente para
+# un despliegue de un solo nodo como el de este proyecto.
+#
+# Si necesitas metadata store externo (MySQL/Redis/Cassandra...), agrega la
+# sección correspondiente según la wiki. Ejemplo:
+#
+# [mysql]
+# enabled = true
+# hostname = "mysql-host"
+# port = 3306
+# username = "user"
+# password = "CHANGE_ME"
+# database = "seaweedfs"

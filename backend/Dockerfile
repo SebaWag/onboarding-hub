@@ -26,10 +26,9 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 # Copy built files from builder
+# NOTA: no copiar .env a la imagen - las variables las inyecta docker-compose
+# via environment:/env_file: en runtime.
 COPY --from=builder /app/dist ./dist
-
-# Copy .env file (will be overridden by docker-compose env_file)
-COPY .env .env
 
 EXPOSE 4001
 
