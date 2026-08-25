@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
@@ -128,7 +129,7 @@ router.get('/:id/stream', authenticate, async (req: AuthRequest, res: Response) 
 });
 
 // GET /api/videos/:id/file - Serve video file (proxy through backend)
-router.get('/:id/file', async (req: AuthRequest, res: Response) => {
+router.get('/:id/file', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -180,11 +181,14 @@ router.post('/:id/share', authenticate, async (req: AuthRequest, res: Response) 
 
     const shareToken = uuidv4().replace(/-/g, '').substring(0, 16);
 
+    // Hashear la contrasena del share (nunca almacenar en texto plano)
+    const passwordHash = password ? await bcrypt.hash(password, 12) : null;
+
     const result = await query(
       `INSERT INTO video_shares (video_id, share_token, is_public, expires_at, password_hash, allowed_emails, created_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [id, shareToken, is_public !== false, expires_at || null, password || null, allowed_emails ? JSON.stringify(allowed_emails) : null, userId]
+      [id, shareToken, is_public !== false, expires_at || null, passwordHash, allowed_emails ? JSON.stringify(allowed_emails) : null, userId]
     );
 
     const share = result.rows[0];
@@ -269,9 +273,17 @@ router.get('/share/:token', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    if (share.password_hash && share.password_hash !== password) {
-      res.status(401).json({ success: false, error: 'Contrasena requerida', requires_password: true });
-      return;
+    const providedPassword = typeof password === 'string' ? password : undefined;
+
+    if (share.password_hash) {
+      const validPassword = providedPassword
+        ? await bcrypt.compare(providedPassword, share.password_hash)
+        : false;
+
+      if (!validPassword) {
+        res.status(401).json({ success: false, error: 'Contrasena requerida', requires_password: true });
+        return;
+      }
     }
 
     await query(
