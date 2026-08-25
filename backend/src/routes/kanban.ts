@@ -1,4 +1,7 @@
 import { Router, Response } from 'express';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import multer from 'multer';
 import { query } from '../db';
 import { authenticate } from '../middleware/auth';
@@ -8,8 +11,21 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+
+// Multer escribe a disco temporal; el buffer se lee y elimina al subir.
+const tempUploadBuffer = (file: Express.Multer.File): Buffer => {
+  const buf = fs.readFileSync(file.path);
+  fs.unlink(file.path, () => {});
+  return buf;
+};
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (_req, file, cb) => {
+      cb(null, `upload-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`);
+    },
+  }),
   limits: { fileSize: 20 * 1024 * 1024 }
 });
 
@@ -521,7 +537,7 @@ router.post('/cards/:cardId/attachments', authenticate, upload.single('file'), a
     const fileName = `kanban/${cardId}/${uuidv4()}-${file.originalname}`;
 
     // Upload using SeaweedFS (S3-compatible)
-    const uploadResult = await uploadBuffer(file.buffer, fileName, file.mimetype);
+    const uploadResult = await uploadBuffer(tempUploadBuffer(file), fileName, file.mimetype);
 
     // Save attachment metadata to database (using minio_path column for compatibility)
     const result = await query(

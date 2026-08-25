@@ -1,4 +1,7 @@
 import { Router, Response } from 'express';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import multer from 'multer';
 import { query } from '../db';
 import { authenticate } from '../middleware/auth';
@@ -8,8 +11,21 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+
+// Multer escribe a disco temporal; el buffer se lee y elimina al subir.
+const tempUploadBuffer = (file: Express.Multer.File): Buffer => {
+  const buf = fs.readFileSync(file.path);
+  fs.unlink(file.path, () => {});
+  return buf;
+};
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (_req, file, cb) => {
+      cb(null, `upload-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`);
+    },
+  }),
   limits: { fileSize: 50 * 1024 * 1024 }
 });
 
@@ -93,7 +109,7 @@ router.post('/:id/upload', authenticate, upload.single('file'), async (req: Auth
     const templateResult = await query('SELECT * FROM corporate_templates WHERE id = $1', [id]);
     if (templateResult.rows.length === 0) return res.status(404).json({ success: false, error: 'Template no encontrado' });
     const fileName = 'templates/' + id + '/' + uuidv4() + '-' + file.originalname;
-    await uploadBuffer(file.buffer, fileName, file.mimetype);
+    await uploadBuffer(tempUploadBuffer(file), fileName, file.mimetype);
     await query('UPDATE corporate_templates SET minio_path = $1, updated_at = NOW() WHERE id = $2', [fileName, id]);
     const versionResult = await query('INSERT INTO template_versions (template_id, version_number, minio_path, created_by) VALUES ($1, (SELECT COALESCE(MAX(version_number), 0) + 1 FROM template_versions WHERE template_id = $1), $2, $3) RETURNING *', [id, fileName, req.user!.id]);
     await query('UPDATE corporate_templates SET version = version + 1, updated_at = NOW() WHERE id = $1', [id]);

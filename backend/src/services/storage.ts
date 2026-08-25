@@ -29,8 +29,9 @@ interface PresignedUrl {
 }
 
 // S3 Client configuration for SeaweedFS
+const USE_SSL = process.env.SEAWEEDFS_USE_SSL === 'true';
 const s3Client = new S3Client({
-  endpoint: `http://${process.env.SEAWEEDFS_ENDPOINT || 'localhost'}:${process.env.SEAWEEDFS_PORT || '8333'}`,
+  endpoint: `${USE_SSL ? 'https' : 'http'}://${process.env.SEAWEEDFS_ENDPOINT || 'localhost'}:${process.env.SEAWEEDFS_PORT || '8333'}`,
   region: 'us-east-1',
   credentials: {
     accessKeyId: SEAWEEDFS_ACCESS_KEY,
@@ -72,6 +73,34 @@ export async function uploadBuffer(
   } catch (error: any) {
     console.error('Upload error:', error);
     throw new Error(`Failed to upload file: ${error.message}`);
+  }
+}
+
+/**
+ * Sube un stream (ej: archivo temporal de multer) sin cargarlo completo en RAM.
+ */
+export async function uploadStream(
+  stream: NodeJS.ReadableStream,
+  contentLength: number,
+  key: string,
+  contentType: string
+): Promise<UploadResult> {
+  try {
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: stream as any,
+        ContentType: contentType,
+        ContentLength: contentLength,
+      })
+    );
+
+    console.log(`Stream upload successful: ${key} (${contentLength} bytes)`);
+    return { key, url: getPublicUrl(key), size: contentLength };
+  } catch (error: any) {
+    console.error('Stream upload error:', error);
+    throw new Error(`Failed to stream-upload file: ${error.message}`);
   }
 }
 

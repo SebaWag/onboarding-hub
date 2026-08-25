@@ -1,16 +1,26 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import multer from 'multer';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import { query } from '../db';
 import { v4 as uuidv4 } from 'uuid';
-import { uploadBuffer, getPublicUrl } from '../services/storage';
+import { uploadStream, getPublicUrl } from '../services/storage';
 
 const router = Router();
 
 const upload = multer({
-  storage: multer.memoryStorage(),
+  // Los videos pueden pesar GBs: se escriben a disco temporal y se streamean
+  // a SeaweedFS. Nunca se cargan completos en RAM.
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (_req, file, cb) => {
+      cb(null, `upload-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname) || '.webm'}`);
+    },
+  }),
   limits: {
     fileSize: 2 * 1024 * 1024 * 1024,
   },
@@ -60,9 +70,15 @@ router.post('/upload', authenticate, upload.single('video'), async (req: AuthReq
     const fileExtension = file.originalname.endsWith('.webm') ? 'webm' : 'mp4';
     const storageKey = `videos/${orgId}/${Date.now()}.${fileExtension}`;
 
-    // Upload to SeaweedFS
+    // Stream directo desde el archivo temporal hacia SeaweedFS
     console.log('[UPLOAD] Subiendo a SeaweedFS:', storageKey, '(' + file.size + ' bytes)');
-    const uploadResult = await uploadBuffer(file.buffer, storageKey, file.mimetype);
+    let uploadResult;
+    try {
+      const stream = fs.createReadStream(file.path);
+      uploadResult = await uploadStream(stream, file.size, storageKey, file.mimetype);
+    } finally {
+      fs.unlink(file.path, () => {}); // limpieza del temp siempre
+    }
     console.log('[UPLOAD] Subido exitosamente:', uploadResult.url);
 
     const metadata = {
@@ -247,11 +263,13 @@ router.get('/:id/shares', authenticate, async (req: AuthRequest, res: Response) 
   }
 });
 
-// GET /api/share/:token - Public endpoint to access shared video
-router.get('/share/:token', async (req: AuthRequest, res: Response) => {
+// POST /api/videos/share/:token - Public endpoint to access shared video.
+// La contrasena va en el BODY (POST), no en query string, para que no
+// quede registrada en logs de acceso/proxies.
+router.post('/share/:token', async (req: AuthRequest, res: Response) => {
   try {
     const { token } = req.params;
-    const { password } = req.query;
+    const { password } = req.body ?? {};
 
     const shareResult = await query(
       `SELECT vs.*, v.title, v.description, v.storage_key, v.duration_seconds, v.transcript, v.metadata, v.thumbnail_url

@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { query } from '../db';
@@ -8,8 +9,25 @@ import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/env';
 
 const router = Router();
 
+// Rate limiting por IP para frenar fuerza bruta y abuso de registro.
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Demasiados intentos de login. Espera un minuto.' },
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Demasiados registros desde esta IP. Espera un minuto.' },
+});
+
 // POST /api/auth/register
-router.post('/register', async (req: AuthRequest, res: Response) => {
+router.post('/register', registerLimiter, async (req: AuthRequest, res: Response) => {
   try {
     const { email, password, name, department, position } = req.body;
 
@@ -46,7 +64,7 @@ router.post('/register', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req: AuthRequest, res: Response) => {
+router.post('/login', loginLimiter, async (req: AuthRequest, res: Response) => {
   try {
     const { email, password } = req.body;
 
