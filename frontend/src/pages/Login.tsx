@@ -32,7 +32,7 @@ export default function Login() {
       } else {
         setError(data.error || 'Error de autenticacion')
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexion')
     } finally {
       setIsLoading(false)

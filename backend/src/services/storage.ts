@@ -153,7 +153,7 @@ export async function uploadVideoFromFile(
   orgId: string
 ): Promise<UploadResult> {
   const extension = path.extname(filePath);
-  const key = `videos/${orgId}/${uuidv4()}${extension}`;
+  const _key = `videos/${orgId}/${uuidv4()}${extension}`;
   return uploadFile(filePath, `videos/${orgId}`);
 }
 
@@ -317,7 +317,7 @@ export async function getFileInfo(key: string): Promise<{
       lastModified: response.LastModified || new Date(),
       contentType: response.ContentType || 'application/octet-stream',
     };
-  } catch (error: any) {
+  } catch {
     throw new Error(`File not found: ${key}`);
   }
 }
