@@ -7,7 +7,7 @@ import {
   ArrowLeft, AlertCircle, CheckCircle2, Reply, Trash2,
   Zap
 } from 'lucide-react'
-import { cn } from '../lib/utils'
+import { cn, mediaProxyUrl } from '../lib/utils'
 
 // ============ TYPES ============
 interface VideoData {
@@ -567,7 +567,7 @@ export default function VideoDetail() {
   // ============ GET DATA ============
   const chapters: Chapter[] = video?.metadata?.chapters || []
   const segments: TranscriptSegment[] = video?.transcript_segments || []
-  const videoSrc = video?.storage_key ? `/api/storage/${video.storage_key}` : streamUrl
+  const videoSrc = video?.storage_key ? mediaProxyUrl(video.storage_key) : streamUrl
 
   // ============ LOADING / ERROR ============
   if (loading) {

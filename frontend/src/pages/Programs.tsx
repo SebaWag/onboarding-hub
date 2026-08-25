@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Search, Grid3X3, List, Loader2, X, Eye, ChevronRight, Play, Film, FolderOpen, PlusCircle, Trash2, Link as LinkIcon } from 'lucide-react'
-import { cn } from '../lib/utils'
+import { cn, mediaProxyUrl } from '../lib/utils'
 import { useNavigate } from 'react-router-dom'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api'
@@ -298,7 +298,7 @@ export default function Programs() {
               <h3 className="text-lg font-semibold text-white">{playingVideo.title}</h3>
               <button onClick={() => setPlayingVideo(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
             </div>
-            <video ref={videoRef} key={playingVideo.storageKey} className="w-full rounded-xl" controls autoPlay src={`/api/storage/${playingVideo.storageKey}`}>Tu navegador no soporta video.</video>
+            <video ref={videoRef} key={playingVideo.storageKey} className="w-full rounded-xl" controls autoPlay src={mediaProxyUrl(playingVideo.storageKey)}>Tu navegador no soporta video.</video>
           </div>
         </div>
       )}

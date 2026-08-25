@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Mic, MicOff, Monitor, Camera, Circle, Square, Pause, Play, Sparkles, Upload, ChevronRight, Wand2, Film, Clock, RefreshCw, X } from 'lucide-react'
-import { cn } from '../lib/utils'
+import { cn, mediaProxyUrl } from '../lib/utils'
 import { useMediaRecorder } from '../hooks/useMediaRecorder'
 import type { RecordingMode } from '../hooks/useMediaRecorder'
 import CameraPreview from '../components/CameraPreview'
@@ -57,7 +57,7 @@ export default function Studio() {
 
   const getVideoUrl = (video: VideoItem): string => {
     const key = video.storage_key || video.metadata?.storage_key
-    if (key) return '/api/storage/' + key
+    if (key) return mediaProxyUrl(key)
     return ''
   }
 
