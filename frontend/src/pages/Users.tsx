@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Users as UsersIcon, Search, Mail, UserPlus, X, Video, MessageSquare, Loader2 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
 
 interface User { id: string; name: string; email: string; role: string; department?: string; position?: string; avatar_url?: string; hire_date?: string; last_login?: string; is_active: boolean; org_role: string; videos: number; questions: number; last_active: string; org_name?: string }
@@ -29,16 +30,16 @@ export default function Users() {
       if (searchQuery) params.append('search', searchQuery)
       if (selectedRole !== 'all') params.append('role', selectedRole)
       if (statusFilter !== 'all') params.append('status', statusFilter)
-      const data = await api.get<any>(`/users?${params}`)
-      setUsers(data.success ? data.data : [])
-    } catch (err: any) { console.error('Fetch users error:', err); setError(err.message) }
+      const data = await api.get<ApiResponse<User[]>>(`/users?${params}`)
+      setUsers(data.success && data.data ? data.data : [])
+    } catch (err) { console.error('Fetch users error:', err); setError(err instanceof Error ? err.message : 'Error cargando usuarios') }
     finally { setLoading(false) }
   }
 
   const fetchStats = async () => {
     try {
-      const data = await api.get<any>('/users/stats/summary')
-      setStats(data.success ? data.data : null)
+      const data = await api.get<ApiResponse<UserStats>>('/users/stats/summary')
+      setStats(data.success && data.data ? data.data : null)
     } catch (err) { console.error('Stats error:', err) }
   }
 

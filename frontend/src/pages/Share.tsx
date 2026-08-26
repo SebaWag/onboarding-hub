@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { api, ApiError } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
 interface VideoData {
   id: string
@@ -53,7 +54,11 @@ export default function Share() {
       setIsLoading(true)
       // La contrasena viaja en el BODY del POST (nunca en query string).
       // Endpoint publico: el cliente no envia token aunque exista sesion.
-      const data = await api.post<any>(`/videos/share/${token}`, pwd ? { password: pwd } : {})
+      const data = await api.post<ApiResponse<{ video: VideoData }>>(`/videos/share/${token}`, pwd ? { password: pwd } : {})
+      if (!data.data) {
+        setError('Respuesta invalida del servidor')
+        return
+      }
       setVideo(data.data.video)
       setRequiresPassword(false)
       setMessages([{
@@ -87,12 +92,13 @@ export default function Share() {
     setInput('')
     setIsChatLoading(true)
     try {
-      const data = await api.post<any>(`/videos/${video.id}/chat`, { message: input.trim() })
-      if (data.success) {
+      const data = await api.post<ApiResponse<{ response: string }>>(`/videos/${video.id}/chat`, { message: input.trim() })
+      if (data.success && data.data) {
+        const assistantText = data.data.response
         setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: data.data.response,
+          content: assistantText,
         }])
       }
     } catch {

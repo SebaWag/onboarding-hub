@@ -22,7 +22,7 @@ export default function Kanban() {
   ])
   const [showModal, setShowModal] = useState(false)
   const [selectedColumn, setSelectedColumn] = useState<string>('')
-  const [newCard, setNewCard] = useState({ title: '', description: '', priority: 'medium' as const, assigned_name: '', due_date: '' })
+  const [newCard, setNewCard] = useState<{ title: string; description: string; priority: Card['priority']; assigned_name: string; due_date: string }>({ title: '', description: '', priority: 'medium', assigned_name: '', due_date: '' })
 
   const addCard = () => {
     if (!newCard.title || !selectedColumn) return
@@ -116,7 +116,7 @@ export default function Kanban() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Prioridad</label>
-                  <select value={newCard.priority} onChange={e => setNewCard({...newCard, priority: e.target.value as any})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500">
+                  <select value={newCard.priority} onChange={e => setNewCard({...newCard, priority: e.target.value as Card['priority']})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500">
                     <option value="low">Baja</option>
                     <option value="medium">Media</option>
                     <option value="high">Alta</option>

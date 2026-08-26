@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Video, Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { api, ApiError } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -18,9 +19,9 @@ export default function Login() {
     setIsLoading(true)
     
     try {
-      const data = await api.post<any>(isLogin ? '/auth/login' : '/auth/register', formData)
+      const data = await api.post<ApiResponse<{ token: string; user: Record<string, unknown> }>>(isLogin ? '/auth/login' : '/auth/register', formData)
 
-      if (data.success) {
+      if (data.success && data.data) {
         localStorage.setItem('auth_token', data.data.token)
         localStorage.setItem('user', JSON.stringify(data.data.user))
         navigate('/')

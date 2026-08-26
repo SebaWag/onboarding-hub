@@ -19,7 +19,7 @@ interface VideoData {
   duration_seconds: number
   transcript: string | null
   transcript_segments: TranscriptSegment[] | null
-  metadata: any
+  metadata: Record<string, unknown>
   status: string
   created_by: string
   created_by_name: string
@@ -75,6 +75,9 @@ const apiFetch = async (url: string, options: RequestInit = {}) => {
   } else if (body !== undefined) {
     parsedBody = body
   }
+  // DEUDA (Grupo C): contrato historico del wrapper devuelve JSON crudo;
+  // migrar sus call sites a api.* tipadas.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return apiRequest<any>(url.replace(/^\/api/, ''), {
     method: method as RequestOptions['method'],
     body: parsedBody,
@@ -144,7 +147,7 @@ export default function VideoDetail() {
         if (!videoRes.success) throw new Error(videoRes.error)
 
         const listRes = await apiFetch('/api/videos')
-        const videoData = listRes.data?.find((v: any) => v.id === id)
+        const videoData = listRes.data?.find((v: { id?: string }) => v.id === id)
 
         if (videoData) {
           setVideo(videoData)
@@ -155,8 +158,8 @@ export default function VideoDetail() {
         if (videoRes.data.chapters?.length > 0) {
           setVideo(prev => prev ? { ...prev, metadata: { ...prev.metadata, chapters: videoRes.data.chapters } } : prev)
         }
-      } catch (err: any) {
-        setError(err.message)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error')
       } finally {
         setLoading(false)
       }
@@ -321,11 +324,12 @@ export default function VideoDetail() {
       } else {
         throw new Error(res.error)
       }
-    } catch (err: any) {
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : 'error desconocido'
       setMessages(prev => [...prev, {
         id: 'transcription-error',
         role: 'assistant',
-        content: `Error al transcribir: ${err.message}. Verifica que el servicio Whisper esté activo.`,
+        content: `Error al transcribir: ${detail}. Verifica que el servicio Whisper esté activo.`,
         timestamp: currentTime,
       }])
     } finally {
@@ -389,12 +393,12 @@ export default function VideoDetail() {
       } else {
         throw new Error(res.error)
       }
-    } catch (err: any) {
+    } catch (err) {
       setMessages(prev => prev.filter(m => m.id !== 'loading'))
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Error al procesar tu pregunta: ${err.message}`,
+        content: `Error al procesar tu pregunta: ${err instanceof Error ? err.message : 'error desconocido'}`,
         timestamp: currentTime,
       }])
     } finally {
@@ -559,7 +563,7 @@ export default function VideoDetail() {
   }
 
   // ============ GET DATA ============
-  const chapters: Chapter[] = video?.metadata?.chapters || []
+  const chapters: Chapter[] = (video?.metadata?.chapters as Chapter[] | undefined) ?? []
   const segments: TranscriptSegment[] = video?.transcript_segments || []
   const videoSrc = video?.storage_key ? mediaProxyUrl(video.storage_key) : streamUrl
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Film, Clock, Play, RefreshCw, Search, Grid, List as ListIcon, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
 interface VideoItem {
   id: string
@@ -13,7 +14,7 @@ interface VideoItem {
   created_by_name: string
   transcript: string | null
   storage_key?: string
-  metadata?: any
+  metadata?: Record<string, unknown>
 }
 
 export default function Library() {
@@ -29,7 +30,7 @@ export default function Library() {
   const fetchVideos = async () => {
     setLoading(true)
     try {
-      const data = await api.get<any>('/videos')
+      const data = await api.get<ApiResponse<VideoItem[]>>('/videos')
       setVideos(data.data || [])
     } catch (error) {
       console.error('Error fetching videos:', error)

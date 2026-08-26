@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BarChart3, Users, Eye, Clock, MessageSquare, ArrowUpRight, ArrowDownRight, Sparkles, Download, Loader2, PlayCircle } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
 
 interface OverviewStats { total_users: number; active_users: number; active_programs: number; total_videos: number; total_views: number; flows_in_progress: number; flows_completed: number }
@@ -24,21 +25,26 @@ export default function Analytics() {
     try {
       setLoading(true); setError(null)
       const [overviewData, videosData, weeklyJson] = await Promise.all([
-        api.get<any>('/analytics/overview'),
-        api.get<any>('/analytics/videos'),
-        api.get<any>('/analytics/weekly'),
+        api.get<ApiResponse<OverviewStats>>('/analytics/overview'),
+        api.get<ApiResponse<{ top_videos?: VideoMetric[] }>>('/analytics/videos'),
+        api.get<ApiResponse<WeeklyData[]>>('/analytics/weekly'),
       ])
-      setOverview(overviewData.success ? overviewData.data : null)
-      setTopVideos(videosData.success ? (videosData.data.top_videos || []) : [])
-      setWeeklyData(weeklyJson.success ? weeklyJson.data : [])
-      generateInsights(overviewData.data, videosData.data, weeklyJson.data)
-    } catch (err: any) { console.error('Analytics fetch error:', err); setError(err.message) }
+      const overview = overviewData.success && overviewData.data ? overviewData.data : null
+      const videos = videosData.success && videosData.data ? videosData.data : { top_videos: [] }
+      const weekly = weeklyJson.success && weeklyJson.data ? weeklyJson.data : []
+      setOverview(overview)
+      setTopVideos(videos.top_videos || [])
+      setWeeklyData(weekly)
+      generateInsights(overview, videos, weekly)
+    } catch (err) { console.error('Analytics fetch error:', err); setError(err instanceof Error ? err.message : 'Error cargando datos') }
     finally { setLoading(false) }
   }
 
-  const generateInsights = (overviewData: OverviewStats | null, videosData: any, weeklyData: WeeklyData[]) => {
+  interface VideosResponse { top_videos?: VideoMetric[] }
+const generateInsights = (overviewData: OverviewStats | null, videosData: VideosResponse, weeklyData: WeeklyData[]) => {
     const newInsights: Insight[] = []
-    if (videosData?.top_videos?.length > 0) newInsights.push({ type: 'violet', text: `${videosData.top_videos[0].title || 'Tu video'} es tu tutorial más visto.` })
+    const topVideos = videosData.top_videos ?? []
+    if (topVideos.length > 0) newInsights.push({ type: 'violet', text: `${topVideos[0].title || 'Tu video'} es tu tutorial más visto.` })
     if (overviewData && overviewData.active_programs > 0) newInsights.push({ type: 'emerald', text: `Tienes ${overviewData.active_programs} programas activos con ${overviewData.total_videos} videos.` })
     if (weeklyData && weeklyData.length > 0) { const total = weeklyData.reduce((sum, d) => sum + (d.views || 0), 0); if (total > 0) newInsights.push({ type: 'amber', text: `Esta semana se han visto ${total} videos.` }) }
     if (overviewData && overviewData.total_users > overviewData.active_users) newInsights.push({ type: 'rose', text: `${overviewData.total_users - overviewData.active_users} usuarios no han iniciado sesión.` })

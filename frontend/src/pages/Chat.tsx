@@ -30,6 +30,9 @@ const apiFetch = async (url: string, options: RequestInit = {}) => {
   } else if (body !== undefined) {
     parsedBody = body
   }
+  // DEUDA (Grupo C): contrato historico del wrapper devuelve JSON crudo;
+  // migrar sus call sites a api.* tipadas.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return apiRequest<any>(url.replace(/^\/api/, ''), {
     method: method as RequestOptions['method'],
     body: parsedBody,
@@ -82,7 +85,8 @@ export default function Chat() {
     try {
       const res = await apiFetch(`/api/chat/conversations/${convId}/messages`)
       if (res.success && res.data) {
-        const loaded: Message[] = res.data.map((m: any) => ({
+        interface RawMessage { id: string; role: string; content: string; created_at: string }
+        const loaded: Message[] = res.data.map((m: RawMessage) => ({
           id: m.id,
           role: m.role,
           content: m.content,
@@ -161,12 +165,12 @@ export default function Chat() {
       } else {
         throw new Error(res.error)
       }
-    } catch (err: any) {
+    } catch (err) {
       setMessages(prev => prev.filter(m => m.id !== 'loading'))
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Error: ${err.message}. Verifica que la API de MiMo esté configurada correctamente.`,
+        content: `Error: ${err instanceof Error ? err.message : 'fallo de red'}. Verifica que la API de MiMo esté configurada correctamente.`,
         timestamp: new Date(),
       }])
     } finally {

@@ -10,6 +10,13 @@
  *   (excepto en /share, que es publica).
  */
 
+/** Envelope estandar de la API: { success, data?, error? } */
+export interface ApiResponse<T = unknown> {
+  success: boolean
+  data?: T
+  error?: string
+}
+
 export class ApiError extends Error {
   readonly status: number
   readonly data: unknown

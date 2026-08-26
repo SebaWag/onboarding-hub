@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
 
 interface DashboardStats {
@@ -57,18 +58,18 @@ export default function Dashboard() {
       setError(null)
 
       const [overviewData, weeklyJson, userJson] = await Promise.all([
-        api.get<any>('/analytics/overview'),
-        api.get<any>('/analytics/weekly'),
-        api.get<any>('/auth/me'),
+        api.get<ApiResponse<DashboardStats>>('/analytics/overview'),
+        api.get<ApiResponse<WeeklyData[]>>('/analytics/weekly'),
+        api.get<ApiResponse<User>>('/auth/me'),
       ])
 
-      setStats(overviewData.success ? overviewData.data : null)
+      setStats(overviewData.success && overviewData.data ? overviewData.data : null)
       setWeeklyData(Array.isArray(weeklyJson.data) ? weeklyJson.data : [])
-      setCurrentUser(userJson.success ? userJson.data : null)
+      setCurrentUser(userJson.success && userJson.data ? userJson.data : null)
 
-    } catch (err: any) {
+    } catch (err) {
       console.error('Dashboard fetch error:', err)
-      setError(err.message)
+      setError(err instanceof Error ? err.message : 'Error cargando dashboard')
     } finally {
       setLoading(false)
     }

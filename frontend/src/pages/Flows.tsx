@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
 
 interface Flow {
@@ -34,12 +35,23 @@ interface FlowStep {
   estimated_hours: number
 }
 
+interface TemplateStep {
+  name?: string
+  title?: string
+  description?: string
+}
+
+interface TemplateData {
+  steps?: TemplateStep[]
+  checklists?: unknown[]
+}
+
 interface FlowTemplate {
   id: string
   name: string
   description: string
   role_type: string
-  template_data: any
+  template_data: TemplateData | null
 }
 
 interface Checklist {
@@ -130,12 +142,7 @@ export default function Flows() {
   const [filterRole, setFilterRole] = useState<string>('')
   const [activeTab, setActiveTab] = useState<'flows' | 'templates' | 'metrics'>('flows')
 
-  const [newFlow, setNewFlow] = useState({
-    name: '',
-    description: '',
-    role_type: 'general' as const,
-    estimated_days: 30
-  })
+  const [newFlow, setNewFlow] = useState<{ name: string; description: string; role_type: Flow['role_type']; estimated_days: number }>({ name: '', description: '', role_type: 'general', estimated_days: 30 })
 
   useEffect(() => {
     fetchFlows()
@@ -148,8 +155,8 @@ export default function Flows() {
       const params = new URLSearchParams()
       if (filterRole) params.append('role_type', filterRole)
 
-      const data = await api.get<any>(`/flows?${params}`)
-      if (data.success) setFlows(data.data)
+      const data = await api.get<ApiResponse<Flow[]>>(`/flows?${params}`)
+      if (data.success) setFlows(data.data ?? [])
     } catch (error) {
       console.error('Error fetching flows:', error)
     } finally {
@@ -159,8 +166,8 @@ export default function Flows() {
 
   const fetchTemplates = async () => {
     try {
-      const data = await api.get<any>('/flows/templates/list')
-      if (data.success) setTemplates(data.data)
+      const data = await api.get<ApiResponse<FlowTemplate[]>>('/flows/templates/list')
+      if (data.success) setTemplates(data.data ?? [])
     } catch (error) {
       console.error('Error fetching templates:', error)
     }
@@ -168,8 +175,8 @@ export default function Flows() {
 
   const fetchMetrics = async () => {
     try {
-      const data = await api.get<any>('/flows/metrics/overview')
-      if (data.success) setMetrics(data.data)
+      const data = await api.get<ApiResponse<Metrics>>('/flows/metrics/overview')
+      if (data.success) setMetrics(data.data ?? null)
     } catch (error) {
       console.error('Error fetching metrics:', error)
     }
@@ -177,8 +184,8 @@ export default function Flows() {
 
   const fetchFlowDetails = async (flowId: string) => {
     try {
-      const data = await api.get<any>(`/flows/${flowId}`)
-      if (data.success) {
+      const data = await api.get<ApiResponse<Flow>>(`/flows/${flowId}`)
+      if (data.success && data.data) {
         setSelectedFlow(data.data)
         fetchUserProgress(flowId)
       }
@@ -189,7 +196,7 @@ export default function Flows() {
 
   const fetchUserProgress = async (flowId: string) => {
     try {
-      const data = await api.get<any>(`/flows/${flowId}/progress`)
+      const data = await api.get<ApiResponse<UserProgress>>(`/flows/${flowId}/progress`)
       if (data.success && data.data) setUserProgress(data.data)
     } catch (error) {
       console.error('Error fetching progress:', error)
@@ -198,7 +205,7 @@ export default function Flows() {
 
   const createFlow = async () => {
     try {
-      const data = await api.post<any>('/flows', newFlow)
+      const data = await api.post<ApiResponse<Flow>>('/flows', newFlow)
       if (data.success) {
         fetchFlows()
         setShowCreateModal(false)
@@ -211,7 +218,7 @@ export default function Flows() {
 
   const createFromTemplate = async (templateId: string, name: string) => {
     try {
-      const data = await api.post<any>(`/flows/from-template/${templateId}`, { name })
+      const data = await api.post<ApiResponse<unknown>>(`/flows/from-template/${templateId}`, { name })
       if (data.success) {
         fetchFlows()
         setShowTemplateModal(false)
@@ -223,7 +230,7 @@ export default function Flows() {
 
   const startFlow = async (flowId: string) => {
     try {
-      const data = await api.post<any>(`/flows/${flowId}/start`)
+      const data = await api.post<ApiResponse<unknown>>(`/flows/${flowId}/start`)
       if (data.success) {
         fetchFlowDetails(flowId)
       }
@@ -234,7 +241,7 @@ export default function Flows() {
 
   const completeStep = async (stepId: string) => {
     try {
-      const data = await api.post<any>(`/flows/steps/${stepId}/complete`, { score: 100 })
+      const data = await api.post<ApiResponse<unknown>>(`/flows/steps/${stepId}/complete`, { score: 100 })
       if (data.success && selectedFlow) {
         fetchFlowDetails(selectedFlow.id)
       }
@@ -290,7 +297,7 @@ export default function Flows() {
         ].map(tab => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
+            onClick={() => setActiveTab(tab.key as 'flows' | 'templates' | 'metrics')}
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
               activeTab === tab.key
@@ -592,7 +599,7 @@ export default function Flows() {
                 <p className="text-sm text-surface-400 mb-4">{template.description}</p>
                 {template.template_data?.steps && (
                   <p className="text-xs text-surface-500 mb-4">
-                    {template.template_data.steps.length} pasos • {template.template_data.checklists?.length || 0} checklists
+                    {template.template_data.steps.length} pasos • {template.template_data.checklists?.length ?? 0} checklists
                   </p>
                 )}
                 <button
@@ -644,7 +651,7 @@ export default function Flows() {
                 <label className="block text-sm text-surface-400 mb-1">Tipo de Rol</label>
                 <select
                   value={newFlow.role_type}
-                  onChange={(e) => setNewFlow({ ...newFlow, role_type: e.target.value as any })}
+                  onChange={(e) => setNewFlow({ ...newFlow, role_type: e.target.value as Flow['role_type'] })}
                   className="input-field w-full"
                 >
                   <option value="ejecutivo">Ejecutivo</option>
@@ -701,7 +708,7 @@ export default function Flows() {
                       <div className="text-xs text-surface-500 mb-4">
                         <p className="font-medium text-surface-400 mb-1">Pasos incluidos:</p>
                         <ul className="list-disc list-inside">
-                          {template.template_data.steps.slice(0, 4).map((step: any, i: number) => (
+                          {template.template_data.steps.slice(0, 4).map((step: TemplateStep, i: number) => (
                             <li key={i}>{step.name}</li>
                           ))}
                           {template.template_data.steps.length > 4 && (
@@ -742,8 +749,8 @@ function ChecklistCard({ checklist }: { checklist: Checklist }) {
 
   const fetchChecklistItems = async () => {
     try {
-      const data = await api.get<any>(`/flows/checklists/${checklist.id}`)
-      if (data.success) {
+      const data = await api.get<ApiResponse<{ items: ChecklistItem[] }>>(`/flows/checklists/${checklist.id}`)
+      if (data.success && data.data) {
         setItems(data.data.items || [])
       }
     } catch (error) {

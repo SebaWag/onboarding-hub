@@ -4,12 +4,14 @@ import {
   Upload, Download, Search, X, Clock, User, Trash2, Eye, 
   ChevronRight, Home, FileSpreadsheet, File, Film, Type
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
 
 // Categorías con sus íconos
-const CATEGORY_CONFIG: Record<string, { icon: any; color: string; bgColor: string }> = {
+const CATEGORY_CONFIG: Record<string, { icon: LucideIcon; color: string; bgColor: string }> = {
   documents: { icon: FileText, color: '#3b82f6', bgColor: 'bg-blue-500/10' },
   spreadsheets: { icon: Table, color: '#10b981', bgColor: 'bg-emerald-500/10' },
   presentations: { icon: Presentation, color: '#f59e0b', bgColor: 'bg-amber-500/10' },
@@ -20,7 +22,7 @@ const CATEGORY_CONFIG: Record<string, { icon: any; color: string; bgColor: strin
 }
 
 // Íconos por tipo de archivo
-const FILE_TYPE_ICONS: Record<string, { icon: any; color: string }> = {
+const FILE_TYPE_ICONS: Record<string, { icon: LucideIcon; color: string }> = {
   pdf: { icon: FileText, color: 'text-rose-400' },
   docx: { icon: Type, color: 'text-blue-400' },
   doc: { icon: Type, color: 'text-blue-400' },
@@ -112,8 +114,8 @@ export default function Templates() {
   // Cargar categorías
   const fetchCategories = useCallback(async () => {
     try {
-      const data = await api.get<any>('/resources/categories')
-      if (data.success) {
+      const data = await api.get<ApiResponse<Category[]>>('/resources/categories')
+      if (data.success && data.data) {
         setCategories(data.data)
       }
     } catch (error) {
@@ -128,8 +130,8 @@ export default function Templates() {
       if (categoryId) params.append('category_id', categoryId)
       if (search) params.append('search', search)
 
-      const data = await api.get<any>(`/resources?${params}`)
-      if (data.success) {
+      const data = await api.get<ApiResponse<Resource[]>>(`/resources?${params}`)
+      if (data.success && data.data) {
         setResources(data.data)
       }
     } catch (error) {
@@ -140,8 +142,8 @@ export default function Templates() {
   // Cargar estadísticas
   const fetchStats = useCallback(async () => {
     try {
-      const data = await api.get<any>('/resources/stats/summary')
-      if (data.success) {
+      const data = await api.get<ApiResponse<Stats>>('/resources/stats/summary')
+      if (data.success && data.data) {
         setStats(data.data)
       }
     } catch (error) {
@@ -226,7 +228,7 @@ export default function Templates() {
       formData.append('tags', uploadForm.tags)
       formData.append('file', selectedFile)
 
-      const data = await api.upload<any>('/resources', formData)
+      const data = await api.upload<ApiResponse<Resource>>('/resources', formData)
       
       if (data.success) {
         setShowUploadModal(false)
@@ -336,7 +338,7 @@ export default function Templates() {
 
   // Obtener ícono de categoría
   const getCategoryIcon = (iconName: string) => {
-    const icons: Record<string, any> = {
+    const icons: Record<string, LucideIcon> = {
       FileText, Table, Presentation, FileArchive, Image, Receipt, Video, Folder
     }
     return icons[iconName] || Folder

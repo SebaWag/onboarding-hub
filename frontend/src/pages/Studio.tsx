@@ -10,6 +10,7 @@ import { useBackgroundRemoval } from "../hooks/useBackgroundRemoval"
 import BackgroundSelector from "../components/BackgroundSelector"
 import { ImagePlus } from "lucide-react"
 import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
 interface VideoItem {
   id: string
@@ -144,7 +145,7 @@ export default function Studio() {
   const fetchVideos = async () => {
     setLoadingVideos(true)
     try {
-      const data = await api.get<any>('/videos')
+      const data = await api.get<ApiResponse<VideoItem[]>>('/videos')
       setVideos(data.data || [])
     } catch (error) { console.error('Error fetching videos:', error) }
     setLoadingVideos(false)

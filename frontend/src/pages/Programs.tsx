@@ -3,6 +3,7 @@ import { Plus, Search, Grid3X3, List, Loader2, X, Eye, ChevronRight, Play, Film,
 import { cn, mediaProxyUrl } from '../lib/utils'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
 
 interface Program { id: string; title: string; description?: string; is_active: boolean; module_count: number; enrolled_users: number; created_at: string; created_by_name?: string }
@@ -37,8 +38,8 @@ export default function Programs() {
   const fetchPrograms = async () => {
     setLoading(true)
     try {
-      const data = await api.get<any>('/programs')
-      setPrograms(data.success ? data.data : [])
+      const data = await api.get<ApiResponse<Program[]>>('/programs')
+      setPrograms(data.success && data.data ? data.data : [])
     } catch (err) { console.error('Error:', err) }
     setLoading(false)
   }
@@ -56,8 +57,8 @@ export default function Programs() {
 
   const fetchModules = async (programId: string) => {
     try {
-      const data = await api.get<any>(`/modules/program/${programId}`)
-      setModules(data.success ? data.data : [])
+      const data = await api.get<ApiResponse<Module[]>>(`/modules/program/${programId}`)
+      setModules(data.success && data.data ? data.data : [])
     } catch (err) { console.error('Error fetching modules:', err) }
   }
 
@@ -73,8 +74,8 @@ export default function Programs() {
 
   const fetchVideos = async () => {
     try {
-      const data = await api.get<any>('/videos')
-      setVideos((data.success ? data.data : []).filter((v: Video) => v.status === 'ready'))
+      const data = await api.get<ApiResponse<Video[]>>('/videos')
+      setVideos((data.success && data.data ? data.data : []).filter((v: Video) => v.status === 'ready'))
     } catch (err) { console.error('Error:', err) }
   }
 
@@ -82,7 +83,7 @@ export default function Programs() {
     try {
       await api.post('/contents', { module_id: moduleId, type: 'video', title: video.title, video_id: video.id, duration_seconds: video.duration_seconds })
       await fetchModules(selectedProgram!.id); setShowContentModal(false)
-    } catch (err: any) { console.error('Error:', err); alert(err?.message || 'Error al agregar video') }
+    } catch (err) { console.error('Error:', err); alert(err instanceof Error ? err.message : 'Error al agregar video') }
   }
 
   const addLinkToModule = async (moduleId: string) => {
@@ -90,7 +91,7 @@ export default function Programs() {
     try {
       await api.post('/contents', { module_id: moduleId, type: 'link', title: contentForm.title, description: contentForm.description, content_url: contentForm.link_url })
       await fetchModules(selectedProgram!.id); setShowContentModal(false); setContentForm({ title: '', description: '', link_url: '' })
-    } catch (err: any) { console.error('Error:', err); alert(err?.message || 'Error al agregar enlace') }
+    } catch (err) { console.error('Error:', err); alert(err instanceof Error ? err.message : 'Error al agregar enlace') }
   }
 
   const deleteContent = async (contentId: string) => {
