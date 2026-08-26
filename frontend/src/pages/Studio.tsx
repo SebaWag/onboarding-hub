@@ -143,7 +143,7 @@ export default function Studio() {
       } else {
         setUploadStatus('error')
       }
-    } catch (error) {
+    } catch {
       setUploadStatus('error')
     }
   }

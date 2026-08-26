@@ -72,7 +72,7 @@ export default function Share() {
         role: 'assistant',
         content: `Hola! Soy MiMo, tu asistente para este tutorial sobre "${data.data.video.title}". Puedes preguntarme cualquier cosa sobre el contenido del video. En que puedo ayudarte?`,
       }])
-    } catch (err) {
+    } catch {
       setError('Error de conexion')
     } finally {
       setIsLoading(false)
@@ -107,7 +107,7 @@ export default function Share() {
           content: data.data.response,
         }])
       }
-    } catch (err) {
+    } catch {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',

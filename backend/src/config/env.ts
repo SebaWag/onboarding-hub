@@ -22,3 +22,6 @@ export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 // ALMACENAMIENTO (SeaweedFS / S3-compatible)
 export const SEAWEEDFS_ACCESS_KEY = required('SEAWEEDFS_ACCESS_KEY');
 export const SEAWEEDFS_SECRET_KEY = required('SEAWEEDFS_SECRET_KEY');
+
+// Version unica de la app (evita banners/root-endpoint desincronizados)
+export const APP_VERSION = '1.1.0';

@@ -52,7 +52,9 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
   const cleanup = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
-    if (mediaRecorderRef.current?.state !== 'inactive') { try { mediaRecorderRef.current?.stop() } catch (e) {} }
+    if (mediaRecorderRef.current?.state !== 'inactive') { try { mediaRecorderRef.current?.stop() } catch {
+          // noop: stop() sobre recorder ya inactivo
+        } }
     
     streamsRef.current.screen?.getTracks().forEach(t => t.stop())
     streamsRef.current.camera?.getTracks().forEach(t => t.stop())
@@ -94,7 +96,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
           })
           console.log('[RECORDER] ✅ Pantalla capturada')
           screenStream?.getVideoTracks()[0].addEventListener('ended', () => stopRecording())
-        } catch (err: any) {
+        } catch {
           if (mode === 'screen') throw new Error('Permiso de pantalla denegado')
           console.warn('[RECORDER] ⚠️ Sin pantalla')
         }
@@ -113,7 +115,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
             })
             console.log('[RECORDER] ✅ Cámara capturada')
           }
-        } catch (err: any) {
+        } catch {
           console.warn('[RECORDER] ⚠️ Sin cámara')
         }
       }
@@ -126,7 +128,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
           })
           console.log('[RECORDER] ✅ Micrófono capturado')
-        } catch (err: any) {
+        } catch {
           console.warn('[RECORDER] ⚠️ Sin micrófono')
         }
       }
@@ -238,7 +240,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
             if (frameCount % 60 === 0) {
               console.log('[RECORDER] 🎬 Frame:', frameCount)
             }
-          } catch (e) {
+          } catch {
             // Ignorar errores
           }
         }
@@ -413,7 +415,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
   }, [])
 
   const togglePause = useCallback(() => {
-    state.isPaused ? resumeRecording() : pauseRecording()
+    if (state.isPaused) { resumeRecording() } else { pauseRecording() }
   }, [state.isPaused, pauseRecording, resumeRecording])
 
   return {

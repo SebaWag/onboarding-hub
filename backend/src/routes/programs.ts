@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { query } from '../db';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
+import { internalError } from '../utils/http';
 
 const router = Router();
 
@@ -45,7 +46,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     res.json({ success: true, data: result.rows });
   } catch (err: any) {
     console.error('Programs list error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -83,7 +84,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     res.status(201).json({ success: true, data: result.rows[0] });
   } catch (err: any) {
     console.error('Create program error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -106,7 +107,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: result.rows[0] });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -133,7 +134,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: result.rows[0] });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -144,7 +145,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     await query('DELETE FROM programs WHERE id = $1', [id]);
     res.json({ success: true, message: 'Program deleted' });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 

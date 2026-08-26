@@ -20,4 +20,15 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      // DEUDA CONOCIDA (PR fix-p2, Grupo C): tipos any y reglas nuevas de
+      // react-hooks v7 sobre codigo heredado. Endurecer gradualmente.
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/preserve-manual-memoization': 'warn',
+    },
+  },
 ])

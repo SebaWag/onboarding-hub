@@ -6,6 +6,7 @@ import { query } from '../db';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/env';
+import { internalError } from '../utils/http';
 
 const router = Router();
 
@@ -59,7 +60,7 @@ router.post('/register', registerLimiter, async (req: AuthRequest, res: Response
 
     res.status(201).json({ success: true, data: { user, token } });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -99,10 +100,10 @@ router.post('/login', loginLimiter, async (req: AuthRequest, res: Response) => {
       { expiresIn: JWT_EXPIRES_IN } as SignOptions
     );
 
-    const { password_hash, ...userData } = user;
+    const { password_hash: _password_hash, ...userData } = user;
     res.json({ success: true, data: { user: userData, token } });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -126,7 +127,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: result.rows[0] });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 

@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
+import { execSync } from 'child_process';
 
 interface TranscriptionSegment {
   start: number
@@ -37,7 +38,6 @@ class WhisperService {
       console.log('Transcribing file:', filePath)
 
       // Use child_process to call curl - most reliable way to send multipart to whisper.cpp
-      const { execSync } = require('child_process')
       const curlCmd = `curl -s -X POST "${this.whisperUrl}/inference" \
         -F "file=@${filePath}" \
         -F "temperature=0.0" \
@@ -81,7 +81,6 @@ class WhisperService {
 
       console.log('Extracting audio from:', videoPath)
 
-      const { execSync } = require('child_process')
       execSync('ffmpeg -i "' + videoPath + '" -vn -acodec pcm_s16le -ar 16000 -ac 1 "' + audioPath + '" -y', {
         stdio: 'pipe',
         timeout: 120000,

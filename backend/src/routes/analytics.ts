@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { query } from '../db';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
+import { internalError } from '../utils/http';
 
 const router = Router();
 
@@ -58,7 +59,7 @@ router.get('/overview', authenticate, async (req: AuthRequest, res: Response) =>
     );
 
     // Para total_views usamos count de videos como proxy (no hay view_count)
-    const totalViews = totalVideos;
+    const _totalViews = totalVideos;
 
     // Flujos en progreso
     const flowsInProgress = await query(
@@ -92,7 +93,7 @@ router.get('/overview', authenticate, async (req: AuthRequest, res: Response) =>
     });
   } catch (err: any) {
     console.error('Analytics overview error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -133,7 +134,7 @@ router.get('/videos', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (err: any) {
     console.error('Analytics videos error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -167,7 +168,7 @@ router.get('/weekly', authenticate, async (req: AuthRequest, res: Response) => {
     res.json({ success: true, data: weeklyData.rows });
   } catch (err: any) {
     console.error('Analytics weekly error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
