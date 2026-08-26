@@ -9,6 +9,8 @@ import ScreenPreview from '../components/ScreenPreview'
 import { useBackgroundRemoval } from "../hooks/useBackgroundRemoval"
 import BackgroundSelector from "../components/BackgroundSelector"
 import { ImagePlus } from "lucide-react"
+import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
 interface VideoItem {
   id: string
@@ -130,19 +132,11 @@ export default function Studio() {
       formData.append("duration_seconds", String(actualDuration))
       formData.append("video", blob, 'recording-' + timestamp + '.webm');
       formData.append('title', 'Grabacion ' + new Date().toLocaleString())
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch('/api/videos/upload', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token },
-        body: formData
-      })
-      if (response.ok) {
-        setUploadStatus('success')
-        fetchVideos()
-        setTimeout(() => setUploadStatus('idle'), 3000)
-      } else {
-        setUploadStatus('error')
-      }
+      // Upload sin timeout: los videos pueden pesar GBs
+      await api.upload('/videos/upload', formData)
+      setUploadStatus('success')
+      fetchVideos()
+      setTimeout(() => setUploadStatus('idle'), 3000)
     } catch {
       setUploadStatus('error')
     }
@@ -151,12 +145,8 @@ export default function Studio() {
   const fetchVideos = async () => {
     setLoadingVideos(true)
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch('/api/videos', { headers: { 'Authorization': 'Bearer ' + token } })
-      if (response.ok) {
-        const data = await response.json()
-        setVideos(data.data || [])
-      }
+      const data = await api.get<ApiResponse<VideoItem[]>>('/videos')
+      setVideos(data.data || [])
     } catch (error) { console.error('Error fetching videos:', error) }
     setLoadingVideos(false)
   }

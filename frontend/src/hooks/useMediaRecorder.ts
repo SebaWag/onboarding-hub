@@ -331,8 +331,8 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         }
       }
 
-      recorder.onerror = (e: any) => {
-        console.error('[RECORDER] ❌ Error:', e.error)
+      recorder.onerror = (e: Event) => {
+        console.error('[RECORDER] ❌ Error:', e)
         onError?.(new Error('Error en grabación'))
       }
 
@@ -359,10 +359,11 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
       console.log('[RECORDER] 🎬 ¡GRABACIÓN INICIADA!')
       return true
       
-    } catch (err: any) {
-      console.error('[RECORDER] ❌ Error:', err.message)
-      setState(prev => ({ ...prev, permissionError: err.message }))
-      onError?.(err)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al acceder a la camara'
+      console.error('[RECORDER] ❌ Error:', message)
+      setState(prev => ({ ...prev, permissionError: message }))
+      onError?.(err instanceof Error ? err : new Error(message))
       cleanup()
       return false
     }

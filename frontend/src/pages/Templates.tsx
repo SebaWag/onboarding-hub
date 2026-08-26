@@ -4,12 +4,14 @@ import {
   Upload, Download, Search, X, Clock, User, Trash2, Eye, 
   ChevronRight, Home, FileSpreadsheet, File, Film, Type
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
-const API_URL = '/api'
 
 // Categorías con sus íconos
-const CATEGORY_CONFIG: Record<string, { icon: any; color: string; bgColor: string }> = {
+const CATEGORY_CONFIG: Record<string, { icon: LucideIcon; color: string; bgColor: string }> = {
   documents: { icon: FileText, color: '#3b82f6', bgColor: 'bg-blue-500/10' },
   spreadsheets: { icon: Table, color: '#10b981', bgColor: 'bg-emerald-500/10' },
   presentations: { icon: Presentation, color: '#f59e0b', bgColor: 'bg-amber-500/10' },
@@ -20,7 +22,7 @@ const CATEGORY_CONFIG: Record<string, { icon: any; color: string; bgColor: strin
 }
 
 // Íconos por tipo de archivo
-const FILE_TYPE_ICONS: Record<string, { icon: any; color: string }> = {
+const FILE_TYPE_ICONS: Record<string, { icon: LucideIcon; color: string }> = {
   pdf: { icon: FileText, color: 'text-rose-400' },
   docx: { icon: Type, color: 'text-blue-400' },
   doc: { icon: Type, color: 'text-blue-400' },
@@ -112,12 +114,8 @@ export default function Templates() {
   // Cargar categorías
   const fetchCategories = useCallback(async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/resources/categories`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-      if (data.success) {
+      const data = await api.get<ApiResponse<Category[]>>('/resources/categories')
+      if (data.success && data.data) {
         setCategories(data.data)
       }
     } catch (error) {
@@ -128,16 +126,12 @@ export default function Templates() {
   // Cargar recursos
   const fetchResources = useCallback(async (categoryId?: string, search?: string) => {
     try {
-      const token = localStorage.getItem('auth_token')
       const params = new URLSearchParams()
       if (categoryId) params.append('category_id', categoryId)
       if (search) params.append('search', search)
 
-      const response = await fetch(`${API_URL}/resources?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-      if (data.success) {
+      const data = await api.get<ApiResponse<Resource[]>>(`/resources?${params}`)
+      if (data.success && data.data) {
         setResources(data.data)
       }
     } catch (error) {
@@ -148,12 +142,8 @@ export default function Templates() {
   // Cargar estadísticas
   const fetchStats = useCallback(async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/resources/stats/summary`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-      if (data.success) {
+      const data = await api.get<ApiResponse<Stats>>('/resources/stats/summary')
+      if (data.success && data.data) {
         setStats(data.data)
       }
     } catch (error) {
@@ -231,7 +221,6 @@ export default function Templates() {
 
     setUploading(true)
     try {
-      const token = localStorage.getItem('auth_token')
       const formData = new FormData()
       formData.append('name', uploadForm.name)
       formData.append('description', uploadForm.description)
@@ -239,12 +228,7 @@ export default function Templates() {
       formData.append('tags', uploadForm.tags)
       formData.append('file', selectedFile)
 
-      const response = await fetch(`${API_URL}/resources`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      })
-      const data = await response.json()
+      const data = await api.upload<ApiResponse<Resource>>('/resources', formData)
       
       if (data.success) {
         setShowUploadModal(false)
@@ -273,27 +257,22 @@ export default function Templates() {
     if (!resource.storage_path) return
     
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/resources/${resource.id}/preview`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      
-      // Si es una imagen o PDF, el backend devuelve los bytes directamente
-      if (response.headers.get('content-type')?.startsWith('image/') || 
-          response.headers.get('content-type') === 'application/pdf') {
-        const blob = await response.blob()
+      // El backend responde bytes (imagen/PDF) o JSON con info segun el tipo
+      const { blob, contentType } = await api.download(`/resources/${resource.id}/preview`)
+
+      if (contentType.startsWith('image/') || contentType === 'application/pdf') {
         const url = URL.createObjectURL(blob)
-        setPreviewData({ 
-          type: response.headers.get('content-type') || resource.mime_type,
-          name: resource.name 
+        setPreviewData({
+          type: contentType || resource.mime_type,
+          name: resource.name
         })
         // Abrir en nueva ventana
         window.open(url, '_blank')
         return
       }
-      
+
       // Para otros tipos, devuelve JSON con info
-      const data = await response.json()
+      const data = contentType.includes('json') ? JSON.parse(await blob.text()) : null
       if (data.success) {
         setPreviewData(data.data)
         setShowPreviewModal(true)
@@ -309,16 +288,7 @@ export default function Templates() {
   // Descargar - obtiene el archivo y lo descarga
   const handleDownload = async (resource: Resource) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/resources/${resource.id}/download`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      
-      if (!response.ok) {
-        throw new Error('Error en la descarga')
-      }
-      
-      const blob = await response.blob()
+      const { blob } = await api.download(`/resources/${resource.id}/download`)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -338,11 +308,7 @@ export default function Templates() {
     if (!confirm(`¿Eliminar "${resource.name}"?`)) return
     
     try {
-      const token = localStorage.getItem('auth_token')
-      await fetch(`${API_URL}/resources/${resource.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+      await api.del(`/resources/${resource.id}`)
       if (selectedCategory) {
         fetchResources(selectedCategory.id)
       }
@@ -372,7 +338,7 @@ export default function Templates() {
 
   // Obtener ícono de categoría
   const getCategoryIcon = (iconName: string) => {
-    const icons: Record<string, any> = {
+    const icons: Record<string, LucideIcon> = {
       FileText, Table, Presentation, FileArchive, Image, Receipt, Video, Folder
     }
     return icons[iconName] || Folder

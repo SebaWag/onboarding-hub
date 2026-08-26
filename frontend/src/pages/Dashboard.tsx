@@ -13,8 +13,9 @@ import {
   Loader2
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
-const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 interface DashboardStats {
   total_users: number
@@ -56,38 +57,19 @@ export default function Dashboard() {
       setLoading(true)
       setError(null)
 
-      const token = localStorage.getItem('auth_token')
-      if (!token) {
-        setError('No autenticado')
-        return
-      }
-
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-
-      const [overviewRes, weeklyRes, userRes] = await Promise.all([
-        fetch(`${API_URL}/analytics/overview`, { headers }),
-        fetch(`${API_URL}/analytics/weekly`, { headers }),
-        fetch(`${API_URL}/auth/me`, { headers })
+      const [overviewData, weeklyJson, userJson] = await Promise.all([
+        api.get<ApiResponse<DashboardStats>>('/analytics/overview'),
+        api.get<ApiResponse<WeeklyData[]>>('/analytics/weekly'),
+        api.get<ApiResponse<User>>('/auth/me'),
       ])
 
-      if (!overviewRes.ok) throw new Error('Error cargando estadísticas')
-      if (!weeklyRes.ok) throw new Error('Error cargando datos semanales')
-      if (!userRes.ok) throw new Error('Error cargando usuario')
-
-      const overviewData = await overviewRes.json()
-      const weeklyJson = await weeklyRes.json()
-      const userJson = await userRes.json()
-
-      setStats(overviewData.success ? overviewData.data : null)
+      setStats(overviewData.success && overviewData.data ? overviewData.data : null)
       setWeeklyData(Array.isArray(weeklyJson.data) ? weeklyJson.data : [])
-      setCurrentUser(userJson.success ? userJson.data : null)
+      setCurrentUser(userJson.success && userJson.data ? userJson.data : null)
 
-    } catch (err: any) {
+    } catch (err) {
       console.error('Dashboard fetch error:', err)
-      setError(err.message)
+      setError(err instanceof Error ? err.message : 'Error cargando dashboard')
     } finally {
       setLoading(false)
     }

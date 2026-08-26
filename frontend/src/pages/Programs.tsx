@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { Plus, Search, Grid3X3, List, Loader2, X, Eye, ChevronRight, Play, Film, FolderOpen, PlusCircle, Trash2, Link as LinkIcon } from 'lucide-react'
 import { cn, mediaProxyUrl } from '../lib/utils'
 import { useNavigate } from 'react-router-dom'
+import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
-const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 interface Program { id: string; title: string; description?: string; is_active: boolean; module_count: number; enrolled_users: number; created_at: string; created_by_name?: string }
 interface Content { id: string; module_id: string; content_type: string; title: string; description?: string; sort_order: number; content_url?: string; video_id?: string; video_title?: string; duration_seconds?: number; video_status?: string; storage_key?: string }
@@ -36,11 +37,9 @@ export default function Programs() {
 
   const fetchPrograms = async () => {
     setLoading(true)
-    const token = localStorage.getItem('auth_token')
-    if (!token) { setLoading(false); return }
     try {
-      const response = await fetch(`${API_URL}/programs`, { headers: { 'Authorization': `Bearer ${token}` } })
-      if (response.ok) { const data = await response.json(); setPrograms(data.success ? data.data : []) }
+      const data = await api.get<ApiResponse<Program[]>>('/programs')
+      setPrograms(data.success && data.data ? data.data : [])
     } catch (err) { console.error('Error:', err) }
     setLoading(false)
   }
@@ -48,10 +47,8 @@ export default function Programs() {
   const createProgram = async () => {
     try {
       setSaving(true)
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/programs`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(formData) })
-      if (response.ok) { await fetchPrograms(); setShowCreateModal(false); setFormData({ title: '', description: '' }) }
-      else { const err = await response.json(); alert(err.error || 'Error al crear programa') }
+      await api.post('/programs', formData)
+      await fetchPrograms(); setShowCreateModal(false); setFormData({ title: '', description: '' })
     } catch (err) { console.error('Error:', err) }
     setSaving(false)
   }
@@ -59,53 +56,50 @@ export default function Programs() {
   const openProgramDetail = async (program: Program) => { setSelectedProgram(program); setShowDetailModal(true); await fetchModules(program.id) }
 
   const fetchModules = async (programId: string) => {
-    const token = localStorage.getItem('auth_token')
-    try { const response = await fetch(`${API_URL}/modules/program/${programId}`, { headers: { 'Authorization': `Bearer ${token}` } })
-      if (response.ok) { const data = await response.json(); setModules(data.success ? data.data : []) } }
-    catch (err) { console.error('Error fetching modules:', err) }
+    try {
+      const data = await api.get<ApiResponse<Module[]>>(`/modules/program/${programId}`)
+      setModules(data.success && data.data ? data.data : [])
+    } catch (err) { console.error('Error fetching modules:', err) }
   }
 
   const createModule = async () => {
     if (!selectedProgram || !moduleForm.title) return
     try {
       setSaving(true)
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/modules`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ program_id: selectedProgram.id, title: moduleForm.title, description: moduleForm.description }) })
-      if (response.ok) { await fetchModules(selectedProgram.id); setShowModuleModal(false); setModuleForm({ title: '', description: '' }) }
-      else { const err = await response.json(); alert(err.error || 'Error al crear módulo') }
+      await api.post('/modules', { program_id: selectedProgram.id, title: moduleForm.title, description: moduleForm.description })
+      await fetchModules(selectedProgram.id); setShowModuleModal(false); setModuleForm({ title: '', description: '' })
     } catch (err) { console.error('Error:', err) }
     setSaving(false)
   }
 
   const fetchVideos = async () => {
-    const token = localStorage.getItem('auth_token')
-    try { const response = await fetch(`${API_URL}/videos`, { headers: { 'Authorization': `Bearer ${token}` } })
-      if (response.ok) { const data = await response.json(); setVideos((data.success ? data.data : []).filter((v: Video) => v.status === 'ready')) } }
-    catch (err) { console.error('Error:', err) }
+    try {
+      const data = await api.get<ApiResponse<Video[]>>('/videos')
+      setVideos((data.success && data.data ? data.data : []).filter((v: Video) => v.status === 'ready'))
+    } catch (err) { console.error('Error:', err) }
   }
 
   const addVideoToModule = async (moduleId: string, video: Video) => {
-    const token = localStorage.getItem('auth_token')
-    try { const response = await fetch(`${API_URL}/contents`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ module_id: moduleId, type: 'video', title: video.title, video_id: video.id, duration_seconds: video.duration_seconds }) })
-      if (response.ok) { await fetchModules(selectedProgram!.id); setShowContentModal(false) } else { const err = await response.json(); alert(err.error || 'Error al agregar video') } }
-    catch (err) { console.error('Error:', err) }
+    try {
+      await api.post('/contents', { module_id: moduleId, type: 'video', title: video.title, video_id: video.id, duration_seconds: video.duration_seconds })
+      await fetchModules(selectedProgram!.id); setShowContentModal(false)
+    } catch (err) { console.error('Error:', err); alert(err instanceof Error ? err.message : 'Error al agregar video') }
   }
 
   const addLinkToModule = async (moduleId: string) => {
     if (!contentForm.title || !contentForm.link_url) { alert('Completa el título y la URL'); return }
-    const token = localStorage.getItem('auth_token')
-    try { const response = await fetch(`${API_URL}/contents`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ module_id: moduleId, type: 'link', title: contentForm.title, description: contentForm.description, content_url: contentForm.link_url }) })
-      if (response.ok) { await fetchModules(selectedProgram!.id); setShowContentModal(false); setContentForm({ title: '', description: '', link_url: '' }) } 
-      else { const err = await response.json(); alert(err.error || 'Error al agregar enlace') } }
-    catch (err) { console.error('Error:', err) }
+    try {
+      await api.post('/contents', { module_id: moduleId, type: 'link', title: contentForm.title, description: contentForm.description, content_url: contentForm.link_url })
+      await fetchModules(selectedProgram!.id); setShowContentModal(false); setContentForm({ title: '', description: '', link_url: '' })
+    } catch (err) { console.error('Error:', err); alert(err instanceof Error ? err.message : 'Error al agregar enlace') }
   }
 
   const deleteContent = async (contentId: string) => {
     if (!confirm('¿Eliminar este contenido?')) return
-    const token = localStorage.getItem('auth_token')
-    try { const response = await fetch(`${API_URL}/contents/${contentId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
-      if (response.ok) { await fetchModules(selectedProgram!.id) } }
-    catch (err) { console.error('Error:', err) }
+    try {
+      await api.del(`/contents/${contentId}`)
+      await fetchModules(selectedProgram!.id)
+    } catch (err) { console.error('Error:', err) }
   }
 
   const playVideo = (content: Content) => {

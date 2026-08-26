@@ -17,9 +17,11 @@ const router = Router();
  * o query param `?token=<jwt>` (para <video>, <img> y descargas,
  * que no pueden enviar headers personalizados).
  */
-router.get('/:path(*)', authenticate, async (req: AuthRequest, res: Response) => {
+// Express 5 / path-to-regexp v8: las wildcards deben ser nombradas ('/*splat').
+// El parametro 'splat' captura el resto del path incluyendo barras.
+router.get('/*splat', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const filePath = req.params.path;
+    const filePath = req.params.splat as string;
 
     // Determinar content type basado en extensión
     let contentType = 'video/webm';
