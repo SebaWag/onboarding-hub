@@ -6,8 +6,8 @@ import {
   X, ArrowRight, BarChart3, Target, Layers
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { api } from '../lib/api'
 
-const API_URL = '/api'
 
 interface Flow {
   id: string
@@ -145,14 +145,10 @@ export default function Flows() {
 
   const fetchFlows = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
       const params = new URLSearchParams()
       if (filterRole) params.append('role_type', filterRole)
 
-      const response = await fetch(`${API_URL}/flows?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
+      const data = await api.get<any>(`/flows?${params}`)
       if (data.success) setFlows(data.data)
     } catch (error) {
       console.error('Error fetching flows:', error)
@@ -163,11 +159,7 @@ export default function Flows() {
 
   const fetchTemplates = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/flows/templates/list`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
+      const data = await api.get<any>('/flows/templates/list')
       if (data.success) setTemplates(data.data)
     } catch (error) {
       console.error('Error fetching templates:', error)
@@ -176,11 +168,7 @@ export default function Flows() {
 
   const fetchMetrics = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/flows/metrics/overview`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
+      const data = await api.get<any>('/flows/metrics/overview')
       if (data.success) setMetrics(data.data)
     } catch (error) {
       console.error('Error fetching metrics:', error)
@@ -189,11 +177,7 @@ export default function Flows() {
 
   const fetchFlowDetails = async (flowId: string) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/flows/${flowId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
+      const data = await api.get<any>(`/flows/${flowId}`)
       if (data.success) {
         setSelectedFlow(data.data)
         fetchUserProgress(flowId)
@@ -205,11 +189,7 @@ export default function Flows() {
 
   const fetchUserProgress = async (flowId: string) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/flows/${flowId}/progress`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
+      const data = await api.get<any>(`/flows/${flowId}/progress`)
       if (data.success && data.data) setUserProgress(data.data)
     } catch (error) {
       console.error('Error fetching progress:', error)
@@ -218,16 +198,7 @@ export default function Flows() {
 
   const createFlow = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/flows`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newFlow)
-      })
-      const data = await response.json()
+      const data = await api.post<any>('/flows', newFlow)
       if (data.success) {
         fetchFlows()
         setShowCreateModal(false)
@@ -240,16 +211,7 @@ export default function Flows() {
 
   const createFromTemplate = async (templateId: string, name: string) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/flows/from-template/${templateId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ name })
-      })
-      const data = await response.json()
+      const data = await api.post<any>(`/flows/from-template/${templateId}`, { name })
       if (data.success) {
         fetchFlows()
         setShowTemplateModal(false)
@@ -261,12 +223,7 @@ export default function Flows() {
 
   const startFlow = async (flowId: string) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/flows/${flowId}/start`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
+      const data = await api.post<any>(`/flows/${flowId}/start`)
       if (data.success) {
         fetchFlowDetails(flowId)
       }
@@ -277,16 +234,7 @@ export default function Flows() {
 
   const completeStep = async (stepId: string) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/flows/steps/${stepId}/complete`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ score: 100 })
-      })
-      const data = await response.json()
+      const data = await api.post<any>(`/flows/steps/${stepId}/complete`, { score: 100 })
       if (data.success && selectedFlow) {
         fetchFlowDetails(selectedFlow.id)
       }
@@ -794,11 +742,7 @@ function ChecklistCard({ checklist }: { checklist: Checklist }) {
 
   const fetchChecklistItems = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/flows/checklists/${checklist.id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
+      const data = await api.get<any>(`/flows/checklists/${checklist.id}`)
       if (data.success) {
         setItems(data.data.items || [])
       }
@@ -812,15 +756,7 @@ function ChecklistCard({ checklist }: { checklist: Checklist }) {
   const toggleItem = async (itemId: string, isCompleted: boolean) => {
     if (isCompleted) return // Ya completado
     try {
-      const token = localStorage.getItem('auth_token')
-      await fetch(`${API_URL}/flows/checklists/items/${itemId}/complete`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ notes: '' })
-      })
+      await api.post(`/flows/checklists/items/${itemId}/complete`, { notes: '' })
       fetchChecklistItems()
     } catch (error) {
       console.error('Error completing item:', error)

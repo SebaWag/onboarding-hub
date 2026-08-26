@@ -8,6 +8,7 @@ import {
   Zap
 } from 'lucide-react'
 import { cn, mediaProxyUrl } from '../lib/utils'
+import { apiRequest, api, type RequestOptions } from '../lib/api'
 
 // ============ TYPES ============
 interface VideoData {
@@ -62,19 +63,23 @@ interface VideoComment {
 }
 
 // ============ API HELPERS ============
-const getToken = () => localStorage.getItem('auth_token')
 
+// Wrapper local delegado en el cliente central (mantiene firma historica)
 const apiFetch = async (url: string, options: RequestInit = {}) => {
-  const token = getToken()
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...options.headers,
-    },
+  const { method = 'GET', body, headers } = options
+  const h = { ...(headers as Record<string, string> | undefined) }
+  let parsedBody: unknown
+  if (typeof body === 'string') {
+    try { parsedBody = JSON.parse(body) } catch { parsedBody = body }
+    if (!h['Content-Type']) h['Content-Type'] = 'application/json'
+  } else if (body !== undefined) {
+    parsedBody = body
+  }
+  return apiRequest<any>(url.replace(/^\/api/, ''), {
+    method: method as RequestOptions['method'],
+    body: parsedBody,
+    headers: h,
   })
-  return res.json()
 }
 
 // ============ MAIN COMPONENT ============
@@ -534,19 +539,8 @@ export default function VideoDetail() {
     if (!id || isDownloading) return
     setIsDownloading(true)
     try {
-      const token = getToken()
-      const response = await fetch(`/api/videos/${id}/download`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
-      if (!response.ok) throw new Error('Download failed')
-
-      const blob = await response.blob()
-      const disposition = response.headers.get('Content-Disposition')
-      let filename = (video?.title || 'video') + '.webm'
-      if (disposition) {
-        const match = disposition.match(/filename\*=UTF-8''(.+)/) || disposition.match(/filename="(.+)"/)
-        if (match) filename = decodeURIComponent(match[1])
-      }
+      const { blob, filename: serverFilename } = await api.download(`/videos/${id}/download`)
+      const filename = serverFilename ?? (video?.title || 'video') + '.webm'
 
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Film, Clock, Play, RefreshCw, Search, Grid, List as ListIcon, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { api } from '../lib/api'
 
 interface VideoItem {
   id: string
@@ -28,14 +29,8 @@ export default function Library() {
   const fetchVideos = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch('/api/videos', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setVideos(data.data || [])
-      }
+      const data = await api.get<any>('/videos')
+      setVideos(data.data || [])
     } catch (error) {
       console.error('Error fetching videos:', error)
     }
@@ -55,31 +50,22 @@ export default function Library() {
   const handleDelete = async (videoId: string) => {
     if (!confirm("Seguro de eliminar este video?")) return
     try {
-      const token = localStorage.getItem("auth_token")
-      await fetch("/api/videos/" + videoId, { method: "DELETE", headers: { "Authorization": "Bearer " + token } })
+      await api.del('/videos/' + videoId)
       fetchVideos()
     } catch (e) { console.error(e) }
   }
 
   const handleGenerateThumbnail = async (videoId: string) => {
     try {
-      const token = localStorage.getItem("auth_token")
-      const res = await fetch("/api/videos/" + videoId + "/generate-thumbnail", {
-        method: "POST", headers: { "Authorization": "Bearer " + token }
-      })
-      if (res.ok) fetchVideos()
+      await api.post('/videos/' + videoId + '/generate-thumbnail')
+      fetchVideos()
     } catch (e) { console.error(e) }
   }
 
   const handleRename = async () => {
     if (!renameTarget || !newTitle.trim()) return
     try {
-      const token = localStorage.getItem("auth_token")
-      await fetch("/api/videos/" + renameTarget.id, {
-        method: "PUT",
-        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle.trim() })
-      })
+      await api.put('/videos/' + renameTarget.id, { title: newTitle.trim() })
       setRenameTarget(null); setNewTitle(""); fetchVideos()
     } catch (e) { console.error(e) }
   }

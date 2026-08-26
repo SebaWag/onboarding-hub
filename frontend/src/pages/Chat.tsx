@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Sparkles, Bot, User, Loader2, Copy, ThumbsUp, ThumbsDown, Maximize2, Minimize2, Plus, MessageSquare } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { apiRequest, type RequestOptions } from '../lib/api'
 
 interface Message {
   id: string
@@ -18,19 +19,22 @@ interface Conversation {
   message_count: number
 }
 
-const getToken = () => localStorage.getItem('auth_token')
-
+// Wrapper local delegado en el cliente central (mantiene firma historica)
 const apiFetch = async (url: string, options: RequestInit = {}) => {
-  const token = getToken()
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...options.headers,
-    },
+  const { method = 'GET', body, headers } = options
+  const h = { ...(headers as Record<string, string> | undefined) }
+  let parsedBody: unknown
+  if (typeof body === 'string') {
+    try { parsedBody = JSON.parse(body) } catch { parsedBody = body }
+    if (!h['Content-Type']) h['Content-Type'] = 'application/json'
+  } else if (body !== undefined) {
+    parsedBody = body
+  }
+  return apiRequest<any>(url.replace(/^\/api/, ''), {
+    method: method as RequestOptions['method'],
+    body: parsedBody,
+    headers: h,
   })
-  return res.json()
 }
 
 const welcomeMessage: Message = {

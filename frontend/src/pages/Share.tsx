@@ -5,6 +5,7 @@ import {
   Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { api, ApiError } from '../lib/api'
 
 interface VideoData {
   id: string
@@ -50,21 +51,9 @@ export default function Share() {
   const fetchVideo = async (pwd?: string) => {
     try {
       setIsLoading(true)
-      // La contrasena viaja en el BODY del POST (nunca en query string)
-      const response = await fetch(`/api/videos/share/${token}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pwd ? { password: pwd } : {}),
-      })
-      const data = await response.json()
-      if (!response.ok) {
-        if (data.requires_password) {
-          setRequiresPassword(true)
-        } else {
-          setError(data.error || 'Error al cargar video')
-        }
-        return
-      }
+      // La contrasena viaja en el BODY del POST (nunca en query string).
+      // Endpoint publico: el cliente no envia token aunque exista sesion.
+      const data = await api.post<any>(`/videos/share/${token}`, pwd ? { password: pwd } : {})
       setVideo(data.data.video)
       setRequiresPassword(false)
       setMessages([{
@@ -72,8 +61,12 @@ export default function Share() {
         role: 'assistant',
         content: `Hola! Soy MiMo, tu asistente para este tutorial sobre "${data.data.video.title}". Puedes preguntarme cualquier cosa sobre el contenido del video. En que puedo ayudarte?`,
       }])
-    } catch {
-      setError('Error de conexion')
+    } catch (e) {
+      if (e instanceof ApiError && (e.data as { requires_password?: boolean })?.requires_password) {
+        setRequiresPassword(true)
+      } else {
+        setError(e instanceof ApiError ? e.message : 'Error de conexion')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -94,12 +87,7 @@ export default function Share() {
     setInput('')
     setIsChatLoading(true)
     try {
-      const response = await fetch(`/api/videos/${video.id}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input.trim() }),
-      })
-      const data = await response.json()
+      const data = await api.post<any>(`/videos/${video.id}/chat`, { message: input.trim() })
       if (data.success) {
         setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),

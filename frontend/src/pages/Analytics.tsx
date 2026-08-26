@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { BarChart3, Users, Eye, Clock, MessageSquare, ArrowUpRight, ArrowDownRight, Sparkles, Download, Loader2, PlayCircle } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { api } from '../lib/api'
 
-const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 interface OverviewStats { total_users: number; active_users: number; active_programs: number; total_videos: number; total_views: number; flows_in_progress: number; flows_completed: number }
 interface VideoMetric { id: string; title: string; thumbnail_url?: string; duration_seconds: number; view_count?: number; content_title?: string; module_title?: string; created_at?: string }
@@ -23,18 +23,11 @@ export default function Analytics() {
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true); setError(null)
-      const token = localStorage.getItem('auth_token')
-      if (!token) { setError('No autenticado'); return }
-      const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-      const [overviewRes, videosRes, weeklyRes] = await Promise.all([
-        fetch(`${API_URL}/analytics/overview`, { headers }),
-        fetch(`${API_URL}/analytics/videos`, { headers }),
-        fetch(`${API_URL}/analytics/weekly`, { headers })
+      const [overviewData, videosData, weeklyJson] = await Promise.all([
+        api.get<any>('/analytics/overview'),
+        api.get<any>('/analytics/videos'),
+        api.get<any>('/analytics/weekly'),
       ])
-      if (!overviewRes.ok || !videosRes.ok || !weeklyRes.ok) throw new Error('Error cargando datos')
-      const overviewData = await overviewRes.json()
-      const videosData = await videosRes.json()
-      const weeklyJson = await weeklyRes.json()
       setOverview(overviewData.success ? overviewData.data : null)
       setTopVideos(videosData.success ? (videosData.data.top_videos || []) : [])
       setWeeklyData(weeklyJson.success ? weeklyJson.data : [])
