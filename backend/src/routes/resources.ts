@@ -1,4 +1,7 @@
 import { Router, Response } from 'express';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import multer from 'multer';
 import { query } from '../db';
 import { authenticate } from '../middleware/auth';
@@ -8,8 +11,21 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+
+// Multer escribe a disco temporal; el buffer se lee y elimina al subir.
+const tempUploadBuffer = (file: Express.Multer.File): Buffer => {
+  const buf = fs.readFileSync(file.path);
+  fs.unlink(file.path, () => {});
+  return buf;
+};
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (_req, file, cb) => {
+      cb(null, `upload-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`);
+    },
+  }),
   limits: { fileSize: 50 * 1024 * 1024 }
 });
 
@@ -112,7 +128,7 @@ router.post('/', authenticate, upload.single('file'), async (req: AuthRequest, r
       file_size = file.size;
       mime_type = file.mimetype;
       const fileName = 'resources/' + category_id + '/' + uuidv4() + ext;
-      await uploadBuffer(file.buffer, fileName, file.mimetype);
+      await uploadBuffer(tempUploadBuffer(file), fileName, file.mimetype);
       storage_path = fileName;
     }
 
@@ -154,7 +170,7 @@ router.post('/:id/upload', authenticate, upload.single('file'), async (req: Auth
     if (templateResult.rows.length === 0) return res.status(404).json({ success: false, error: 'Recurso no encontrado' });
     const ext = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
     const fileName = 'resources/' + templateResult.rows[0].category_id + '/' + uuidv4() + ext;
-    await uploadBuffer(file.buffer, fileName, file.mimetype);
+    await uploadBuffer(tempUploadBuffer(file), fileName, file.mimetype);
     await query('UPDATE corporate_resources SET storage_path = $1, file_type = $2, file_size = $3, mime_type = $4, updated_at = NOW() WHERE id = $5', [fileName, ext.replace('.', ''), file.size, file.mimetype, id]);
     res.json({ success: true, message: 'Archivo actualizado', path: fileName });
   } catch (error) {

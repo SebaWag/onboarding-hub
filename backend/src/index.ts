@@ -31,6 +31,10 @@ import videoInteractionsRoutes from './routes/video-interactions';
 const app = express();
 const PORT = process.env.PORT || 4001;
 
+// Detras de Traefik -> nginx (frontend) -> backend: confia en los 2 ultimos saltos
+// para que req.ip refleje la IP real del cliente (usado por rate limiting).
+app.set('trust proxy', 2);
+
 // SeaweedFS configuration (S3-compatible)
 const SEAWEEDFS_ENDPOINT = process.env.SEAWEEDFS_ENDPOINT || 'localhost';
 const SEAWEEDFS_PORT = process.env.SEAWEEDFS_PORT || '8333';
@@ -43,8 +47,10 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:8090'],
   credentials: true,
 }));
-app.use(express.json({ limit: '2gb' }));
-app.use(express.urlencoded({ extended: true, limit: '2gb' }));
+// Limites de body JSON conservadores; los uploads grandes van por
+// multipart (multer -> disco) y se streamean a SeaweedFS.
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(morgan('short'));
 
 // Routes

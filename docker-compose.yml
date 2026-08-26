@@ -113,8 +113,9 @@ services:
       MIMO_MODEL: mimo-v2-omni
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: 7d
-      FRONTEND_URL: https://academy.wagnersolutionsai.com
-      CORS_ORIGIN: http://localhost:8090,http://168.138.175.0:8090,https://academy.wagnersolutionsai.com,http://academy.wagnersolutionsai.com
+      # Parametrizado via .env; defaults razonables para desarrollo
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8090}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8090,https://academy.wagnersolutionsai.com}
     ports:
     - 4001:4001
     depends_on:
