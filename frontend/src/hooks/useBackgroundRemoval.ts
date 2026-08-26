@@ -76,14 +76,16 @@ export function useBackgroundRemoval() {
         if (cancelled) return
 
         const vision = await FilesetResolver.forVisionTasks(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm/'
+          // WASM local (sin CDN): evita doble-slash 400 y dependencia externa
+          new URL('/mediapipe/wasm/', window.location.origin).href
         )
         if (cancelled) return
 
         segmenterRef.current = await ImageSegmenter.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath:
-              'https://storage.googleapis.com/mediapipe-models/selfie_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite',
+              // Modelo local (sin CDN): selfie_segmenter float16 249KB
+              new URL('/mediapipe/models/selfie_segmenter.tflite', window.location.origin).href,
             delegate: 'GPU',
           },
           runningMode: 'VIDEO',
