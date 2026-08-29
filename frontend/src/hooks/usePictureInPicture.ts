@@ -15,14 +15,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  *   )
  */
 export function usePictureInPicture(getStream?: () => MediaStream | null) {
-  // Soporte: document.pictureInPictureEnabled (Chrome/Edge/Safari 16+)
+  // Soporte REAL de la API estandar PiP (Chrome/Edge/Safari 16+).
+  // Firefox NO tiene requestPictureInPicture -> usamos ventana emergente.
   const [isSupported] = useState(() =>
     typeof document !== 'undefined' &&
-    'pictureInPictureEnabled' in document &&
-    document.pictureInPictureEnabled
+    typeof document.createElement('video').requestPictureInPicture === 'function'
   )
   const [isPipActive, setIsPipActive] = useState(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const popupRef = useRef<Window | null>(null)
 
   // Mantener el callback actualizado sin recrear enterPip/exitPip
   const getStreamRef = useRef(getStream)
@@ -60,10 +61,38 @@ export function usePictureInPicture(getStream?: () => MediaStream | null) {
     return video
   }
 
+  // Ventana emergente con la camara (fallback para Firefox y navegadores
+  // sin API estandar de PiP). El usuario la arrastra donde quiera.
+  const openCameraPopup = useCallback((stream: MediaStream) => {
+    try {
+      const w = window.open('', '_blank', 'width=340,height=260,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no')
+      if (!w) {
+        console.warn('[PiP] No se pudo abrir la ventana de camara (popup bloqueado)')
+        return false
+      }
+      w.document.write('<!DOCTYPE html><html><head><title>Camara flotante</title></head>')
+      w.document.write('<body style="margin:0;background:#000;overflow:hidden">')
+      w.document.write('<video id="cam" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>')
+      w.document.write('</body></html>')
+      w.document.close()
+      const v = w.document.getElementById('cam') as HTMLVideoElement | null
+      if (v) v.srcObject = stream
+      popupRef.current = w
+      w.addEventListener('beforeunload', () => { popupRef.current = null; setIsPipActive(false) })
+      setIsPipActive(true)
+      return true
+    } catch (err) {
+      console.warn('[PiP] Error abriendo ventana de camara:', err)
+      setIsPipActive(false)
+      return false
+    }
+  }, [])
+
   const enterPip = useCallback(async (stream: MediaStream, videoEl?: HTMLVideoElement | null) => {
     try {
+      // Firefox / sin API estandar -> ventana emergente con la camara
       if (!isSupported) {
-        console.warn('[PiP] Picture-in-Picture no soportado en este navegador')
+        openCameraPopup(stream)
         return
       }
       // Usar el video REAL visible si se pasa (mas confiable para el navegador),
@@ -83,9 +112,14 @@ export function usePictureInPicture(getStream?: () => MediaStream | null) {
       console.warn('[PiP] No se pudo entrar a Picture-in-Picture:', err)
       setIsPipActive(false)
     }
-  }, [isSupported])
+  }, [isSupported, openCameraPopup])
 
   const exitPip = useCallback(async () => {
+    // Cerrar ventana emergente (Firefox) si existe
+    if (popupRef.current && !popupRef.current.closed) {
+      try { popupRef.current.close() } catch (e) {}
+      popupRef.current = null
+    }
     try {
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture()
@@ -115,8 +149,12 @@ export function usePictureInPicture(getStream?: () => MediaStream | null) {
     }
   }) // sin deps: corre en cada render y la comparacion es barata
 
-  // Cleanup al desmontar: cerrar PiP y remover el <video> oculto
+  // Cleanup al desmontar: cerrar PiP, ventana emergente y remover video oculto
   useEffect(() => () => {
+    if (popupRef.current && !popupRef.current.closed) {
+      try { popupRef.current.close() } catch (e) {}
+      popupRef.current = null
+    }
     const video = videoRef.current
     if (document.pictureInPictureElement === video) {
       document.exitPictureInPicture().catch(() => {})
