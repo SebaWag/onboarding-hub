@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: SJBB0Ro6SjS5HqDjUkgQkilF
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: onboarding_hub
     ports:
     - 5435:5432
@@ -96,7 +96,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: '4001'
-      DATABASE_URL: postgresql://admin:SJBB0Ro6SjS5HqDjUkgQkilF@postgres:5432/onboarding_hub
+      DATABASE_URL: postgresql://admin:${POSTGRES_PASSWORD}@postgres:5432/onboarding_hub
       REDIS_URL: redis://redis:6379/2
       REDIS_PREFIX: 'oh:'
       # DNS interno del filer dentro de onboarding-net (puerto S3 del filer)
@@ -108,7 +108,7 @@ services:
       SEAWEEDFS_USE_SSL: 'false'
       SEAWEEDFS_PUBLIC_URL: ${SEAWEEDFS_PUBLIC_URL:-http://localhost:9006}
       WHISPER_URL: http://host.docker.internal:8178
-      MIMO_API_KEY: sk-szrc9eqqdk0fgj0jq03r7leloq7yfyftdzdz43ednpy0c17g
+      MIMO_API_KEY: ${MIMO_API_KEY}
       MIMO_BASE_URL: https://api.xiaomimimo.com/v1
       MIMO_MODEL: mimo-v2-omni
       JWT_SECRET: ${JWT_SECRET}
