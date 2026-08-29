@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Mic, MicOff, Monitor, Camera, Circle, Square, Pause, Play, Sparkles, Upload, ChevronRight, Wand2, Film, Clock, RefreshCw, X } from 'lucide-react'
+import { Mic, MicOff, Monitor, Camera, Circle, Square, Pause, Play, Sparkles, Upload, ChevronRight, Wand2, Film, Clock, RefreshCw, X, PictureInPicture2 } from 'lucide-react'
 import { cn, mediaProxyUrl } from '../lib/utils'
 import { useMediaRecorder } from '../hooks/useMediaRecorder'
 import type { RecordingMode } from '../hooks/useMediaRecorder'
 import CameraPreview from '../components/CameraPreview'
 import ScreenPreview from '../components/ScreenPreview'
 import { useBackgroundRemoval } from "../hooks/useBackgroundRemoval"
+import { usePictureInPicture } from '../hooks/usePictureInPicture'
 import BackgroundSelector from "../components/BackgroundSelector"
 import { ImagePlus } from "lucide-react"
 import { api } from '../lib/api'
@@ -43,6 +44,36 @@ export default function Studio() {
     onDataAvailable: (blob) => { handleUploadRecording(blob) },
     onError: (error) => { console.error('Recording error:', error) }
   })
+
+  // --- Camara flotante (Picture-in-Picture nativo del navegador) ---
+  // Prioridad del stream: preview -> camara del recorder -> stream procesado (con background)
+  const { isSupported: isPipSupported, isPipActive, enterPip, exitPip } = usePictureInPicture(
+    () => cameraPreviewStream || cameraStream || processedStream
+  )
+
+  const handleTogglePip = async () => {
+    if (isPipActive) {
+      await exitPip()
+      return
+    }
+    const stream = cameraPreviewStream || cameraStream || processedStream
+    if (stream) await enterPip(stream)
+  }
+
+  // Auto-exit PiP al detener la grabacion (no dejar la camara flotando sin stream)
+  const wasRecordingRef = useRef(false)
+  useEffect(() => {
+    if (wasRecordingRef.current && !isRecording) exitPip()
+    wasRecordingRef.current = isRecording
+  }, [isRecording, exitPip])
+
+  // Auto-exit PiP al apagar la camara (setCameraEnabled(false))
+  useEffect(() => {
+    if (!cameraEnabled && isPipActive) exitPip()
+  }, [cameraEnabled, isPipActive, exitPip])
+
+  // Cleanup al desmontar el componente
+  useEffect(() => () => { exitPip() }, [exitPip])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -272,6 +303,16 @@ export default function Studio() {
                       title="Fondo de camara">
                       <ImagePlus className="w-5 h-5" />
                     </button>
+                    {isPipSupported && cameraEnabled && (cameraPreviewStream || cameraStream) && (
+                      <button onClick={handleTogglePip}
+                        className={cn('p-3 rounded-xl transition-all border',
+                          isPipActive
+                            ? 'bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/30'
+                            : 'bg-[var(--bg-hover)] text-[var(--text-muted)] border-[var(--border-color)] hover:text-[var(--text)]')}
+                        title="Cámara flotante (PiP)">
+                        <PictureInPicture2 className="w-5 h-5" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-3">
