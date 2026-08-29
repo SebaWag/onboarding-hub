@@ -21,7 +21,10 @@ const router = Router();
 // El parametro 'splat' captura el resto del path incluyendo barras.
 router.get('/*splat', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const filePath = req.params.splat as string;
+    // Express 5 / path-to-regexp v8: los wildcards pueden venir como array.
+    // Normalizar SIEMPRE a string para no romper .endsWith()/getFileStream().
+    const rawPath = (req.params.splat ?? req.params[0] ?? '') as string | string[]
+    const filePath = Array.isArray(rawPath) ? rawPath.join('/') : String(rawPath).replace(/^\/+/, '')
 
     // Determinar content type basado en extensión
     let contentType = 'video/webm';
