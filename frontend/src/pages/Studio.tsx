@@ -56,16 +56,26 @@ export default function Studio() {
       await exitPip()
       return
     }
-    const stream = cameraPreviewStream || cameraStream || processedStream
+    const stream = cameraStream || cameraPreviewStream || processedStream
     if (stream) await enterPip(stream)
   }
+
+  // --- AUTO-PiP: al iniciar la grabación, la cámara flota
+  // sobre TODAS las ventanas (terminal, apps) para que el usuario
+  // se vea mientras hace el tutorial. ---
+  useEffect(() => {
+    if (isRecording && isPipSupported && !isPipActive) {
+      const stream = cameraStream || cameraPreviewStream
+      if (stream) enterPip(stream)
+    }
+  }, [isRecording, cameraStream, cameraPreviewStream, isPipSupported, isPipActive, enterPip])
 
   // Auto-exit PiP al detener la grabacion (no dejar la camara flotando sin stream)
   const wasRecordingRef = useRef(false)
   useEffect(() => {
-    if (wasRecordingRef.current && !isRecording) exitPip()
+    if (wasRecordingRef.current && !isRecording && isPipActive) exitPip()
     wasRecordingRef.current = isRecording
-  }, [isRecording, exitPip])
+  }, [isRecording, exitPip, isPipActive])
 
   // Auto-exit PiP al apagar la camara (setCameraEnabled(false))
   useEffect(() => {
