@@ -174,7 +174,26 @@ export default function Share() {
   // stream_url absoluta que entrega el backend (SEAWEEDFS_PUBLIC_URL).
   const getVideoSrc = () => {
     if (!video) return ''
-    return video.stream_url || ''
+    // Si stream_url es una URL absoluta de SeaweedFS, extraer el storage_key y usar el proxy
+    if (video.stream_url) {
+      try {
+        const url = new URL(video.stream_url)
+        // Extraer path después del bucket name (ej: /onboarding-hub/videos/org/file.webm)
+        const pathParts = url.pathname.split('/')
+        // Remover el primer slash vacío y el bucket name
+        const keyParts = pathParts.slice(2) // skip empty + bucket
+        if (keyParts.length > 0) {
+          return `/storage/${keyParts.join('/')}`
+        }
+      } catch {
+        // Si no es URL válida, puede ser ya un path relativo
+        if (video.stream_url.startsWith('/api/')) {
+          return video.stream_url
+        }
+        return `/storage/${video.stream_url}`
+      }
+    }
+    return ''
   }
 
   if (isLoading) {

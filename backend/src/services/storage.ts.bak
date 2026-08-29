@@ -2,7 +2,6 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
-  GetObjectCommandInput,
   DeleteObjectCommand,
   DeleteObjectsCommand,
   ListObjectsV2Command,
@@ -12,7 +11,6 @@ import {
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { SEAWEEDFS_ACCESS_KEY, SEAWEEDFS_SECRET_KEY } from '../config/env';
 
 // =====================================================
 // SeaweedFS Storage Service (S3-compatible)
@@ -30,13 +28,12 @@ interface PresignedUrl {
 }
 
 // S3 Client configuration for SeaweedFS
-const USE_SSL = process.env.SEAWEEDFS_USE_SSL === 'true';
 const s3Client = new S3Client({
-  endpoint: `${USE_SSL ? 'https' : 'http'}://${process.env.SEAWEEDFS_ENDPOINT || 'localhost'}:${process.env.SEAWEEDFS_PORT || '8333'}`,
+  endpoint: `http://${process.env.SEAWEEDFS_ENDPOINT || 'localhost'}:${process.env.SEAWEEDFS_PORT || '8333'}`,
   region: 'us-east-1',
   credentials: {
-    accessKeyId: SEAWEEDFS_ACCESS_KEY,
-    secretAccessKey: SEAWEEDFS_SECRET_KEY,
+    accessKeyId: process.env.SEAWEEDFS_ACCESS_KEY || 'minioadmin',
+    secretAccessKey: process.env.SEAWEEDFS_SECRET_KEY || 'minioadmin123',
   },
   forcePathStyle: true,
 });
@@ -74,34 +71,6 @@ export async function uploadBuffer(
   } catch (error: any) {
     console.error('Upload error:', error);
     throw new Error(`Failed to upload file: ${error.message}`);
-  }
-}
-
-/**
- * Sube un stream (ej: archivo temporal de multer) sin cargarlo completo en RAM.
- */
-export async function uploadStream(
-  stream: NodeJS.ReadableStream,
-  contentLength: number,
-  key: string,
-  contentType: string
-): Promise<UploadResult> {
-  try {
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: key,
-        Body: stream as any,
-        ContentType: contentType,
-        ContentLength: contentLength,
-      })
-    );
-
-    console.log(`Stream upload successful: ${key} (${contentLength} bytes)`);
-    return { key, url: getPublicUrl(key), size: contentLength };
-  } catch (error: any) {
-    console.error('Stream upload error:', error);
-    throw new Error(`Failed to stream-upload file: ${error.message}`);
   }
 }
 
@@ -154,7 +123,7 @@ export async function uploadVideoFromFile(
   orgId: string
 ): Promise<UploadResult> {
   const extension = path.extname(filePath);
-  const _key = `videos/${orgId}/${uuidv4()}${extension}`;
+  const key = `videos/${orgId}/${uuidv4()}${extension}`;
   return uploadFile(filePath, `videos/${orgId}`);
 }
 
@@ -228,21 +197,14 @@ export async function getFileBuffer(key: string): Promise<Buffer> {
   }
 }
 
-// 🆕 AHORA CON SOPORTE RANGE REQUESTS
-export async function getFileStream(key: string, start?: number, end?: number): Promise<GetObjectCommandOutput> {
+export async function getFileStream(key: string): Promise<GetObjectCommandOutput> {
   try {
-    const input: GetObjectCommandInput = {
-      Bucket: BUCKET_NAME,
-      Key: key,
-    };
-    
-    // Si se especifica un rango, lo pasamos a SeaweedFS/S3
-    if (start !== undefined && end !== undefined) {
-      input.Range = `bytes=${start}-${end}`;
-      console.log(`[STORAGE] Range request: ${start}-${end} for ${key}`);
-    }
-    
-    const response = await s3Client.send(new GetObjectCommand(input));
+    const response = await s3Client.send(
+      new GetObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key,
+      })
+    );
     return response;
   } catch (error: any) {
     console.error('Get file stream error:', error);
@@ -325,7 +287,7 @@ export async function getFileInfo(key: string): Promise<{
       lastModified: response.LastModified || new Date(),
       contentType: response.ContentType || 'application/octet-stream',
     };
-  } catch {
+  } catch (error: any) {
     throw new Error(`File not found: ${key}`);
   }
 }

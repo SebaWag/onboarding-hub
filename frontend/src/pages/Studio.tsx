@@ -90,7 +90,7 @@ export default function Studio() {
 
   const getVideoUrl = (video: VideoItem): string => {
     const key = video.storage_key || video.metadata?.storage_key
-    if (key) return mediaProxyUrl(key)
+if (key) return mediaProxyUrl(key)
     return ''
   }
 

@@ -275,27 +275,36 @@ export function useBackgroundRemoval() {
   }
 
   // Main frame processing loop
-  const processFrame = useCallback(() => {
-    const video = videoRef.current
-    const canvas = canvasRef.current
+let lastProcessTime = 0;
+const FRAME_INTERVAL = 83; // ~12fps
+
+const processFrame = useCallback(() => {
+    const now = performance.now();
+    if (now - lastProcessTime < FRAME_INTERVAL) {
+      animRef.current = requestAnimationFrame(processFrame);
+      return;
+    }
+    lastProcessTime = now;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
     if (!video || !canvas || video.videoWidth === 0) {
-      animRef.current = requestAnimationFrame(processFrame)
-      return
+      animRef.current = requestAnimationFrame(processFrame);
+      return;
     }
 
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d');
     if (!ctx) {
-      animRef.current = requestAnimationFrame(processFrame)
-      return
+      animRef.current = requestAnimationFrame(processFrame);
+      return;
     }
 
-    const activeBg = bgRef.current
-    const w = canvas.width
-    const h = canvas.height
+    const activeBg = bgRef.current;
+    const w = canvas.width;
+    const h = canvas.height;
 
     if (activeBg.mode === 'none') {
-      // Sin efecto — mostrar video directamente
-      ctx.drawImage(video, 0, 0, w, h)
+      ctx.drawImage(video, 0, 0, w, h);
     } else if (activeBg.mode === 'matrix') {
       // Efecto Matrix — dibujar matrix + video encima
       drawMatrix(ctx, w, h)
@@ -306,13 +315,13 @@ export function useBackgroundRemoval() {
       if (!segmented) {
         segmentWithColorFallback(ctx, video, w, h, activeBg)
       }
+      }
     } else {
-      // === FALLBACK POR COLOR (último recurso) ===
-      segmentWithColorFallback(ctx, video, w, h, activeBg)
+      segmentWithColorFallback(ctx, video, w, h, activeBg);
     }
 
-    animRef.current = requestAnimationFrame(processFrame)
-  }, [isModelReady])
+    animRef.current = requestAnimationFrame(processFrame);
+  }, [isModelReady]);
 
   const startBackgroundRemoval = async (cameraStream: MediaStream): Promise<MediaStream | null> => {
     if (!cameraStream) return null
@@ -343,7 +352,7 @@ export function useBackgroundRemoval() {
     matrixDropsRef.current = []
     await video.play()
 
-    const stream = canvas.captureStream(30)
+    const stream = canvas.captureStream(12)
     setProcessedStream(stream)
 
     animRef.current = requestAnimationFrame(processFrame)

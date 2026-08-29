@@ -1,28 +1,21 @@
 import { Router, Response } from 'express';
 import { AuthRequest } from '../types';
-import { authenticate } from '../middleware/auth';
-import { getFileStream } from '../services/storage';
+import { getFileStream, BUCKET_NAME } from '../services/storage';
 
 const router = Router();
 
 // =====================================================
-// SeaweedFS Video/File Proxy (autenticado)
+// SeaweedFS Video/File Proxy
 // =====================================================
 
 /**
  * GET /api/storage/:path(*)
- * Proxy para archivos de video y otros desde SeaweedFS.
- *
- * Requiere autenticación: header 
- * o query param  (para <video>, <img> y descargas,
- * que no pueden enviar headers personalizados).
+ * Proxy para archivos de video y otros desde SeaweedFS
  */
-// Express 5 / path-to-regexp v8: las wildcards deben ser nombradas ('/*splat').
-// El parametro 'splat' captura el resto del path incluyendo barras.
-router.get('/*splat', authenticate, async (req: AuthRequest, res: Response) => {
+router.get('/:path(*)', async (req: AuthRequest, res: Response) => {
   try {
-    const filePath = req.params.splat as string;
-
+    const filePath = req.params.path;
+    
     // Determinar content type basado en extensión
     let contentType = 'video/webm';
     if (filePath.endsWith('.mp4')) contentType = 'video/mp4';
@@ -33,33 +26,28 @@ router.get('/*splat', authenticate, async (req: AuthRequest, res: Response) => {
     else if (filePath.endsWith('.png')) contentType = 'image/png';
     else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) contentType = 'image/jpeg';
     else if (filePath.endsWith('.pdf')) contentType = 'application/pdf';
-
+    
     // Obtener stream desde SeaweedFS
     const response = await getFileStream(filePath);
-
-    // Configurar headers (fix de produccion: CORS abierto + expose headers para range requests)
-    res.set({
-      'Content-Type': contentType,
-      'Accept-Ranges': 'bytes',
-      'Cache-Control': 'public, max-age=3600',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length',
-    });
-
+    
+    // Configurar headers
+    res.set('Content-Type', contentType);
+    res.set('Accept-Ranges', 'bytes');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.set('Access-Control-Allow-Origin', '*');
+    
     // Si hay Content-Length, incluirlo
     if (response.ContentLength) {
       res.set('Content-Length', String(response.ContentLength));
     }
-
+    
     // Stream del archivo
     const stream = response.Body as NodeJS.ReadableStream;
     stream.pipe(res);
-
+    
   } catch (err: any) {
-    console.error('[PROXY] Error:', err.message);
-    if (!res.headersSent) {
-      res.status(404).json({ success: false, error: 'File not found' });
-    }
+    console.error('❌ Error streaming file from SeaweedFS:', err.message);
+    res.status(404).json({ success: false, error: 'File not found' });
   }
 });
 
