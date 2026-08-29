@@ -30,8 +30,6 @@ export default function Studio() {
   const [micEnabled, setMicEnabled] = useState(true)
   const [activeTab, setActiveTab] = useState('record')
   const [bgSelectorOpen, setBgSelectorOpen] = useState(false)
-  // Firefox: hint no bloqueante para usar el PiP nativo
-  const [firefoxPipHint, setFirefoxPipHint] = useState(false)
   const [cameraPreviewStream, setCameraPreviewStream] = useState<MediaStream | null>(null)
   // Ref al <video> real de la camara (visible en el preview) para PiP
   const activeCameraVideoRef = useRef<HTMLVideoElement | null>(null)
@@ -60,13 +58,6 @@ export default function Studio() {
       await exitPip()
       return
     }
-    // Firefox: no tiene API PiP programatica. Agrandamos la camara en el
-    // preview para que el usuario use el PiP NATIVO de Firefox (boton que
-    // aparece al hacer hover sobre el video). Ese PiP si flota sobre todo.
-    if (isFirefoxBrowser) {
-      setFirefoxPipHint(true)
-      return
-    }
     const stream = cameraStream || cameraPreviewStream || processedStream
     if (stream) await enterPip(stream, activeCameraVideoRef.current)
   }
@@ -75,19 +66,18 @@ export default function Studio() {
   // sobre TODAS las ventanas (terminal, apps) para que el usuario
   // se vea mientras hace el tutorial. ---
   useEffect(() => {
-    if (isRecording && isPipSupported && !isPipActive && !isFirefoxBrowser) {
+    // Auto-PiP al grabar: Chrome/Edge usan la API estandar,
+    // Firefox abre la ventana externa (enterPip hace el fallback)
+    if (isRecording && (isPipSupported || isFirefoxBrowser) && !isPipActive) {
       const stream = cameraStream || cameraPreviewStream
       if (stream) enterPip(stream, activeCameraVideoRef.current)
     }
-  }, [isRecording, cameraStream, cameraPreviewStream, isPipSupported, isPipActive, enterPip, isFirefoxBrowser])
+  }, [isRecording, cameraStream, cameraPreviewStream, isPipSupported, isFirefoxBrowser, isPipActive, enterPip])
 
   // Auto-exit PiP al detener la grabacion (no dejar la camara flotando sin stream)
   const wasRecordingRef = useRef(false)
   useEffect(() => {
-    if (wasRecordingRef.current && !isRecording) {
-      if (isPipActive) exitPip()
-      setFirefoxPipHint(false)
-    }
+    if (wasRecordingRef.current && !isRecording && isPipActive) exitPip()
     wasRecordingRef.current = isRecording
   }, [isRecording, exitPip, isPipActive])
 
@@ -286,23 +276,9 @@ if (key) return mediaProxyUrl(key)
               <div className="relative aspect-video bg-[var(--bg-secondary)] flex items-center justify-center">
                 <ScreenPreview stream={screenStream} enabled={screenEnabled} className="absolute inset-0" />
                 {cameraEnabled && (
-                  <div className={cn('absolute bottom-4 right-4 z-10 transition-all duration-300', firefoxPipHint ? 'w-72 h-72' : 'w-28 h-28')}>
-                    <div className="relative w-full h-full rounded-full overflow-hidden border-[3px] border-white/30 shadow-2xl">
+                  <div className="absolute bottom-4 right-4 w-28 h-28 z-10">
+                    <div className="w-full h-full rounded-full overflow-hidden border-[3px] border-white/30 shadow-2xl">
                       <CameraPreview stream={cameraPreviewStream || cameraStream} enabled={cameraEnabled} processedStream={processedStream} background={background} className="w-full h-full" onActiveVideo={(el) => { activeCameraVideoRef.current = el }} />
-                      {firefoxPipHint && (
-                        <>
-                          <div className="absolute inset-x-0 bottom-0 z-20 bg-black/70 backdrop-blur-sm text-center py-2 pointer-events-none">
-                            <span className="text-orange-300 text-xs font-medium leading-tight block px-2">
-                              🦊 Pasa el mouse sobre tu cámara<br/>y haz clic en el botón <b>⧉ PiP</b>
-                            </span>
-                          </div>
-                          <button onClick={() => setFirefoxPipHint(false)}
-                            className="absolute top-1 right-1 z-30 w-7 h-7 rounded-full bg-black/70 text-white/90 text-sm flex items-center justify-center hover:bg-black/90 transition-colors"
-                            title="Volver al tamaño normal">
-                            <X className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
                     </div>
                   </div>
                 )}

@@ -16,9 +16,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  */
 export function usePictureInPicture(getStream?: () => MediaStream | null) {
   // Soporte REAL de la API estandar PiP (Chrome/Edge/Safari 16+).
-  // Firefox NO tiene requestPictureInPicture: usamos su PiP nativo,
-  // que el usuario activa con el boton que aparece al hacer hover
-  // sobre el video (ese PiP SI flota sobre todas las ventanas).
+  // Firefox NO tiene requestPictureInPicture -> usamos ventana emergente.
   const [isSupported] = useState(() =>
     typeof document !== 'undefined' &&
     typeof document.createElement('video').requestPictureInPicture === 'function'
@@ -28,6 +26,7 @@ export function usePictureInPicture(getStream?: () => MediaStream | null) {
   )
   const [isPipActive, setIsPipActive] = useState(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const popupRef = useRef<Window | null>(null)
 
   // Mantener el callback actualizado sin recrear enterPip/exitPip
   const getStreamRef = useRef(getStream)
@@ -65,13 +64,83 @@ export function usePictureInPicture(getStream?: () => MediaStream | null) {
     return video
   }
 
+  // Ventana emergente con la camara (fallback para Firefox y navegadores
+  // sin API estandar de PiP). El usuario la arrastra donde quiera.
+  const openCameraPopup = useCallback((stream: MediaStream) => {
+    try {
+      const w = window.open('', '_blank', 'width=360,height=300,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no')
+      if (!w) {
+        console.warn('[PiP] No se pudo abrir la ventana de camara (popup bloqueado)')
+        return false
+      }
+      // HTML de la ventana: header con controles + video de camara
+      w.document.write('<!DOCTYPE html><html><head><title>🎥 Camara</title>')
+      w.document.write('<style>body{margin:0;font-family:system-ui,sans-serif;background:#111;color:#fff;display:flex;flex-direction:column;height:100vh}')
+      w.document.write('*{box-sizing:border-box}')
+      w.document.write('.top{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#1a1a1a;border-bottom:1px solid #333;font-size:13px;user-select:none}')
+      w.document.write('.top b{color:#fff}')
+      w.document.write('.btn{background:#333;border:none;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}')
+      w.document.write('.btn:hover{background:#444}')
+      w.document.write('.btn.on{background:#7c3aed;color:#fff}')
+      w.document.write('video{flex:1;width:100%;object-fit:cover;transform:scaleX(-1);background:#000}')
+      w.document.write('.hint{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:10px;color:#aaa;pointer-events:none}')
+      w.document.write('</style></head>')
+      w.document.write('<body>')
+      w.document.write('<div class="top"><b>🎥 Camara</b><div>')
+      w.document.write('<button class="btn" id="pinBtn" title="Intentar mantener al frente">📌 Fijar</button> ')
+      w.document.write('<button class="btn" id="closeBtn" title="Cerrar">✕</button>')
+      w.document.write('</div></div>')
+      w.document.write('<div style="position:relative;flex:1;display:flex">')
+      w.document.write('<video id="cam" autoplay muted playsinline></video>')
+      w.document.write('<div class="hint">Si queda detrás: clic sobre esta ventana, o 📌 Fijar</div>')
+      w.document.write('</div>')
+      w.document.write('</body></html>')
+      w.document.close()
+      const v = w.document.getElementById('cam') as HTMLVideoElement | null
+      if (v) v.srcObject = stream
+      // Foco inicial
+      try { w.focus() } catch (e) {}
+      // Boton cerrar
+      const closeBtn = w.document.getElementById('closeBtn') as HTMLButtonElement | null
+      closeBtn?.addEventListener('click', () => { try { w.close() } catch (e) {} })
+      // Boton fijar: auto-focus periodico para intentar mantenerla al frente
+      let pinTimer: number | null = null
+      const pinBtn = w.document.getElementById('pinBtn') as HTMLButtonElement | null
+      pinBtn?.addEventListener('click', () => {
+        if (pinTimer) {
+          clearInterval(pinTimer)
+          pinTimer = null
+          pinBtn.textContent = '📌 Fijar'
+          pinBtn.classList.remove('on')
+          return
+        }
+        pinTimer = window.setInterval(() => {
+          try { if (!w.closed) w.focus() } catch (e) {}
+        }, 1200)
+        pinBtn.textContent = '📌 Fijado'
+        pinBtn.classList.add('on')
+      })
+      popupRef.current = w
+      w.addEventListener('beforeunload', () => {
+        if (pinTimer) clearInterval(pinTimer)
+        popupRef.current = null
+        setIsPipActive(false)
+      })
+      setIsPipActive(true)
+      return true
+    } catch (err) {
+      console.warn('[PiP] Error abriendo ventana de camara:', err)
+      setIsPipActive(false)
+      return false
+    }
+  }, [])
+
   const enterPip = useCallback(async (stream: MediaStream, videoEl?: HTMLVideoElement | null) => {
     try {
-      // Firefox: no tiene API estandar. El usuario activa el PiP nativo
-      // con el boton que Firefox muestra al hacer hover sobre el video.
+      // Firefox / sin API estandar -> ventana emergente con la camara
       if (!isSupported) {
-        console.log('[PiP] Firefox detectado: usar el boton PiP nativo sobre el video de camara')
-        return false
+        openCameraPopup(stream)
+        return
       }
       // Usar el video REAL visible si se pasa (mas confiable para el navegador),
       // si no, crear el video oculto como fallback.
@@ -82,19 +151,22 @@ export function usePictureInPicture(getStream?: () => MediaStream | null) {
       if (video.paused) await video.play()
       if (document.pictureInPictureElement === video) {
         setIsPipActive(true)
-        return true
+        return
       }
       await video.requestPictureInPicture()
       setIsPipActive(true) // optimista; los eventos del video lo sincronizan igual
-      return true
     } catch (err) {
       console.warn('[PiP] No se pudo entrar a Picture-in-Picture:', err)
       setIsPipActive(false)
-      return false
     }
-  }, [isSupported])
+  }, [isSupported, openCameraPopup])
 
   const exitPip = useCallback(async () => {
+    // Cerrar ventana emergente (Firefox) si existe
+    if (popupRef.current && !popupRef.current.closed) {
+      try { popupRef.current.close() } catch (e) {}
+      popupRef.current = null
+    }
     try {
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture()
@@ -124,8 +196,12 @@ export function usePictureInPicture(getStream?: () => MediaStream | null) {
     }
   }) // sin deps: corre en cada render y la comparacion es barata
 
-  // Cleanup al desmontar: cerrar PiP y remover el video oculto
+  // Cleanup al desmontar: cerrar PiP, ventana emergente y remover video oculto
   useEffect(() => () => {
+    if (popupRef.current && !popupRef.current.closed) {
+      try { popupRef.current.close() } catch (e) {}
+      popupRef.current = null
+    }
     const video = videoRef.current
     if (document.pictureInPictureElement === video) {
       document.exitPictureInPicture().catch(() => {})
