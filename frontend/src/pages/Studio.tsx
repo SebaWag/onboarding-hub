@@ -30,6 +30,7 @@ export default function Studio() {
   const [micEnabled, setMicEnabled] = useState(true)
   const [activeTab, setActiveTab] = useState('record')
   const [bgSelectorOpen, setBgSelectorOpen] = useState(false)
+  const [showFirefoxHelp, setShowFirefoxHelp] = useState(false)
   const [cameraPreviewStream, setCameraPreviewStream] = useState<MediaStream | null>(null)
   // Ref al <video> real de la camara (visible en el preview) para PiP
   const activeCameraVideoRef = useRef<HTMLVideoElement | null>(null)
@@ -49,13 +50,19 @@ export default function Studio() {
 
   // --- Camara flotante (Picture-in-Picture nativo del navegador) ---
   // Prioridad del stream: preview -> camara del recorder -> stream procesado (con background)
-  const { isSupported: isPipSupported, isPipActive, enterPip, exitPip } = usePictureInPicture(
+  const { isSupported: isPipSupported, isFirefox: isFirefoxBrowser, isPipActive, enterPip, exitPip } = usePictureInPicture(
     () => cameraPreviewStream || cameraStream || processedStream
   )
 
   const handleTogglePip = async () => {
     if (isPipActive) {
       await exitPip()
+      return
+    }
+    // Firefox: no tiene API PiP programatica. Guiamos al usuario a usar
+    // el PiP NATIVO de Firefox (boton que aparece al hacer hover sobre el video)
+    if (isFirefoxBrowser) {
+      setShowFirefoxHelp(true)
       return
     }
     const stream = cameraStream || cameraPreviewStream || processedStream
@@ -66,11 +73,11 @@ export default function Studio() {
   // sobre TODAS las ventanas (terminal, apps) para que el usuario
   // se vea mientras hace el tutorial. ---
   useEffect(() => {
-    if (isRecording && isPipSupported && !isPipActive) {
+    if (isRecording && isPipSupported && !isPipActive && !isFirefoxBrowser) {
       const stream = cameraStream || cameraPreviewStream
       if (stream) enterPip(stream, activeCameraVideoRef.current)
     }
-  }, [isRecording, cameraStream, cameraPreviewStream, isPipSupported, isPipActive, enterPip])
+  }, [isRecording, cameraStream, cameraPreviewStream, isPipSupported, isPipActive, enterPip, isFirefoxBrowser])
 
   // Auto-exit PiP al detener la grabacion (no dejar la camara flotando sin stream)
   const wasRecordingRef = useRef(false)
@@ -315,7 +322,7 @@ if (key) return mediaProxyUrl(key)
                       title="Fondo de camara">
                       <ImagePlus className="w-5 h-5" />
                     </button>
-                    {isPipSupported && cameraEnabled && (cameraPreviewStream || cameraStream) && (
+                    {(isPipSupported || isFirefoxBrowser) && cameraEnabled && (cameraPreviewStream || cameraStream) && (
                       <button onClick={handleTogglePip}
                         className={cn('p-3 rounded-xl transition-all border',
                           isPipActive
@@ -440,6 +447,33 @@ if (key) return mediaProxyUrl(key)
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal ayuda Firefox: usar el PiP nativo que SI flota sobre todo */}
+      {showFirefoxHelp && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowFirefoxHelp(false)}>
+          <div className="bg-[var(--bg-card)] rounded-2xl max-w-md w-full p-6 border border-violet-500/30 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4">
+              <PictureInPicture2 className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Camara flotante en Firefox 🦊</h3>
+            <p className="text-sm text-[var(--text-muted)] mb-3">
+              Firefox no permite activar el PiP por código, pero tiene su <b className="text-orange-400">PiP nativo</b> que
+              <b> sí se mantiene sobre todas tus ventanas</b> (terminal, apps, etc).
+            </p>
+            <ol className="text-sm text-[var(--text-muted)] space-y-2 mb-5 list-decimal list-inside">
+              <li>Haz clic en <b className="text-[var(--text)]">Iniciar Grabación</b> (o activa la cámara).</li>
+              <li><b className="text-[var(--text)]">Pasa el mouse sobre el círculo de tu cámara</b> en el preview.</li>
+              <li>Aparecerá un <b className="text-orange-400">botón ⧉ (PiP)</b> en la esquina del video — hazle clic.</li>
+              <li>¡Tu cámara se convertirá en una ventana flotante <b className="text-emerald-400">sobre TODAS las ventanas</b>! 🎉</li>
+            </ol>
+            <div className="flex gap-3">
+              <button onClick={() => setShowFirefoxHelp(false)} className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-color)] hover:text-[var(--text)]">
+                Entendido
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
