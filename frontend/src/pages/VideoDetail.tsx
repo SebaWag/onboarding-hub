@@ -57,7 +57,6 @@ export default function VideoDetail() {
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(1)
   const videoContainerRef = useRef<HTMLDivElement>(null)
-  const lastTimeUpdateRef = useRef<number>(0)
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([])
