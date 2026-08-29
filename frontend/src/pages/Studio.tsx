@@ -30,7 +30,8 @@ export default function Studio() {
   const [micEnabled, setMicEnabled] = useState(true)
   const [activeTab, setActiveTab] = useState('record')
   const [bgSelectorOpen, setBgSelectorOpen] = useState(false)
-  const [showFirefoxHelp, setShowFirefoxHelp] = useState(false)
+  // Firefox: hint no bloqueante para usar el PiP nativo
+  const [firefoxPipHint, setFirefoxPipHint] = useState(false)
   const [cameraPreviewStream, setCameraPreviewStream] = useState<MediaStream | null>(null)
   // Ref al <video> real de la camara (visible en el preview) para PiP
   const activeCameraVideoRef = useRef<HTMLVideoElement | null>(null)
@@ -59,10 +60,11 @@ export default function Studio() {
       await exitPip()
       return
     }
-    // Firefox: no tiene API PiP programatica. Guiamos al usuario a usar
-    // el PiP NATIVO de Firefox (boton que aparece al hacer hover sobre el video)
+    // Firefox: no tiene API PiP programatica. Agrandamos la camara en el
+    // preview para que el usuario use el PiP NATIVO de Firefox (boton que
+    // aparece al hacer hover sobre el video). Ese PiP si flota sobre todo.
     if (isFirefoxBrowser) {
-      setShowFirefoxHelp(true)
+      setFirefoxPipHint(true)
       return
     }
     const stream = cameraStream || cameraPreviewStream || processedStream
@@ -82,7 +84,10 @@ export default function Studio() {
   // Auto-exit PiP al detener la grabacion (no dejar la camara flotando sin stream)
   const wasRecordingRef = useRef(false)
   useEffect(() => {
-    if (wasRecordingRef.current && !isRecording && isPipActive) exitPip()
+    if (wasRecordingRef.current && !isRecording) {
+      if (isPipActive) exitPip()
+      setFirefoxPipHint(false)
+    }
     wasRecordingRef.current = isRecording
   }, [isRecording, exitPip, isPipActive])
 
@@ -281,9 +286,23 @@ if (key) return mediaProxyUrl(key)
               <div className="relative aspect-video bg-[var(--bg-secondary)] flex items-center justify-center">
                 <ScreenPreview stream={screenStream} enabled={screenEnabled} className="absolute inset-0" />
                 {cameraEnabled && (
-                  <div className="absolute bottom-4 right-4 w-28 h-28 z-10">
-                    <div className="w-full h-full rounded-full overflow-hidden border-[3px] border-white/30 shadow-2xl">
+                  <div className={cn('absolute bottom-4 right-4 z-10 transition-all duration-300', firefoxPipHint ? 'w-72 h-72' : 'w-28 h-28')}>
+                    <div className="relative w-full h-full rounded-full overflow-hidden border-[3px] border-white/30 shadow-2xl">
                       <CameraPreview stream={cameraPreviewStream || cameraStream} enabled={cameraEnabled} processedStream={processedStream} background={background} className="w-full h-full" onActiveVideo={(el) => { activeCameraVideoRef.current = el }} />
+                      {firefoxPipHint && (
+                        <>
+                          <div className="absolute inset-x-0 bottom-0 z-20 bg-black/70 backdrop-blur-sm text-center py-2 pointer-events-none">
+                            <span className="text-orange-300 text-xs font-medium leading-tight block px-2">
+                              🦊 Pasa el mouse sobre tu cámara<br/>y haz clic en el botón <b>⧉ PiP</b>
+                            </span>
+                          </div>
+                          <button onClick={() => setFirefoxPipHint(false)}
+                            className="absolute top-1 right-1 z-30 w-7 h-7 rounded-full bg-black/70 text-white/90 text-sm flex items-center justify-center hover:bg-black/90 transition-colors"
+                            title="Volver al tamaño normal">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
@@ -447,33 +466,6 @@ if (key) return mediaProxyUrl(key)
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Modal ayuda Firefox: usar el PiP nativo que SI flota sobre todo */}
-      {showFirefoxHelp && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowFirefoxHelp(false)}>
-          <div className="bg-[var(--bg-card)] rounded-2xl max-w-md w-full p-6 border border-violet-500/30 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4">
-              <PictureInPicture2 className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Camara flotante en Firefox 🦊</h3>
-            <p className="text-sm text-[var(--text-muted)] mb-3">
-              Firefox no permite activar el PiP por código, pero tiene su <b className="text-orange-400">PiP nativo</b> que
-              <b> sí se mantiene sobre todas tus ventanas</b> (terminal, apps, etc).
-            </p>
-            <ol className="text-sm text-[var(--text-muted)] space-y-2 mb-5 list-decimal list-inside">
-              <li>Haz clic en <b className="text-[var(--text)]">Iniciar Grabación</b> (o activa la cámara).</li>
-              <li><b className="text-[var(--text)]">Pasa el mouse sobre el círculo de tu cámara</b> en el preview.</li>
-              <li>Aparecerá un <b className="text-orange-400">botón ⧉ (PiP)</b> en la esquina del video — hazle clic.</li>
-              <li>¡Tu cámara se convertirá en una ventana flotante <b className="text-emerald-400">sobre TODAS las ventanas</b>! 🎉</li>
-            </ol>
-            <div className="flex gap-3">
-              <button onClick={() => setShowFirefoxHelp(false)} className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-color)] hover:text-[var(--text)]">
-                Entendido
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
