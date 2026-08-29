@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
-import type { ImageSegmenter } from '@mediapipe/tasks-vision'
 
 export type BackgroundMode = 'none' | 'color' | 'image' | 'blur' | 'matrix'
 
@@ -59,7 +58,8 @@ export function useBackgroundRemoval() {
   const animRef = useRef<number>(0)
   const bgRef = useRef<BackgroundOption>({ mode: 'none', label: 'Sin fondo' })
   const bgImageRef = useRef<HTMLImageElement | null>(null)
-  const segmenterRef = useRef<ImageSegmenter | null>(null)
+  const segmenterRef = useRef<any>(null)
+  const bodypixNetRef = useRef<any>(null)
   const matrixDropsRef = useRef<{ x: number; y: number; speed: number }[]>([])
   const [processedStream, setProcessedStream] = useState<MediaStream | null>(null)
   const [isModelReady, setIsModelReady] = useState(false)
@@ -72,25 +72,23 @@ export function useBackgroundRemoval() {
     const init = async () => {
       setModelLoading(true)
       try {
-        const { ImageSegmenter, FilesetResolver } = await import('@mediapipe/tasks-vision')
+        const visionModule = await import('@mediapipe/tasks-vision')
+        const SelfieSegmenter = (visionModule as any).SelfieSegmenter
+        const { FilesetResolver } = visionModule
         if (cancelled) return
 
         const vision = await FilesetResolver.forVisionTasks(
-          // WASM local (sin CDN): evita doble-slash 400 y dependencia externa
-          new URL('/mediapipe/wasm/', window.location.origin).href
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm/'
         )
         if (cancelled) return
 
-        segmenterRef.current = await ImageSegmenter.createFromOptions(vision, {
+        segmenterRef.current = await SelfieSegmenter.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath:
-              // Modelo local (sin CDN): selfie_segmenter float16 249KB
-              new URL('/mediapipe/models/selfie_segmenter.tflite', window.location.origin).href,
+              'https://storage.googleapis.com/mediapipe-models/selfie_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite',
             delegate: 'GPU',
           },
           runningMode: 'VIDEO',
-          outputCategoryMask: true,
-          outputConfidenceMasks: false,
         })
 
         if (!cancelled) {
@@ -99,9 +97,26 @@ export function useBackgroundRemoval() {
           console.log('[BgRemoval] ✅ MediaPipe SelfieSegmenter listo')
         }
       } catch (err) {
-        // Sin ML disponible: processFrame usa el fallback por deteccion de piel
-        console.warn('[BgRemoval] MediaPipe no disponible, usando fallback por color:', err)
-        if (!cancelled) {
+        console.warn('[BgRemoval] MediaPipe no disponible, intentando BodyPix...', err)
+        // Attempt 2: BodyPix (TensorFlow.js) — segmentación de PERSONA COMPLETA
+        try {
+          await import('@tensorflow/tfjs')
+          const bodyPix = await import('@tensorflow-models/body-pix')
+          if (cancelled) return
+          bodypixNetRef.current = await bodyPix.load({
+            architecture: 'MobileNetV1',
+            outputStride: 16,
+            multiplier: 0.75,
+            quantBytes: 2,
+          })
+          if (!cancelled) {
+            setIsModelReady(true)
+            setModelLoading(false)
+            console.log('[BgRemoval] ✅ BodyPix listo (persona completa)')
+            return
+          }
+        } catch (err2) {
+          console.warn('[BgRemoval] BodyPix no disponible, usando fallback por color:', err2)
           setIsModelReady(false)
           setModelLoading(false)
         }
@@ -179,7 +194,7 @@ export function useBackgroundRemoval() {
     if (!segmenter) return false
 
     try {
-      const result = segmenter.segmentForVideo(video, performance.now())
+      const result = segmenter.segment(video, { timestamp: performance.now() })
       
       // En @mediapipe/tasks-vision v0.10.x, categoryMask es un MPMask
       // con método getAsFloat32Array() que retorna Float32Array de largo w*h
@@ -220,7 +235,6 @@ export function useBackgroundRemoval() {
       }
 
       ctx.putImageData(outputPixels, 0, 0)
-      mask.close()
       return true
     } catch (err) {
       console.warn('[BgRemoval] Error en segmentación ML, usando fallback:', err)
@@ -274,37 +288,78 @@ export function useBackgroundRemoval() {
     ctx.putImageData(combined, 0, 0)
   }
 
+  /** Segmentación con BodyPix (TensorFlow.js) — persona completa */
+  const segmentWithBodyPix = async (
+    ctx: CanvasRenderingContext2D, video: HTMLVideoElement, w: number, h: number, bg: BackgroundOption
+  ): Promise<boolean> => {
+    const net = bodypixNetRef.current
+    if (!net) return false
+    try {
+      const segmentation = await net.segmentPerson(video, {
+        flipHorizontal: true,
+        internalResolution: 'medium',
+        segmentationThreshold: 0.7,
+      })
+
+      // 1. Dibujar fondo
+      drawBackground(ctx, w, h, bg)
+
+      // 2. Obtener píxeles del canvas (fondo)
+      const outputPixels = ctx.getImageData(0, 0, w, h)
+      const out = outputPixels.data
+
+      // 3. Obtener píxeles del video
+      const videoCanvas = document.createElement('canvas')
+      videoCanvas.width = w; videoCanvas.height = h
+      const vCtx = videoCanvas.getContext('2d')!
+      vCtx.drawImage(video, 0, 0, w, h)
+      const vData = vCtx.getImageData(0, 0, w, h).data
+
+      // 4. Composición: donde mask=1 (persona) → video, donde mask=0 (fondo) → mantener fondo
+      const maskData = segmentation.data
+      for (let i = 0; i < maskData.length; i++) {
+        if (maskData[i] === 1) {
+          const idx = i * 4
+          out[idx]     = vData[idx]
+          out[idx + 1] = vData[idx + 1]
+          out[idx + 2] = vData[idx + 2]
+          out[idx + 3] = 255
+        }
+        // else → mantener fondo (ya dibujado)
+      }
+      ctx.putImageData(outputPixels, 0, 0)
+      return true
+    } catch (err) {
+      console.warn('[BgRemoval] Error en BodyPix:', err)
+      return false
+    }
+  }
+
+  // BodyPix frame counter (process every 3rd frame for performance)
+  let bodypixFrameCount = 0
+
   // Main frame processing loop
-let lastProcessTime = 0;
-const FRAME_INTERVAL = 83; // ~12fps
-
-const processFrame = useCallback(() => {
-    const now = performance.now();
-    if (now - lastProcessTime < FRAME_INTERVAL) {
-      animRef.current = requestAnimationFrame(processFrame);
-      return;
-    }
-    lastProcessTime = now;
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
+  const processFrame = useCallback(() => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
     if (!video || !canvas || video.videoWidth === 0) {
-      animRef.current = requestAnimationFrame(processFrame);
-      return;
+      animRef.current = requestAnimationFrame(processFrame)
+      return
     }
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d')
     if (!ctx) {
-      animRef.current = requestAnimationFrame(processFrame);
-      return;
+      animRef.current = requestAnimationFrame(processFrame)
+      return
     }
 
-    const activeBg = bgRef.current;
-    const w = canvas.width;
-    const h = canvas.height;
+    const activeBg = bgRef.current
+    const w = canvas.width
+    const h = canvas.height
 
     if (activeBg.mode === 'none') {
-      ctx.drawImage(video, 0, 0, w, h);
+      // Sin efecto — mostrar video directamente
+      ctx.drawImage(video, 0, 0, w, h)
     } else if (activeBg.mode === 'matrix') {
       // Efecto Matrix — dibujar matrix + video encima
       drawMatrix(ctx, w, h)
@@ -315,12 +370,26 @@ const processFrame = useCallback(() => {
       if (!segmented) {
         segmentWithColorFallback(ctx, video, w, h, activeBg)
       }
+    } else if (isModelReady && bodypixNetRef.current) {
+      // === SEGMENTACIÓN CON BODYPIX (TensorFlow.js, persona completa) ===
+      bodypixFrameCount++
+      // Procesar cada 2 frames para rendimiento
+      if (bodypixFrameCount % 2 === 0) {
+        segmentWithBodyPix(ctx, video, w, h, activeBg).then(success => {
+          if (!success) ctx.drawImage(video, 0, 0, w, h)
+        })
+        // Mostrar frame anterior mientras BodyPix procesa
+      } else {
+        // En frames alternos, dibujar el último resultado de BodyPix
+        // (ya está en el canvas del frame anterior)
+      }
     } else {
-      segmentWithColorFallback(ctx, video, w, h, activeBg);
+      // === FALLBACK POR COLOR (último recurso) ===
+      segmentWithColorFallback(ctx, video, w, h, activeBg)
     }
 
-    animRef.current = requestAnimationFrame(processFrame);
-  }, [isModelReady]);
+    animRef.current = requestAnimationFrame(processFrame)
+  }, [isModelReady])
 
   const startBackgroundRemoval = async (cameraStream: MediaStream): Promise<MediaStream | null> => {
     if (!cameraStream) return null
@@ -351,7 +420,7 @@ const processFrame = useCallback(() => {
     matrixDropsRef.current = []
     await video.play()
 
-    const stream = canvas.captureStream(12)
+    const stream = canvas.captureStream(30)
     setProcessedStream(stream)
 
     animRef.current = requestAnimationFrame(processFrame)
