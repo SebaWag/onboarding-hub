@@ -1,0 +1,23 @@
+{
+  "_comentario": [
+    "Config S3 de SeaweedFS. IMPORTANTE: este archivo NO interpola variables de entorno.",
+    "El secretKey debe coincidir EXACTAMENTE con SEAWEEDFS_SECRET_KEY definido en tu .env.",
+    "Cambia CHANGE_ME_SEAWEEDFS_SECRET antes de cualquier despliegue real."
+  ],
+  "identities": [
+    {
+      "name": "admin",
+      "credentials": [
+        {
+          "accessKey": "admin",
+          "secretKey": "CHANGE_ME_SEAWEEDFS_SECRET"
+        }
+      ],
+      "actions": ["Admin"]
+    },
+    {
+      "name": "anonymous",
+      "actions": ["Read"]
+    }
+  ]
+}

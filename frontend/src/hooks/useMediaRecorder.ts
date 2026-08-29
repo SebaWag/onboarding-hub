@@ -48,11 +48,14 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
   const intervalRef = useRef<number | null>(null)
   const screenVideoRef = useRef<HTMLVideoElement | null>(null)
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null)
+  const visibilityHandlerRef = useRef<(() => void) | null>(null)
 
   const cleanup = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
-    if (mediaRecorderRef.current?.state !== 'inactive') { try { mediaRecorderRef.current?.stop() } catch (e) {} }
+    if (mediaRecorderRef.current?.state !== 'inactive') { try { mediaRecorderRef.current?.stop() } catch {
+          // noop: stop() sobre recorder ya inactivo
+        } }
     
     streamsRef.current.screen?.getTracks().forEach(t => t.stop())
     streamsRef.current.camera?.getTracks().forEach(t => t.stop())
@@ -62,6 +65,9 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
     if (screenVideoRef.current) { screenVideoRef.current.pause(); screenVideoRef.current.srcObject = null }
     if (cameraVideoRef.current) { cameraVideoRef.current.pause(); cameraVideoRef.current.srcObject = null }
     if (canvasRef.current?.parentNode) { canvasRef.current.parentNode.removeChild(canvasRef.current) }
+    
+    // Limpiar event listener de visibility
+    if (visibilityHandlerRef.current) { visibilityHandlerRef.current() }
     
     combinedStreamRef.current = null
     mediaRecorderRef.current = null
@@ -94,7 +100,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
           })
           console.log('[RECORDER] ✅ Pantalla capturada')
           screenStream?.getVideoTracks()[0].addEventListener('ended', () => stopRecording())
-        } catch (err: any) {
+        } catch {
           if (mode === 'screen') throw new Error('Permiso de pantalla denegado')
           console.warn('[RECORDER] ⚠️ Sin pantalla')
         }
@@ -113,7 +119,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
             })
             console.log('[RECORDER] ✅ Cámara capturada')
           }
-        } catch (err: any) {
+        } catch {
           console.warn('[RECORDER] ⚠️ Sin cámara')
         }
       }
@@ -126,7 +132,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
           })
           console.log('[RECORDER] ✅ Micrófono capturado')
-        } catch (err: any) {
+        } catch {
           console.warn('[RECORDER] ⚠️ Sin micrófono')
         }
       }
@@ -139,8 +145,8 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
       const hasCamera = cameraStream && cameraStream?.getVideoTracks().length > 0
 
       if (hasScreen && hasCamera && mode === 'screen-camera') {
-        // COMPOSITOR CANVAS: Pantalla + Cámara
-        console.log('[RECORDER] 🎨 Creando compositor canvas...')
+        // COMPOSITOR CANVAS OPTIMIZADO: Pantalla + Cámara con rAF
+        console.log('[RECORDER] 🎨 Creando compositor canvas optimizado...')
         
         const canvas = document.createElement('canvas')
         canvas.width = 1920
@@ -148,12 +154,15 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         canvas.style.position = 'fixed'
         canvas.style.top = '-9999px'
         canvas.style.left = '-9999px'
+        canvas.style.opacity = '0.01'
         document.body.appendChild(canvas)
         canvasRef.current = canvas
         
-        const ctx = canvas.getContext('2d', { willReadFrequently: false })!
+        const ctx = canvas.getContext('2d', {
+          willReadFrequently: false,
+          alpha: false,
+        })!
         
-        // Crear videos
         const screenVideo = document.createElement('video')
         screenVideo.srcObject = screenStream
         screenVideo.muted = true
@@ -168,86 +177,103 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         cameraVideo.autoplay = true
         cameraVideoRef.current = cameraVideo
         
-        // Esperar a que los videos estén listos
-        await new Promise<void>((resolve) => {
-          let readyCount = 0
-          const checkReady = () => {
-            readyCount++
-            if (readyCount >= 2) resolve()
-          }
-          screenVideo.onloadeddata = () => { screenVideo.play().then(checkReady) }
-          cameraVideo.onloadeddata = () => { cameraVideo.play().then(checkReady) }
-          // Timeout de seguridad
-          setTimeout(resolve, 2000)
-        })
+        await Promise.all([
+          new Promise<void>((resolve) => {
+            screenVideo.onloadeddata = () => { screenVideo.play().then(() => resolve()).catch(() => resolve()) }
+            setTimeout(() => resolve(), 2000)
+          }),
+          new Promise<void>((resolve) => {
+            cameraVideo.onloadeddata = () => { cameraVideo.play().then(() => resolve()).catch(() => resolve()) }
+            setTimeout(() => resolve(), 2000)
+          }),
+        ])
         
         console.log('[RECORDER] ✅ Videos listos')
         
-        // Dibujar frames en el canvas
+        const CAM_W = 400
+        const CAM_H = 300
+        const CAM_X = canvas.width - CAM_W - 20
+        const CAM_Y = canvas.height - CAM_H - 20
+        const CAM_RADIUS = CAM_W / 2
+        const CAM_CENTER_X = CAM_X + CAM_RADIUS
+        const CAM_CENTER_Y = CAM_Y + CAM_H / 2
+        
         let frameCount = 0
+        let lastFrameTime = 0
+        let animationId = 0
+        let isRendererActive = true
         
-        
-
-        const drawFrame = () => {
+        const drawFrame = (timestamp: number) => {
+          if (!isRendererActive) return
+          if (timestamp - lastFrameTime < 66) {
+            animationId = requestAnimationFrame(drawFrame)
+            return
+          }
+          lastFrameTime = timestamp
+          
           try {
-            // 1. Fondo: pantalla
             ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
             
-            // 2. Cámara en esquina inferior derecha (área circular)
-            const camW = 400
-            const camH = 300
-            const camX = canvas.width - camW - 20
-            const camY = canvas.height - camH - 20
-            
-            // 3. Dibujar cámara
             if (cameraVideoRef.current) {
-              // Guardar el área de la cámara
               ctx.save()
               ctx.beginPath()
-              ctx.arc(camX + camW/2, camY + camH/2, camW/2, 0, Math.PI * 2)
+              ctx.arc(CAM_CENTER_X, CAM_CENTER_Y, CAM_RADIUS, 0, Math.PI * 2)
               ctx.clip()
-              
-              // Dibujar fondo del background (si aplica)
-              if (processedCameraStream && processedCameraStream.getVideoTracks().length > 0) {
-                // Si hay un background activo, usar colores sólidos como fallback
-                ctx.fillStyle = '#1e293b'
-                ctx.fillRect(camX, camY, camW, camH)
-              }
-              
-              // Dibujar cámara
-              ctx.drawImage(cameraVideoRef.current, camX, camY, camW, camH)
-              
-              // La cámara ya viene con el background procesado desde processedCameraStream
-              // Solo dibujar el stream que ya tiene el background aplicado
-              if (processedCameraStream && processedCameraStream.getVideoTracks().length > 0) {
-                // El stream ya está procesado, solo dibujarlo 
-                // No se necesita chroma-key ni pixel manipulation
-              }
-              
+              ctx.fillStyle = '#1e293b'
+              ctx.fillRect(CAM_X, CAM_Y, CAM_W, CAM_H)
+              ctx.drawImage(cameraVideoRef.current, CAM_X, CAM_Y, CAM_W, CAM_H)
               ctx.restore()
               
-              // Borde blanco del círculo
               ctx.beginPath()
-              ctx.arc(camX + camW/2, camY + camH/2, camW/2 + 2, 0, Math.PI * 2)
-              ctx.strokeStyle = '#ffffff'
+              ctx.arc(CAM_CENTER_X, CAM_CENTER_Y, CAM_RADIUS + 2, 0, Math.PI * 2)
+              ctx.strokeStyle = 'rgba(255,255,255,0.8)'
               ctx.lineWidth = 3
               ctx.stroke()
             }
             
             frameCount++
             if (frameCount % 60 === 0) {
-              console.log('[RECORDER] 🎬 Frame:', frameCount)
+              console.log('[RECORDER] Frame:', frameCount)
             }
-          } catch (e) {
+          } catch {
             // Ignorar errores
           }
+          
+          if (isRendererActive) {
+            animationId = requestAnimationFrame(drawFrame)
+          }
         }
-        // Usar setInterval para renderizado continuo (NO se congela en background como rAF)
-        // Los navegadores limitan setInterval a ~1fps en tabs ocultas, suficiente para evitar frames congelados
-        const drawLoop = () => {
-          drawFrame()
+        
+        const handleVisibilityChange = () => {
+          if (document.hidden) {
+            if (animationId) {
+              cancelAnimationFrame(animationId)
+              animationId = 0
+            }
+            isRendererActive = false
+            intervalRef.current = window.setInterval(() => {
+              try {
+                ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
+                if (cameraVideoRef.current) {
+                  ctx.drawImage(cameraVideoRef.current, CAM_X, CAM_Y, CAM_W, CAM_H)
+                }
+              } catch (e) {}
+            }, 200)
+          } else {
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current)
+              intervalRef.current = null
+            }
+            isRendererActive = true
+            animationId = requestAnimationFrame(drawFrame)
+          }
         }
-        intervalRef.current = window.setInterval(drawLoop, 33) // ~30fps
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        visibilityHandlerRef.current = () => {
+          document.removeEventListener('visibilitychange', handleVisibilityChange)
+        }
+        
+        animationId = requestAnimationFrame(drawFrame)
         // Capturar stream del canvas
         const canvasStream = canvas.captureStream(30)
         console.log('[RECORDER] ✅ Canvas stream capturado:', canvasStream.getVideoTracks().length, 'tracks')
@@ -329,8 +355,8 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         }
       }
 
-      recorder.onerror = (e: any) => {
-        console.error('[RECORDER] ❌ Error:', e.error)
+      recorder.onerror = (e: Event) => {
+        console.error('[RECORDER] ❌ Error:', e)
         onError?.(new Error('Error en grabación'))
       }
 
@@ -357,10 +383,11 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
       console.log('[RECORDER] 🎬 ¡GRABACIÓN INICIADA!')
       return true
       
-    } catch (err: any) {
-      console.error('[RECORDER] ❌ Error:', err.message)
-      setState(prev => ({ ...prev, permissionError: err.message }))
-      onError?.(err)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al acceder a la camara'
+      console.error('[RECORDER] ❌ Error:', message)
+      setState(prev => ({ ...prev, permissionError: message }))
+      onError?.(err instanceof Error ? err : new Error(message))
       cleanup()
       return false
     }
@@ -413,7 +440,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
   }, [])
 
   const togglePause = useCallback(() => {
-    state.isPaused ? resumeRecording() : pauseRecording()
+    if (state.isPaused) { resumeRecording() } else { pauseRecording() }
   }, [state.isPaused, pauseRecording, resumeRecording])
 
   return {

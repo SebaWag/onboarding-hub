@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: KonektorDB2024!
+      POSTGRES_PASSWORD: SJBB0Ro6SjS5HqDjUkgQkilF
       POSTGRES_DB: onboarding_hub
     ports:
     - 5435:5432
@@ -96,24 +96,26 @@ services:
     environment:
       NODE_ENV: production
       PORT: '4001'
-      DATABASE_URL: postgresql://admin:KonektorDB2024!@postgres:5432/onboarding_hub
+      DATABASE_URL: postgresql://admin:SJBB0Ro6SjS5HqDjUkgQkilF@postgres:5432/onboarding_hub
       REDIS_URL: redis://redis:6379/2
       REDIS_PREFIX: 'oh:'
-      SEAWEEDFS_ENDPOINT: host.docker.internal
-      SEAWEEDFS_PORT: '9000'
+      # DNS interno del filer dentro de onboarding-net (puerto S3 del filer)
+      SEAWEEDFS_ENDPOINT: seaweedfs-filer
+      SEAWEEDFS_PORT: '8333'
       SEAWEEDFS_ACCESS_KEY: admin
-      SEAWEEDFS_SECRET_KEY: KonektorMinio2024!
+      SEAWEEDFS_SECRET_KEY: ${SEAWEEDFS_SECRET_KEY}
       SEAWEEDFS_BUCKET: onboarding-hub
       SEAWEEDFS_USE_SSL: 'false'
-      SEAWEEDFS_PUBLIC_URL: http://178.104.175.22:9000
+      SEAWEEDFS_PUBLIC_URL: ${SEAWEEDFS_PUBLIC_URL:-http://localhost:9006}
       WHISPER_URL: http://host.docker.internal:8178
-      MIMO_API_KEY: sk-svpxxtdb1msughagb7meegv4gqzyvuhmlg8xp1izpjnay0rs
+      MIMO_API_KEY: sk-szrc9eqqdk0fgj0jq03r7leloq7yfyftdzdz43ednpy0c17g
       MIMO_BASE_URL: https://api.xiaomimimo.com/v1
       MIMO_MODEL: mimo-v2-omni
-      JWT_SECRET: onboarding-hub-secret-key-2024
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: 7d
-      FRONTEND_URL: https://academy.wagnersolutionsai.com
-      CORS_ORIGIN: http://localhost:8090,http://168.138.175.0:8090,https://academy.wagnersolutionsai.com,http://academy.wagnersolutionsai.com
+      # Parametrizado via .env; defaults razonables para desarrollo
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8090}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8090,https://academy.wagnersolutionsai.com}
     ports:
     - 4001:4001
     depends_on:

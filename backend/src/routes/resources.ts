@@ -1,4 +1,7 @@
 import { Router, Response } from 'express';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import multer from 'multer';
 import { query } from '../db';
 import { authenticate } from '../middleware/auth';
@@ -8,8 +11,21 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+
+// Multer escribe a disco temporal; el buffer se lee y elimina al subir.
+const tempUploadBuffer = (file: Express.Multer.File): Buffer => {
+  const buf = fs.readFileSync(file.path);
+  fs.unlink(file.path, () => {});
+  return buf;
+};
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (_req, file, cb) => {
+      cb(null, `upload-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`);
+    },
+  }),
   limits: { fileSize: 50 * 1024 * 1024 }
 });
 
@@ -49,7 +65,7 @@ router.post('/categories', authenticate, async (req: AuthRequest, res: Response)
     const sortOrder = await query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next FROM resource_categories');
     const result = await query('INSERT INTO resource_categories (id, name, description, icon, color, extensions, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *', [id, name, description || '', icon || 'Folder', color || '#6b7280', extensions?.join(',') || '', sortOrder.rows[0].next]);
     res.status(201).json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al crear categoria' });
   }
 });
@@ -87,7 +103,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     resource.preview_url = resource.storage_path ? '/api/resources/' + resource.id + '/preview' : null;
     resource.download_url = resource.storage_path ? '/api/resources/' + resource.id + '/download' : null;
     res.json({ success: true, data: resource });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener recurso' });
   }
 });
@@ -112,7 +128,7 @@ router.post('/', authenticate, upload.single('file'), async (req: AuthRequest, r
       file_size = file.size;
       mime_type = file.mimetype;
       const fileName = 'resources/' + category_id + '/' + uuidv4() + ext;
-      await uploadBuffer(file.buffer, fileName, file.mimetype);
+      await uploadBuffer(tempUploadBuffer(file), fileName, file.mimetype);
       storage_path = fileName;
     }
 
@@ -139,7 +155,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     const result = await query('UPDATE corporate_resources SET name = COALESCE($1, name), description = COALESCE($2, description), category_id = COALESCE($3, category_id), tags = COALESCE($4, tags), updated_at = NOW() WHERE id = $5 RETURNING *', [name, description, category_id, tagsArray, id]);
     if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Recurso no encontrado' });
     res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al actualizar recurso' });
   }
 });
@@ -154,10 +170,10 @@ router.post('/:id/upload', authenticate, upload.single('file'), async (req: Auth
     if (templateResult.rows.length === 0) return res.status(404).json({ success: false, error: 'Recurso no encontrado' });
     const ext = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
     const fileName = 'resources/' + templateResult.rows[0].category_id + '/' + uuidv4() + ext;
-    await uploadBuffer(file.buffer, fileName, file.mimetype);
+    await uploadBuffer(tempUploadBuffer(file), fileName, file.mimetype);
     await query('UPDATE corporate_resources SET storage_path = $1, file_type = $2, file_size = $3, mime_type = $4, updated_at = NOW() WHERE id = $5', [fileName, ext.replace('.', ''), file.size, file.mimetype, id]);
     res.json({ success: true, message: 'Archivo actualizado', path: fileName });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al subir archivo' });
   }
 });
@@ -226,7 +242,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     }
     await query('DELETE FROM corporate_resources WHERE id = $1', [id]);
     res.json({ success: true, message: 'Recurso eliminado' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al eliminar recurso' });
   }
 });
@@ -239,7 +255,7 @@ router.get('/stats/summary', authenticate, async (req: AuthRequest, res: Respons
     const recentUploads = await query('SELECT r.id, r.name, r.file_type, r.created_at, u.name as uploader_name, c.name as category_name FROM corporate_resources r JOIN users u ON r.uploaded_by = u.id LEFT JOIN resource_categories c ON r.category_id = c.id ORDER BY r.created_at DESC LIMIT 10');
     const totalSize = await query('SELECT COALESCE(SUM(file_size), 0) as total FROM corporate_resources');
     res.json({ success: true, data: { total_resources: parseInt(total.rows[0].count), by_category: byCategory.rows, recent_uploads: recentUploads.rows, total_size_bytes: parseInt(totalSize.rows[0].total), total_size_mb: (parseInt(totalSize.rows[0].total) / (1024 * 1024)).toFixed(2) } });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener estadisticas' });
   }
 });

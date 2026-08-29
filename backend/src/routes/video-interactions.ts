@@ -2,8 +2,9 @@ import { Router, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import { query } from '../db';
-import { getFileStream, getFileInfo, getPublicUrl } from '../services/storage';
+import { getFileStream, getFileInfo } from '../services/storage';
 import crypto from 'crypto';
+import { internalError } from '../utils/http';
 
 const router = Router();
 
@@ -35,7 +36,7 @@ router.get('/:id/like', authenticate, async (req: AuthRequest, res: Response) =>
       },
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -83,7 +84,7 @@ router.post('/:id/like', authenticate, async (req: AuthRequest, res: Response) =
       },
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -109,7 +110,7 @@ router.get('/:id/bookmark', authenticate, async (req: AuthRequest, res: Response
       },
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -148,7 +149,7 @@ router.post('/:id/bookmark', authenticate, async (req: AuthRequest, res: Respons
       data: { bookmarked },
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -211,7 +212,7 @@ router.post('/:id/share', authenticate, async (req: AuthRequest, res: Response) 
       },
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -286,7 +287,7 @@ router.get('/:id/download', authenticate, async (req: AuthRequest, res: Response
     stream.pipe(res);
   } catch (err: any) {
     console.error('Download error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 

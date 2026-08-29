@@ -1,16 +1,34 @@
 import { Router, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { query } from '../db';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
+import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/env';
+import { internalError } from '../utils/http';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'onboarding-hub-secret';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+
+// Rate limiting por IP para frenar fuerza bruta y abuso de registro.
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Demasiados intentos de login. Espera un minuto.' },
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Demasiados registros desde esta IP. Espera un minuto.' },
+});
 
 // POST /api/auth/register
-router.post('/register', async (req: AuthRequest, res: Response) => {
+router.post('/register', registerLimiter, async (req: AuthRequest, res: Response) => {
   try {
     const { email, password, name, department, position } = req.body;
 
@@ -42,12 +60,12 @@ router.post('/register', async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({ success: true, data: { user, token } });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
 // POST /api/auth/login
-router.post('/login', async (req: AuthRequest, res: Response) => {
+router.post('/login', loginLimiter, async (req: AuthRequest, res: Response) => {
   try {
     const { email, password } = req.body;
 
@@ -82,10 +100,10 @@ router.post('/login', async (req: AuthRequest, res: Response) => {
       { expiresIn: JWT_EXPIRES_IN } as SignOptions
     );
 
-    const { password_hash, ...userData } = user;
+    const { password_hash: _password_hash, ...userData } = user;
     res.json({ success: true, data: { user: userData, token } });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -109,7 +127,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: result.rows[0] });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 

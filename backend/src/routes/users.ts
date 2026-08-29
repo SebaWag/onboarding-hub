@@ -1,7 +1,9 @@
 import { Router, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import { query } from '../db';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requireRole } from '../middleware/auth';
 import { AuthRequest } from '../types';
+import { internalError } from '../utils/http';
 
 const router = Router();
 
@@ -86,12 +88,13 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     res.json({ success: true, data: usersWithMetrics });
   } catch (err: any) {
     console.error('Users list error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
 // POST /api/users - Crear usuario (admin only)
-router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
+// Crear usuarios es operacion privilegiada
+router.post('/', authenticate, requireRole('admin', 'owner'), async (req: AuthRequest, res: Response) => {
   try {
     const { email, password, name, department, position, org_role, org_id } = req.body;
     const currentUserId = req.user!.id;
@@ -127,7 +130,6 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     // Hash password usando bcryptjs
-    const bcrypt = require('bcryptjs');
     const password_hash = await bcrypt.hash(password, 12);
     
     const result = await query(
@@ -147,7 +149,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({ success: true, data: newUser });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -211,7 +213,7 @@ router.get('/stats/summary', authenticate, async (req: AuthRequest, res: Respons
       }
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 

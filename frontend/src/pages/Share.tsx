@@ -5,6 +5,8 @@ import {
   Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { api, ApiError } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
 interface VideoData {
   id: string
@@ -50,15 +52,11 @@ export default function Share() {
   const fetchVideo = async (pwd?: string) => {
     try {
       setIsLoading(true)
-      const url = pwd ? `/api/videos/share/${token}?password=${pwd}` : `/api/videos/share/${token}`
-      const response = await fetch(url)
-      const data = await response.json()
-      if (!response.ok) {
-        if (data.requires_password) {
-          setRequiresPassword(true)
-        } else {
-          setError(data.error || 'Error al cargar video')
-        }
+      // La contrasena viaja en el BODY del POST (nunca en query string).
+      // Endpoint publico: el cliente no envia token aunque exista sesion.
+      const data = await api.post<ApiResponse<{ video: VideoData }>>(`/videos/share/${token}`, pwd ? { password: pwd } : {})
+      if (!data.data) {
+        setError('Respuesta invalida del servidor')
         return
       }
       setVideo(data.data.video)
@@ -68,8 +66,12 @@ export default function Share() {
         role: 'assistant',
         content: `Hola! Soy MiMo, tu asistente para este tutorial sobre "${data.data.video.title}". Puedes preguntarme cualquier cosa sobre el contenido del video. En que puedo ayudarte?`,
       }])
-    } catch (err) {
-      setError('Error de conexion')
+    } catch (e) {
+      if (e instanceof ApiError && (e.data as { requires_password?: boolean })?.requires_password) {
+        setRequiresPassword(true)
+      } else {
+        setError(e instanceof ApiError ? e.message : 'Error de conexion')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -90,20 +92,16 @@ export default function Share() {
     setInput('')
     setIsChatLoading(true)
     try {
-      const response = await fetch(`/api/videos/${video.id}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input.trim() }),
-      })
-      const data = await response.json()
-      if (data.success) {
+      const data = await api.post<ApiResponse<{ response: string }>>(`/videos/${video.id}/chat`, { message: input.trim() })
+      if (data.success && data.data) {
+        const assistantText = data.data.response
         setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: data.data.response,
+          content: assistantText,
         }])
       }
-    } catch (err) {
+    } catch {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -170,7 +168,10 @@ export default function Share() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  // Construir URL del video a través del proxy
+  // Construir URL del video.
+  // El proxy /api/storage ahora exige autenticacion; esta pagina es publica
+  // (viewers de share links no tienen sesion), por lo que usamos la
+  // stream_url absoluta que entrega el backend (SEAWEEDFS_PUBLIC_URL).
   const getVideoSrc = () => {
     if (!video) return ''
     // Si stream_url es una URL absoluta de SeaweedFS, extraer el storage_key y usar el proxy
@@ -182,14 +183,14 @@ export default function Share() {
         // Remover el primer slash vacío y el bucket name
         const keyParts = pathParts.slice(2) // skip empty + bucket
         if (keyParts.length > 0) {
-          return `/api/storage/${keyParts.join('/')}`
+          return `/storage/${keyParts.join('/')}`
         }
       } catch {
         // Si no es URL válida, puede ser ya un path relativo
         if (video.stream_url.startsWith('/api/')) {
           return video.stream_url
         }
-        return `/api/storage/${video.stream_url}`
+        return `/storage/${video.stream_url}`
       }
     }
     return ''

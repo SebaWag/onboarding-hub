@@ -1,15 +1,31 @@
 import { Router, Response } from 'express';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import multer from 'multer';
 import { query } from '../db';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
-import { uploadBuffer, getPresignedUrl, deleteFile, BUCKET_NAME } from '../services/storage';
+import { uploadBuffer, getPresignedUrl } from '../services/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+
+// Multer escribe a disco temporal; el buffer se lee y elimina al subir.
+const tempUploadBuffer = (file: Express.Multer.File): Buffer => {
+  const buf = fs.readFileSync(file.path);
+  fs.unlink(file.path, () => {});
+  return buf;
+};
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (_req, file, cb) => {
+      cb(null, `upload-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`);
+    },
+  }),
   limits: { fileSize: 20 * 1024 * 1024 }
 });
 
@@ -57,7 +73,7 @@ router.get('/boards', authenticate, async (req: AuthRequest, res: Response) => {
 
     const result = await query(sql, params);
     res.json({ success: true, data: result.rows });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener tableros' });
   }
 });
@@ -114,7 +130,7 @@ router.get('/boards/:id', authenticate, async (req: AuthRequest, res: Response) 
     board.labels = labelsResult.rows;
 
     res.json({ success: true, data: board });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener tablero' });
   }
 });
@@ -157,7 +173,7 @@ router.post('/boards', authenticate, async (req: AuthRequest, res: Response) => 
     }
 
     res.status(201).json({ success: true, data: board });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al crear tablero' });
   }
 });
@@ -185,7 +201,7 @@ router.put('/boards/:id', authenticate, async (req: AuthRequest, res: Response) 
     }
 
     res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al actualizar tablero' });
   }
 });
@@ -196,7 +212,7 @@ router.delete('/boards/:id', authenticate, async (req: AuthRequest, res: Respons
     const { id } = req.params;
     await query('DELETE FROM kanban_boards WHERE id = $1 AND owner_id = $2', [id, req.user!.id]);
     res.json({ success: true, message: 'Tablero eliminado' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al eliminar tablero' });
   }
 });
@@ -224,7 +240,7 @@ router.post('/boards/:boardId/columns', authenticate, async (req: AuthRequest, r
     );
 
     res.status(201).json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al agregar columna' });
   }
 });
@@ -252,7 +268,7 @@ router.put('/columns/:id', authenticate, async (req: AuthRequest, res: Response)
     }
 
     res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al actualizar columna' });
   }
 });
@@ -263,7 +279,7 @@ router.delete('/columns/:id', authenticate, async (req: AuthRequest, res: Respon
     const { id } = req.params;
     await query('DELETE FROM kanban_columns WHERE id = $1', [id]);
     res.json({ success: true, message: 'Columna eliminada' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al eliminar columna' });
   }
 });
@@ -300,7 +316,7 @@ router.post('/cards', authenticate, async (req: AuthRequest, res: Response) => {
     await query('UPDATE kanban_boards SET updated_at = NOW() WHERE id = $1', [board_id]);
 
     res.status(201).json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al crear tarjeta' });
   }
 });
@@ -368,7 +384,7 @@ router.get('/cards/:id', authenticate, async (req: AuthRequest, res: Response) =
     card.labels = labelsResult.rows;
 
     res.json({ success: true, data: card });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener tarjeta' });
   }
 });
@@ -407,7 +423,7 @@ router.put('/cards/:id', authenticate, async (req: AuthRequest, res: Response) =
     );
 
     res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al actualizar tarjeta' });
   }
 });
@@ -457,7 +473,7 @@ router.put('/cards/:id/move', authenticate, async (req: AuthRequest, res: Respon
     );
 
     res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al mover tarjeta' });
   }
 });
@@ -468,7 +484,7 @@ router.delete('/cards/:id', authenticate, async (req: AuthRequest, res: Response
     const { id } = req.params;
     await query('DELETE FROM kanban_cards WHERE id = $1', [id]);
     res.json({ success: true, message: 'Tarjeta eliminada' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al eliminar tarjeta' });
   }
 });
@@ -499,7 +515,7 @@ router.post('/cards/:cardId/comments', authenticate, async (req: AuthRequest, re
     );
 
     res.status(201).json({ success: true, data: commentResult.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al agregar comentario' });
   }
 });
@@ -521,7 +537,7 @@ router.post('/cards/:cardId/attachments', authenticate, upload.single('file'), a
     const fileName = `kanban/${cardId}/${uuidv4()}-${file.originalname}`;
 
     // Upload using SeaweedFS (S3-compatible)
-    const uploadResult = await uploadBuffer(file.buffer, fileName, file.mimetype);
+    const uploadResult = await uploadBuffer(tempUploadBuffer(file), fileName, file.mimetype);
 
     // Save attachment metadata to database (using minio_path column for compatibility)
     const result = await query(
@@ -557,7 +573,7 @@ router.get('/attachments/:id/download', authenticate, async (req: AuthRequest, r
     const { url } = await getPresignedUrl(attachmentResult.rows[0].minio_path, 3600);
 
     res.json({ success: true, data: { url, file_name: attachmentResult.rows[0].file_name } });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al generar URL' });
   }
 });
@@ -578,7 +594,7 @@ router.post('/boards/:boardId/labels', authenticate, async (req: AuthRequest, re
     );
 
     res.status(201).json({ success: true, data: result.rows[0] });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al crear etiqueta' });
   }
 });
@@ -592,7 +608,7 @@ router.post('/cards/:cardId/labels/:labelId', authenticate, async (req: AuthRequ
       [cardId, labelId]
     );
     res.json({ success: true, message: 'Etiqueta agregada' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al agregar etiqueta' });
   }
 });
@@ -603,7 +619,7 @@ router.delete('/cards/:cardId/labels/:labelId', authenticate, async (req: AuthRe
     const { cardId, labelId } = req.params;
     await query('DELETE FROM kanban_card_labels WHERE card_id = $1 AND label_id = $2', [cardId, labelId]);
     res.json({ success: true, message: 'Etiqueta removida' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al remover etiqueta' });
   }
 });
@@ -663,7 +679,7 @@ router.get('/boards/:boardId/metrics', authenticate, async (req: AuthRequest, re
         overdue_count: parseInt(overdue.rows[0].count)
       }
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener métricas' });
   }
 });
@@ -697,7 +713,7 @@ router.get('/boards/:boardId/calendar', authenticate, async (req: AuthRequest, r
 
     const result = await query(sql, params);
     res.json({ success: true, data: result.rows });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, error: 'Error al obtener calendario' });
   }
 });

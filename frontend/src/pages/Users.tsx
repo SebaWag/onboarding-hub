@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Users as UsersIcon, Search, Mail, UserPlus, X, Video, MessageSquare, Loader2 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { api } from '../lib/api'
+import type { ApiResponse } from '../lib/api'
 
-const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 interface User { id: string; name: string; email: string; role: string; department?: string; position?: string; avatar_url?: string; hire_date?: string; last_login?: string; is_active: boolean; org_role: string; videos: number; questions: number; last_active: string; org_name?: string }
 interface UserStats { total: number; active: number; admins: number; editors: number; by_department: Array<{ department: string; count: number }> }
@@ -25,25 +26,20 @@ export default function Users() {
   const fetchUsers = async () => {
     try {
       setLoading(true); setError(null)
-      const token = localStorage.getItem('auth_token')
-      if (!token) { setError('No autenticado'); return }
       const params = new URLSearchParams()
       if (searchQuery) params.append('search', searchQuery)
       if (selectedRole !== 'all') params.append('role', selectedRole)
       if (statusFilter !== 'all') params.append('status', statusFilter)
-      const response = await fetch(`${API_URL}/users?${params}`, { headers: { 'Authorization': `Bearer ${token}` } })
-      if (!response.ok) throw new Error('Error cargando usuarios')
-      const data = await response.json()
-      setUsers(data.success ? data.data : [])
-    } catch (err: any) { console.error('Fetch users error:', err); setError(err.message) }
+      const data = await api.get<ApiResponse<User[]>>(`/users?${params}`)
+      setUsers(data.success && data.data ? data.data : [])
+    } catch (err) { console.error('Fetch users error:', err); setError(err instanceof Error ? err.message : 'Error cargando usuarios') }
     finally { setLoading(false) }
   }
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/users/stats/summary`, { headers: { 'Authorization': `Bearer ${token}` } })
-      if (response.ok) { const data = await response.json(); setStats(data.success ? data.data : null) }
+      const data = await api.get<ApiResponse<UserStats>>('/users/stats/summary')
+      setStats(data.success && data.data ? data.data : null)
     } catch (err) { console.error('Stats error:', err) }
   }
 
@@ -51,10 +47,8 @@ export default function Users() {
     if (!inviteForm.email || !inviteForm.name) { alert('Email y nombre son requeridos'); return }
     try {
       setSaving(true)
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${API_URL}/users/invite`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(inviteForm) })
-      if (response.ok) { alert('Invitación enviada'); setShowInviteModal(false); setInviteForm({ email: '', name: '', department: '', position: '', org_role: 'viewer' }) }
-      else { const err = await response.json(); alert(err.error || 'Error al invitar') }
+      await api.post('/users/invite', inviteForm)
+      alert('Invitación enviada'); setShowInviteModal(false); setInviteForm({ email: '', name: '', department: '', position: '', org_role: 'viewer' })
     } catch (err) { console.error('Invite error:', err) }
     setSaving(false)
   }

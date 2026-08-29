@@ -2,6 +2,7 @@ import { Router, Response } from 'express'
 import { authenticate } from '../middleware/auth'
 import { AuthRequest } from '../types'
 import { query } from '../db'
+import { internalError } from '../utils/http';
 
 const router = Router()
 
@@ -34,7 +35,7 @@ router.get('/:videoId/comments', authenticate, async (req: AuthRequest, res: Res
 
     res.json({ success: true, data: result.rows })
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message })
+    internalError(res, err);
   }
 })
 
@@ -77,7 +78,7 @@ router.post('/:videoId/comments', authenticate, async (req: AuthRequest, res: Re
 
     res.status(201).json({ success: true, data: comment })
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message })
+    internalError(res, err);
   }
 })
 
@@ -86,7 +87,7 @@ router.patch('/:videoId/comments/:commentId', authenticate, async (req: AuthRequ
   try {
     const { commentId } = req.params
     const { is_resolved, content } = req.body
-    const userId = req.user!.id
+    const _userId = req.user!.id
 
     const updates: string[] = []
     const params: any[] = []
@@ -118,7 +119,7 @@ router.patch('/:videoId/comments/:commentId', authenticate, async (req: AuthRequ
 
     res.json({ success: true, data: result.rows[0] })
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message })
+    internalError(res, err);
   }
 })
 
@@ -152,7 +153,7 @@ router.delete('/:videoId/comments/:commentId', authenticate, async (req: AuthReq
     await query('DELETE FROM video_comments WHERE id = $1', [commentId])
     res.json({ success: true })
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message })
+    internalError(res, err);
   }
 })
 

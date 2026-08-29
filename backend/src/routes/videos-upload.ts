@@ -1,17 +1,29 @@
 import { Router, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import multer from 'multer';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import { query } from '../db';
 import { v4 as uuidv4 } from 'uuid';
-import { uploadBuffer, getPublicUrl } from '../services/storage';
+import { uploadStream, getPublicUrl } from '../services/storage';
+import { internalError } from '../utils/http';
 
 const router = Router();
 
 const upload = multer({
-  storage: multer.memoryStorage(),
+  // Los videos pueden pesar GBs: se escriben a disco temporal y se streamean
+  // a SeaweedFS. Nunca se cargan completos en RAM.
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (_req, file, cb) => {
+      cb(null, `upload-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname) || '.webm'}`);
+    },
+  }),
   limits: {
-    fileSize: 2 * 1024 * 1024 * 1024,
+    fileSize: 2 * 1024 * 1024 * 1024, // 2GB
   },
   fileFilter: (req, file, cb) => {
     console.log('[UPLOAD] Recibido archivo:', file.originalname, 'mimetype:', file.mimetype);
@@ -29,10 +41,21 @@ const upload = multer({
   },
 });
 
+// =========================================
+// 🆕 EXTRAER DURACIÓN REAL CON FFPROBE
+// =========================================
+
+// =========================================
+// REPARAR METADATOS WEBM CON FFPROBE + FFMPEG
+// =========================================
+
+
+
+
 // POST /api/videos/upload - Upload video file
 router.post('/upload', authenticate, upload.single('video'), async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description } = req.body;
+    const { title, description = '' } = req.body;
     const file = req.file;
     const userId = req.user!.id;
 
@@ -59,9 +82,15 @@ router.post('/upload', authenticate, upload.single('video'), async (req: AuthReq
     const fileExtension = file.originalname.endsWith('.webm') ? 'webm' : 'mp4';
     const storageKey = `videos/${orgId}/${Date.now()}.${fileExtension}`;
 
-    // Upload to SeaweedFS
+    // Stream directo desde el archivo temporal hacia SeaweedFS
     console.log('[UPLOAD] Subiendo a SeaweedFS:', storageKey, '(' + file.size + ' bytes)');
-    const uploadResult = await uploadBuffer(file.buffer, storageKey, file.mimetype);
+    let uploadResult;
+    try {
+      const stream = fs.createReadStream(file.path);
+      uploadResult = await uploadStream(stream, file.size, storageKey, file.mimetype);
+    } finally {
+      fs.unlink(file.path, () => {}); // limpieza del temp siempre
+    }
     console.log('[UPLOAD] Subido exitosamente:', uploadResult.url);
 
     const metadata = {
@@ -72,11 +101,20 @@ router.post('/upload', authenticate, upload.single('video'), async (req: AuthReq
       public_url: uploadResult.url,
     };
 
+    // 🆕 DURACIÓN REAL: ffprobe > body > fallback por tamaño
+    const ffprobeDuration = 0;
+    const bodyDuration = parseInt(req.body.duration_seconds);
+    const fallbackDuration = Math.floor(file.size / 1000000);
+    
+    const finalDuration = ffprobeDuration || bodyDuration || fallbackDuration || 0;
+    
+    console.log(`[UPLOAD] Duración final: ${finalDuration}s (ffprobe: ${ffprobeDuration}, body: ${bodyDuration}, fallback: ${fallbackDuration})`);
+
     const result = await query(
       `INSERT INTO videos (org_id, title, description, storage_key, duration_seconds, metadata, created_by, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'ready')
        RETURNING *`,
-      [orgId, title, description, storageKey, parseInt(req.body.duration_seconds) || Math.floor(file.size / 1000000) || 0, JSON.stringify(metadata), userId]
+      [orgId, title, description, storageKey, finalDuration, JSON.stringify(metadata), userId]
     );
 
     const video = result.rows[0];
@@ -87,7 +125,7 @@ router.post('/upload', authenticate, upload.single('video'), async (req: AuthReq
     });
   } catch (err: any) {
     console.error('Upload error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -123,12 +161,12 @@ router.get('/:id/stream', authenticate, async (req: AuthRequest, res: Response) 
       },
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
 // GET /api/videos/:id/file - Serve video file (proxy through backend)
-router.get('/:id/file', async (req: AuthRequest, res: Response) => {
+router.get('/:id/file', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -145,10 +183,9 @@ router.get('/:id/file', async (req: AuthRequest, res: Response) => {
     const video = videoResult.rows[0];
     const publicUrl = getPublicUrl(video.storage_key);
     
-    // Redirect to SeaweedFS public URL
     res.redirect(publicUrl);
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
@@ -180,11 +217,14 @@ router.post('/:id/share', authenticate, async (req: AuthRequest, res: Response) 
 
     const shareToken = uuidv4().replace(/-/g, '').substring(0, 16);
 
+    // Hashear la contrasena del share (nunca almacenar en texto plano)
+    const passwordHash = password ? await bcrypt.hash(password, 12) : null;
+
     const result = await query(
       `INSERT INTO video_shares (video_id, share_token, is_public, expires_at, password_hash, allowed_emails, created_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [id, shareToken, is_public !== false, expires_at || null, password || null, allowed_emails ? JSON.stringify(allowed_emails) : null, userId]
+      [id, shareToken, is_public !== false, expires_at || null, passwordHash, allowed_emails ? JSON.stringify(allowed_emails) : null, userId]
     );
 
     const share = result.rows[0];
@@ -200,11 +240,11 @@ router.post('/:id/share', authenticate, async (req: AuthRequest, res: Response) 
       },
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
-// GET /api/videos/:id/shares - Get all share links for a video
+// GET /api/videos/:id/shares - Get all share links
 router.get('/:id/shares', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -239,15 +279,17 @@ router.get('/:id/shares', authenticate, async (req: AuthRequest, res: Response) 
       })),
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
-// GET /api/share/:token - Public endpoint to access shared video
-router.get('/share/:token', async (req: AuthRequest, res: Response) => {
+// POST /api/videos/share/:token - Public endpoint to access shared video.
+// La contrasena va en el BODY (POST), no en query string, para que no
+// quede registrada en logs de acceso/proxies.
+router.post('/share/:token', async (req: AuthRequest, res: Response) => {
   try {
     const { token } = req.params;
-    const { password } = req.query;
+    const { password } = req.body ?? {};
 
     const shareResult = await query(
       `SELECT vs.*, v.title, v.description, v.storage_key, v.duration_seconds, v.transcript, v.metadata, v.thumbnail_url
@@ -269,9 +311,17 @@ router.get('/share/:token', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    if (share.password_hash && share.password_hash !== password) {
-      res.status(401).json({ success: false, error: 'Contrasena requerida', requires_password: true });
-      return;
+    const providedPassword = typeof password === 'string' ? password : undefined;
+
+    if (share.password_hash) {
+      const validPassword = providedPassword
+        ? await bcrypt.compare(providedPassword, share.password_hash)
+        : false;
+
+      if (!validPassword) {
+        res.status(401).json({ success: false, error: 'Contrasena requerida', requires_password: true });
+        return;
+      }
     }
 
     await query(
@@ -298,12 +348,11 @@ router.get('/share/:token', async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
 
-
-// POST /api/videos/:id/chat - Chat with video using AI
+// POST /api/videos/:id/chat - Chat with video
 router.post("/:id/chat", authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -345,7 +394,7 @@ router.post("/:id/chat", authenticate, async (req: AuthRequest, res: Response) =
         "Authorization": `Bearer ${process.env.MIMO_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "mimo-v2-omni",
+        model: "mimo-v2.5",
         messages: [
           {
             role: "system",
@@ -388,9 +437,8 @@ INSTRUCCIONES:
     });
   } catch (err: any) {
     console.error("Chat error:", err);
-    res.status(500).json({ success: false, error: err.message });
+    internalError(res, err);
   }
 });
-
 
 export default router;
