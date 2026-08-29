@@ -9,11 +9,13 @@ interface CameraPreviewProps {
   processedStream?: MediaStream | null
   background?: { mode: string; label: string; color?: string; imageUrl?: string } | null
   isModelLoading?: boolean
+  /** Callback que recibe el <video> real actualmente visible (para PiP) */
+  onActiveVideo?: (el: HTMLVideoElement | null) => void
 }
 
 export default function CameraPreview({
   stream, enabled, className = '',
-  processedStream, background, isModelLoading,
+  processedStream, background, isModelLoading, onActiveVideo,
 }: CameraPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const processedVideoRef = useRef<HTMLVideoElement>(null)
@@ -36,6 +38,13 @@ export default function CameraPreview({
       processedVideoRef.current.srcObject = processedStream
     }
   }, [processedStream, showProcessed])
+
+  // Notificar el <video> actualmente visible (para que Studio pueda
+  // usarlo en requestPictureInPicture — el navegador rechaza videos ocultos)
+  useEffect(() => {
+    const active = showProcessed ? processedVideoRef.current : videoRef.current
+    onActiveVideo?.(active || null)
+  }, [showProcessed, onActiveVideo])
 
   if (!enabled) {
     return (

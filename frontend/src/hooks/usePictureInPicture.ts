@@ -60,13 +60,18 @@ export function usePictureInPicture(getStream?: () => MediaStream | null) {
     return video
   }
 
-  const enterPip = useCallback(async (stream: MediaStream) => {
+  const enterPip = useCallback(async (stream: MediaStream, videoEl?: HTMLVideoElement | null) => {
     try {
       if (!isSupported) {
         console.warn('[PiP] Picture-in-Picture no soportado en este navegador')
         return
       }
-      const video = ensureVideo(stream)
+      // Usar el video REAL visible si se pasa (mas confiable para el navegador),
+      // si no, crear el video oculto como fallback.
+      let video = videoEl && videoEl.srcObject === stream ? videoEl : null
+      if (!video) {
+        video = ensureVideo(stream)
+      }
       if (video.paused) await video.play()
       if (document.pictureInPictureElement === video) {
         setIsPipActive(true)

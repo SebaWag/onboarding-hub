@@ -31,6 +31,8 @@ export default function Studio() {
   const [activeTab, setActiveTab] = useState('record')
   const [bgSelectorOpen, setBgSelectorOpen] = useState(false)
   const [cameraPreviewStream, setCameraPreviewStream] = useState<MediaStream | null>(null)
+  // Ref al <video> real de la camara (visible en el preview) para PiP
+  const activeCameraVideoRef = useRef<HTMLVideoElement | null>(null)
   const { processedStream, isModelReady, background, changeBackground, startBackgroundRemoval } = useBackgroundRemoval()
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
   const [videos, setVideos] = useState<VideoItem[]>([])
@@ -57,7 +59,7 @@ export default function Studio() {
       return
     }
     const stream = cameraStream || cameraPreviewStream || processedStream
-    if (stream) await enterPip(stream)
+    if (stream) await enterPip(stream, activeCameraVideoRef.current)
   }
 
   // --- AUTO-PiP: al iniciar la grabación, la cámara flota
@@ -66,7 +68,7 @@ export default function Studio() {
   useEffect(() => {
     if (isRecording && isPipSupported && !isPipActive) {
       const stream = cameraStream || cameraPreviewStream
-      if (stream) enterPip(stream)
+      if (stream) enterPip(stream, activeCameraVideoRef.current)
     }
   }, [isRecording, cameraStream, cameraPreviewStream, isPipSupported, isPipActive, enterPip])
 
@@ -274,7 +276,7 @@ if (key) return mediaProxyUrl(key)
                 {cameraEnabled && (
                   <div className="absolute bottom-4 right-4 w-28 h-28 z-10">
                     <div className="w-full h-full rounded-full overflow-hidden border-[3px] border-white/30 shadow-2xl">
-                      <CameraPreview stream={cameraPreviewStream || cameraStream} enabled={cameraEnabled} processedStream={processedStream} background={background} className="w-full h-full" />
+                      <CameraPreview stream={cameraPreviewStream || cameraStream} enabled={cameraEnabled} processedStream={processedStream} background={background} className="w-full h-full" onActiveVideo={(el) => { activeCameraVideoRef.current = el }} />
                     </div>
                   </div>
                 )}
