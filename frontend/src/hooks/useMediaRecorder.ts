@@ -242,7 +242,6 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
           if (isRendererActive) {
             animationId = requestAnimationFrame(drawFrame)
           }
-          }
         }
         
         const handleVisibilityChange = () => {

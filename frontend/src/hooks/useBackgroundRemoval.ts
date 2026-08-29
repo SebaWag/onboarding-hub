@@ -315,7 +315,6 @@ const processFrame = useCallback(() => {
       if (!segmented) {
         segmentWithColorFallback(ctx, video, w, h, activeBg)
       }
-      }
     } else {
       segmentWithColorFallback(ctx, video, w, h, activeBg);
     }
