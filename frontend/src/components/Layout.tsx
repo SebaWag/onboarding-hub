@@ -120,9 +120,11 @@ export default function Layout() {
     <div className="flex flex-col h-full bg-[var(--bg)]">
       <div className="h-14 flex items-center px-4 border-b border-[var(--border)]">
         <Link to="/studio" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 via-cyan-500 to-violet-500 flex items-center justify-center shadow-lg shadow-teal-500/20 group-hover:shadow-teal-500/40 group-hover:scale-105 transition-all duration-300 animate-pulse-slow">
-            <span className="text-sm font-black text-white tracking-tight" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>WS</span>
-          </div>
+          <img
+            src="/logo-ws.png"
+            alt="Wagner Solutions"
+            className="w-9 h-9 object-contain rounded-xl group-hover:scale-105 transition-all duration-300"
+          />
           <span className="font-semibold text-sm text-[var(--text)] tracking-tight">Wagner</span>
         </Link>
       </div>

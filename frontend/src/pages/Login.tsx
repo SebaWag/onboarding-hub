@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Video, Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { api, ApiError } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
@@ -41,9 +41,11 @@ export default function Login() {
         <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-fuchsia-600/20 to-rose-600/20" />
         <div className="relative z-10 flex flex-col justify-center p-12">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-glow">
-              <Video className="w-6 h-6 text-white" />
-            </div>
+            <img
+              src="/logo-ws.png"
+              alt="Wagner Solutions"
+              className="w-12 h-12 object-contain"
+            />
             <h1 className="text-2xl font-bold text-white">TutorialHub</h1>
           </div>
           <h2 className="text-4xl font-bold text-white mb-4">
@@ -72,9 +74,11 @@ export default function Login() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
-              <Video className="w-5 h-5 text-white" />
-            </div>
+            <img
+              src="/logo-ws.png"
+              alt="Wagner Solutions"
+              className="w-10 h-10 object-contain"
+            />
             <h1 className="text-xl font-bold text-white">TutorialHub</h1>
           </div>
 
