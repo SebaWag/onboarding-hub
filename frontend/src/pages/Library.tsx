@@ -13,6 +13,7 @@ interface VideoItem {
   created_at: string
   created_by_name: string
   transcript: string | null
+  thumbnail_url?: string | null
   storage_key?: string
   metadata?: Record<string, unknown>
 }
@@ -196,9 +197,13 @@ export default function Library() {
               onClick={() => navigate(`/video/${video.id}`)}
               className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-color)] hover:border-teal-400/50 hover:shadow-lg transition-all cursor-pointer group shadow-sm"
             >
-              {/* Thumbnail */}
-              <div className="h-40 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center relative">
-                <Film className="w-12 h-12 text-violet-500 group-hover:scale-110 transition-transform" />
+              {/* Thumbnail: portada real o logo WS */}
+              <div className="h-40 bg-[var(--bg-card)] flex items-center justify-center relative overflow-hidden">
+                <img
+                  src={video.thumbnail_url || '/logo-poster.png'}
+                  alt={video.title || 'Wagner Solutions'}
+                  className="w-full h-full object-cover"
+                />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                   <div className="p-4 rounded-full bg-white/30 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
                     <Play className="w-8 h-8 text-white" />
@@ -261,8 +266,8 @@ export default function Library() {
                 onClick={() => navigate(`/video/${video.id}`)}
                 className="flex items-center gap-4 p-4 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer group"
               >
-                <div className="w-16 h-12 rounded-lg bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center shrink-0">
-                  <Play className="w-5 h-5 text-violet-500" />
+                <div className="w-16 h-12 rounded-lg bg-[var(--bg-secondary)] flex items-center justify-center shrink-0 overflow-hidden">
+                  <img src="/logo-poster.png" alt="WS" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-[var(--text-primary)] truncate group-hover:text-teal-600 dark:group-hover:text-teal-500 transition-colors">{video.title}</h3>

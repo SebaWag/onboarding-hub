@@ -8,6 +8,8 @@ interface VideoPlayerProps {
   videoRef: RefObject<HTMLVideoElement | null>
   videoContainerRef: RefObject<HTMLDivElement | null>
   videoSrc: string
+  /** URL del poster (portada) a mostrar antes de reproducir. */
+  poster?: string
   isPlaying: boolean
   setIsPlaying: (v: boolean) => void
   currentTime: number
@@ -51,7 +53,7 @@ function syncDuration(
 
 /** Reproductor de video con overlay, controles y marcadores de capitulos. */
 export default function VideoPlayer({
-  videoRef, videoContainerRef, videoSrc, isPlaying, setIsPlaying,
+  videoRef, videoContainerRef, videoSrc, poster, isPlaying, setIsPlaying,
   currentTime, setCurrentTime, duration, setDuration, volume, isMuted,
   isFullscreen, chapters, togglePlay, skip, toggleMute,
   handleVolumeChange, toggleFullscreen, handleProgressClick,
@@ -64,6 +66,7 @@ export default function VideoPlayer({
               <video
                 ref={videoRef}
                 src={videoSrc}
+                poster={poster}
                 className="w-full h-full object-contain bg-black"
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}

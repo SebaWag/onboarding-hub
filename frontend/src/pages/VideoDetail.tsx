@@ -565,6 +565,7 @@ export default function VideoDetail() {
             videoRef={videoRef}
             videoContainerRef={videoContainerRef}
             videoSrc={videoSrc}
+            poster={video?.thumbnail_url || '/logo-poster.png'}
             isPlaying={isPlaying} setIsPlaying={setIsPlaying}
             currentTime={currentTime} setCurrentTime={setCurrentTime}
             duration={duration} setDuration={setDuration}
