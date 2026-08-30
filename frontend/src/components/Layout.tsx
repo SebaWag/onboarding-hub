@@ -119,13 +119,12 @@ export default function Layout() {
   const sidebar = (
     <div className="flex flex-col h-full bg-[var(--bg)]">
       <div className="h-14 flex items-center px-4 border-b border-[var(--border)]">
-        <Link to="/studio" className="flex items-center gap-2.5 group">
+        <Link to="/studio" className="flex items-center group">
           <img
             src="/logo-ws.png"
             alt="Wagner Solutions"
             className="w-9 h-9 object-contain rounded-xl group-hover:scale-105 transition-all duration-300"
           />
-          <span className="font-semibold text-sm text-[var(--text)] tracking-tight">Wagner</span>
         </Link>
       </div>
 
