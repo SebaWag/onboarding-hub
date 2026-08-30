@@ -257,7 +257,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
                 if (cameraVideoRef.current) {
                   ctx.drawImage(cameraVideoRef.current, CAM_X, CAM_Y, CAM_W, CAM_H)
                 }
-              } catch (e) {}
+              } catch { /* noop: drawImage puede fallar si el canvas se perdió */ }
             }, 200)
           } else {
             if (intervalRef.current) {

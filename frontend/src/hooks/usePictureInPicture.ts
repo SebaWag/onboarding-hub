@@ -99,10 +99,10 @@ export function usePictureInPicture(getStream?: () => MediaStream | null) {
       const v = w.document.getElementById('cam') as HTMLVideoElement | null
       if (v) v.srcObject = stream
       // Foco inicial
-      try { w.focus() } catch (e) {}
+      try { w.focus() } catch { /* noop: algunos navegadores bloquean focus() en popups */ }
       // Boton cerrar
       const closeBtn = w.document.getElementById('closeBtn') as HTMLButtonElement | null
-      closeBtn?.addEventListener('click', () => { try { w.close() } catch (e) {} })
+      closeBtn?.addEventListener('click', () => { try { w.close() } catch { /* noop: la ventana puede ya estar cerrada */ } })
       // Boton fijar: auto-focus periodico para intentar mantenerla al frente
       let pinTimer: number | null = null
       const pinBtn = w.document.getElementById('pinBtn') as HTMLButtonElement | null
@@ -115,7 +115,7 @@ export function usePictureInPicture(getStream?: () => MediaStream | null) {
           return
         }
         pinTimer = window.setInterval(() => {
-          try { if (!w.closed) w.focus() } catch (e) {}
+          try { if (!w.closed) w.focus() } catch { /* noop */ }
         }, 1200)
         pinBtn.textContent = '📌 Fijado'
         pinBtn.classList.add('on')
@@ -164,7 +164,7 @@ export function usePictureInPicture(getStream?: () => MediaStream | null) {
   const exitPip = useCallback(async () => {
     // Cerrar ventana emergente (Firefox) si existe
     if (popupRef.current && !popupRef.current.closed) {
-      try { popupRef.current.close() } catch (e) {}
+      try { popupRef.current.close() } catch { /* noop: popup ya cerrado */ }
       popupRef.current = null
     }
     try {
@@ -199,7 +199,7 @@ export function usePictureInPicture(getStream?: () => MediaStream | null) {
   // Cleanup al desmontar: cerrar PiP, ventana emergente y remover video oculto
   useEffect(() => () => {
     if (popupRef.current && !popupRef.current.closed) {
-      try { popupRef.current.close() } catch (e) {}
+      try { popupRef.current.close() } catch { /* noop: popup ya cerrado */ }
       popupRef.current = null
     }
     const video = videoRef.current
