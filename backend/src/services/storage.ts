@@ -229,19 +229,21 @@ export async function getFileBuffer(key: string): Promise<Buffer> {
 }
 
 // 🆕 AHORA CON SOPORTE RANGE REQUESTS
-export async function getFileStream(key: string, start?: number, end?: number): Promise<GetObjectCommandOutput> {
+export async function getFileStream(key: string, range?: string): Promise<GetObjectCommandOutput> {
   try {
     const input: GetObjectCommandInput = {
       Bucket: BUCKET_NAME,
       Key: key,
     };
-    
-    // Si se especifica un rango, lo pasamos a SeaweedFS/S3
-    if (start !== undefined && end !== undefined) {
-      input.Range = `bytes=${start}-${end}`;
-      console.log(`[STORAGE] Range request: ${start}-${end} for ${key}`);
+
+    // Si se especifica un rango HTTP (ej: 'bytes=0-1023', 'bytes=1024-', 'bytes=-500'),
+    // lo pasamos tal cual a SeaweedFS/S3 para soportar Range Requests
+    // (necesarios para que el <video> calcule la duración real y permita seek).
+    if (range) {
+      input.Range = range;
+      console.log(`[STORAGE] Range request: ${range} for ${key}`);
     }
-    
+
     const response = await s3Client.send(new GetObjectCommand(input));
     return response;
   } catch (error: any) {

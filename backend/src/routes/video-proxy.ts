@@ -13,8 +13,8 @@ const router = Router();
  * GET /api/storage/:path(*)
  * Proxy para archivos de video y otros desde SeaweedFS.
  *
- * Requiere autenticación: header 
- * o query param  (para <video>, <img> y descargas,
+ * Requiere autenticación: header `Authorization: Bearer <jwt>`
+ * o query param `?token=<jwt>` (para <video>, <img> y descargas,
  * que no pueden enviar headers personalizados).
  */
 // Express 5 / path-to-regexp v8: las wildcards deben ser nombradas ('/*splat').
@@ -37,21 +37,43 @@ router.get('/*splat', authenticate, async (req: AuthRequest, res: Response) => {
     else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) contentType = 'image/jpeg';
     else if (filePath.endsWith('.pdf')) contentType = 'application/pdf';
 
-    // Obtener stream desde SeaweedFS
-    const response = await getFileStream(filePath);
+    // ═══════════════════════════════════════════════════════════════════
+    // FIX: Soporte de HTTP Range Requests (206 Partial Content)
+    // ─────────────────────────────────────────────────────────────────────
+    // El <video> del navegador envía el header `Range` para pedir solo un
+    // segmento del archivo (probe de metadata, seek, buffer progresivo).
+    // Si el servidor responde 200 con el archivo completo en lugar de un
+    // 206 con Content-Range, el player no puede calcular la duración real
+    // ni avanzar en el timeline (bug: duración de 7-9s en videos largos).
+    const rangeHeader = req.headers.range as string | undefined;
 
-    // Configurar headers (fix de produccion: CORS abierto + expose headers para range requests)
-    res.set({
+    // Obtener stream desde SeaweedFS (pasando el Range si viene)
+    const response = await getFileStream(filePath, rangeHeader);
+
+    const baseHeaders: Record<string, string> = {
       'Content-Type': contentType,
       'Accept-Ranges': 'bytes',
       'Cache-Control': 'public, max-age=3600',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length',
-    });
+    };
 
-    // Si hay Content-Length, incluirlo
-    if (response.ContentLength) {
-      res.set('Content-Length', String(response.ContentLength));
+    if (rangeHeader && response.ContentRange) {
+      // El navegador pidió un rango: responder 206 Partial Content
+      res.status(206);
+      res.set({
+        ...baseHeaders,
+        'Content-Range': response.ContentRange,
+        'Content-Length': String(response.ContentLength ?? 0),
+      });
+    } else {
+      // Sin rango (o SeaweedFS no devolvió ContentRange): archivo completo
+      res.status(200);
+      if (response.ContentLength) {
+        res.set({ ...baseHeaders, 'Content-Length': String(response.ContentLength) });
+      } else {
+        res.set(baseHeaders);
+      }
     }
 
     // Stream del archivo
