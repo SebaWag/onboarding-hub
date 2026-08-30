@@ -20,6 +20,7 @@ interface VideoItem {
   duration_seconds: number
   created_at: string
   created_by_name: string
+  thumbnail_url?: string | null
   storage_key?: string
   metadata?: { public_url?: string; storage_key?: string }
 }
@@ -420,8 +421,12 @@ if (key) return mediaProxyUrl(key)
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {videos.map((video) => (
                 <div key={video.id} onClick={() => navigate(`/video/${video.id}`)} className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-color)] hover:border-teal-400/50 hover:shadow-lg transition-all cursor-pointer group shadow-sm">
-                  <div className="h-40 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center relative">
-                    <Film className="w-12 h-12 text-violet-500 group-hover:scale-110 transition-transform" />
+                  <div className="h-40 bg-[var(--bg-card)] flex items-center justify-center relative overflow-hidden">
+                    <img
+                      src={video.thumbnail_url || '/logo-poster.png'}
+                      alt={video.title || 'Wagner Solutions'}
+                      className="w-full h-full object-cover"
+                    />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                       <div className="p-4 rounded-full bg-white/30 dark:bg-white/20 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
                         <Play className="w-8 h-8 text-white" />
