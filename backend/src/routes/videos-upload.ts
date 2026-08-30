@@ -4,6 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import multer from 'multer';
+import { execSync } from 'child_process';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import { query } from '../db';
@@ -82,32 +83,52 @@ router.post('/upload', authenticate, upload.single('video'), async (req: AuthReq
     const fileExtension = file.originalname.endsWith('.webm') ? 'webm' : 'mp4';
     const storageKey = `videos/${orgId}/${Date.now()}.${fileExtension}`;
 
-    // Stream directo desde el archivo temporal hacia SeaweedFS
-    console.log('[UPLOAD] Subiendo a SeaweedFS:', storageKey, '(' + file.size + ' bytes)');
+    // 🆕 REPARAR METADATOS WEBM: remux con ffmpeg para escribir la duración real en el header
+    // Los .webm grabados con MediaRecorder no traen la duración en el header
+    // (Segment Info sin Duration), lo que impide al <video> mostrar el timeline
+    // correcto y hacer seek. ffmpeg con -c copy reescribe el contenedor (sin
+    // re-encode de los streams) y escribe la duración real al inicio del archivo.
+    let uploadPath = file.path;
+    let uploadSize = file.size;
+    let ffprobeDuration = 0;
+    try {
+      const fixedPath = `${file.path}.fixed.${fileExtension}`;
+      execSync(`ffmpeg -y -i "${file.path}" -c copy -f ${fileExtension} "${fixedPath}" 2>/dev/null`);
+      const probe = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${fixedPath}"`).toString().trim();
+      ffprobeDuration = parseFloat(probe) || 0;
+      uploadPath = fixedPath;
+      uploadSize = fs.statSync(fixedPath).size;
+      console.log(`[UPLOAD] ffmpeg remux OK: duración real ${ffprobeDuration}s (${uploadSize} bytes)`);
+    } catch (err: any) {
+      console.warn('[UPLOAD] ffmpeg remux falló, se usa el archivo original:', err.message);
+    }
+
+    // Stream directo desde el archivo temporal (remuxed si fue posible) hacia SeaweedFS
+    console.log('[UPLOAD] Subiendo a SeaweedFS:', storageKey, '(' + uploadSize + ' bytes)');
     let uploadResult;
     try {
-      const stream = fs.createReadStream(file.path);
-      uploadResult = await uploadStream(stream, file.size, storageKey, file.mimetype);
+      const stream = fs.createReadStream(uploadPath);
+      uploadResult = await uploadStream(stream, uploadSize, storageKey, file.mimetype);
     } finally {
-      fs.unlink(file.path, () => {}); // limpieza del temp siempre
+      fs.unlink(file.path, () => {}); // limpieza del temp original siempre
+      if (uploadPath !== file.path) fs.unlink(uploadPath, () => {}); // limpieza del remux
     }
     console.log('[UPLOAD] Subido exitosamente:', uploadResult.url);
 
     const metadata = {
       original_name: file.originalname,
       mime_type: file.mimetype,
-      size: file.size,
+      size: uploadSize,
       storage_key: storageKey,
       public_url: uploadResult.url,
     };
 
     // 🆕 DURACIÓN REAL: ffprobe > body > fallback por tamaño
-    const ffprobeDuration = 0;
     const bodyDuration = parseInt(req.body.duration_seconds);
-    const fallbackDuration = Math.floor(file.size / 1000000);
-    
+    const fallbackDuration = Math.floor(uploadSize / 1000000);
+
     const finalDuration = ffprobeDuration || bodyDuration || fallbackDuration || 0;
-    
+
     console.log(`[UPLOAD] Duración final: ${finalDuration}s (ffprobe: ${ffprobeDuration}, body: ${bodyDuration}, fallback: ${fallbackDuration})`);
 
     const result = await query(

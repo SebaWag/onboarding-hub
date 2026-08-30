@@ -26,6 +26,29 @@ interface VideoPlayerProps {
   handleProgressClick: (e: React.MouseEvent<HTMLDivElement>) => void
 }
 
+/**
+ * Actualiza la duración SOLO si el valor reportado por el <video> es válido
+ * y MAYOR que el que ya tenemos.
+ *
+ * Los .webm grabados con MediaRecorder no traen la duración en el header:
+ * el navegador la "estima" al inicio (probe) pero la recalcula mientras
+ * decodifica, reportando valores parciales (ej: 7-9s en videos largos).
+ * Como el padre inicializa `duration` con `duration_seconds` de la BD
+ * (valor correcto), aquí nunca permitimos que un valor parcial la baje.
+ */
+function syncDuration(
+  videoRef: RefObject<HTMLVideoElement | null>,
+  currentDuration: number,
+  setDuration: (v: number) => void,
+) {
+  const el = videoRef.current
+  if (!el) return
+  const d = el.duration
+  if (isFinite(d) && d > 0 && d > currentDuration) {
+    setDuration(d)
+  }
+}
+
 /** Reproductor de video con overlay, controles y marcadores de capitulos. */
 export default function VideoPlayer({
   videoRef, videoContainerRef, videoSrc, isPlaying, setIsPlaying,
@@ -45,7 +68,8 @@ export default function VideoPlayer({
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
-                onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
+                onLoadedMetadata={() => syncDuration(videoRef, duration, setDuration)}
+                onDurationChange={() => syncDuration(videoRef, duration, setDuration)}
                 onEnded={() => setIsPlaying(false)}
                 onClick={togglePlay}
                 playsInline
