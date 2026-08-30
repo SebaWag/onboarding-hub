@@ -95,7 +95,8 @@ router.post('/upload', authenticate, upload.single('video'), async (req: AuthReq
       const fixedPath = `${file.path}.fixed.${fileExtension}`;
       execSync(`ffmpeg -y -i "${file.path}" -c copy -f ${fileExtension} "${fixedPath}" 2>/dev/null`);
       const probe = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${fixedPath}"`).toString().trim();
-      ffprobeDuration = parseFloat(probe) || 0;
+      // duration_seconds en BD es INTEGER: redondear el decimal de ffprobe (ej: 36.107 -> 36)
+      ffprobeDuration = Math.round(parseFloat(probe) || 0);
       uploadPath = fixedPath;
       uploadSize = fs.statSync(fixedPath).size;
       console.log(`[UPLOAD] ffmpeg remux OK: duración real ${ffprobeDuration}s (${uploadSize} bytes)`);
