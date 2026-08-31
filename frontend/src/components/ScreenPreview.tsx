@@ -18,7 +18,7 @@ export default function ScreenPreview({ stream, enabled, className = '' }: Scree
 
   if (!enabled || !stream) {
     return (
-      <div className={`relative overflow-hidden ${className}`}>
+      <div className={`overflow-hidden ${className}`}>
         <img
           src="/studio-preview-cyberpunk.png"
           alt="Vista previa de pantalla"
@@ -35,7 +35,7 @@ export default function ScreenPreview({ stream, enabled, className = '' }: Scree
   }
 
   return (
-    <div className={`relative bg-surface-950 ${className}`}>
+    <div className={`bg-surface-950 ${className}`}>
       <video
         ref={videoRef}
         autoPlay
