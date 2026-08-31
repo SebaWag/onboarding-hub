@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Settings as SettingsIcon, User, Bell, Shield, Video, Save, Check, Sparkles, Building2, Lock } from 'lucide-react'
 import { cn } from '../lib/utils'
+import Switch from '../components/Switch'
 
 const sections = [
   { id: 'profile', label: 'Perfil', icon: User },
@@ -14,6 +15,15 @@ const sections = [
 export default function Settings() {
   const [activeSection, setActiveSection] = useState('profile')
   const [saved, setSaved] = useState(false)
+  const [prefs, setPrefs] = useState<Record<string, boolean>>({
+    autoTranscribe: true,
+    smartChapters: true,
+    'Nuevos comentarios': true,
+    'Asignación de tareas': true,
+    'Recordatorios de vencimiento': true,
+    'Nuevos videos en programas': true,
+  })
+  const togglePref = (key: string) => setPrefs(prev => ({ ...prev, [key]: !(prev[key] ?? true) }))
 
   const handleSave = () => {
     setSaved(true)
@@ -109,18 +119,14 @@ export default function Settings() {
                     <p className="font-medium text-[var(--text-primary)]">Transcripción automática</p>
                     <p className="text-sm text-[var(--text-muted)]">Generar transcripción al subir videos</p>
                   </div>
-                  <div className="w-12 h-6 rounded-full bg-teal-500 relative cursor-pointer">
-                    <div className="absolute right-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" />
-                  </div>
+                  <Switch ariaLabel="Transcripción automática" checked={prefs.autoTranscribe} onChange={() => togglePref('autoTranscribe')} />
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]">
                   <div>
                     <p className="font-medium text-[var(--text-primary)]">Capítulos inteligentes</p>
                     <p className="text-sm text-[var(--text-muted)]">Detectar automáticamente cambios de tema</p>
                   </div>
-                  <div className="w-12 h-6 rounded-full bg-teal-500 relative cursor-pointer">
-                    <div className="absolute right-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" />
-                  </div>
+                  <Switch ariaLabel="Capítulos inteligentes" checked={prefs.smartChapters} onChange={() => togglePref('smartChapters')} />
                 </div>
               </div>
             </div>
@@ -158,9 +164,7 @@ export default function Settings() {
                 {['Nuevos comentarios', 'Asignación de tareas', 'Recordatorios de vencimiento', 'Nuevos videos en programas'].map((item) => (
                   <div key={item} className="flex items-center justify-between p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]">
                     <p className="font-medium text-[var(--text-primary)]">{item}</p>
-                    <div className="w-12 h-6 rounded-full bg-teal-500 relative cursor-pointer">
-                      <div className="absolute right-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" />
-                    </div>
+                    <Switch ariaLabel={item} checked={prefs[item] ?? true} onChange={() => togglePref(item)} />
                   </div>
                 ))}
               </div>
