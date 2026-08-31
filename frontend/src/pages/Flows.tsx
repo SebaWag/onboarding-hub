@@ -264,17 +264,17 @@ export default function Flows() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="dark-surface space-y-6 bg-[var(--bg)] rounded-2xl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--text)] flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-              <GitBranch className="w-5 h-5 text-white" />
+              <GitBranch className="w-5 h-5 text-[var(--text)]" />
             </div>
             Flujos de Onboarding
           </h1>
-          <p className="text-surface-400 mt-1">Gestiona los procesos de incorporación por rol</p>
+          <p className="text-[var(--text-secondary)] mt-1">Gestiona los procesos de incorporación por rol</p>
         </div>
         <div className="flex gap-3">
           <button onClick={() => setShowTemplateModal(true)} className="btn-secondary">
@@ -289,7 +289,7 @@ export default function Flows() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-white/10 pb-2">
+      <div className="flex gap-2 border-b border-[var(--border)] pb-2">
         {[
           { key: 'flows', label: 'Flujos', icon: GitBranch },
           { key: 'templates', label: 'Templates', icon: Layers },
@@ -302,7 +302,7 @@ export default function Flows() {
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
               activeTab === tab.key
                 ? 'bg-violet-500/10 text-teal-500'
-                : 'text-surface-400 hover:text-white hover:bg-white/5'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)]'
             )}
           >
             <tab.icon className="w-4 h-4" />
@@ -317,8 +317,8 @@ export default function Flows() {
           <div className="card p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-surface-400 text-sm">Flujos Activos</p>
-                <p className="text-2xl font-bold text-white">{metrics.total_flows}</p>
+                <p className="text-[var(--text-secondary)] text-sm">Flujos Activos</p>
+                <p className="text-2xl font-bold text-[var(--text)]">{metrics.total_flows}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center">
                 <GitBranch className="w-5 h-5 text-teal-500" />
@@ -328,7 +328,7 @@ export default function Flows() {
           <div className="card p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-surface-400 text-sm">En Progreso</p>
+                <p className="text-[var(--text-secondary)] text-sm">En Progreso</p>
                 <p className="text-2xl font-bold text-amber-400">{metrics.in_progress}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
@@ -339,7 +339,7 @@ export default function Flows() {
           <div className="card p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-surface-400 text-sm">Completados</p>
+                <p className="text-[var(--text-secondary)] text-sm">Completados</p>
                 <p className="text-2xl font-bold text-emerald-400">{metrics.completed}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
@@ -350,7 +350,7 @@ export default function Flows() {
           <div className="card p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-surface-400 text-sm">Aprobaciones Pendientes</p>
+                <p className="text-[var(--text-secondary)] text-sm">Aprobaciones Pendientes</p>
                 <p className="text-2xl font-bold text-rose-400">{metrics.pending_approvals}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-rose-500/10 flex items-center justify-center">
@@ -366,7 +366,7 @@ export default function Flows() {
         {/* Flow List */}
         <div className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Flujos</h2>
+            <h2 className="text-lg font-semibold text-[var(--text)]">Flujos</h2>
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
@@ -405,9 +405,9 @@ export default function Flows() {
                           {flow.status}
                         </span>
                       </div>
-                      <h3 className="font-medium text-white">{flow.name}</h3>
-                      <p className="text-sm text-surface-400 mt-1 line-clamp-2">{flow.description}</p>
-                      <div className="flex items-center gap-4 mt-3 text-xs text-surface-500">
+                      <h3 className="font-medium text-[var(--text)]">{flow.name}</h3>
+                      <p className="text-sm text-[var(--text-secondary)] mt-1 line-clamp-2">{flow.description}</p>
+                      <div className="flex items-center gap-4 mt-3 text-xs text-[var(--text-muted)]">
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {flow.estimated_days} días
@@ -418,7 +418,7 @@ export default function Flows() {
                         </span>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-surface-500" />
+                    <ChevronRight className="w-5 h-5 text-[var(--text-muted)]" />
                   </div>
                 </div>
               )
@@ -426,8 +426,8 @@ export default function Flows() {
 
             {flows.length === 0 && (
               <div className="card p-8 text-center">
-                <GitBranch className="w-12 h-12 text-surface-600 mx-auto mb-3" />
-                <p className="text-surface-400">No hay flujos creados</p>
+                <GitBranch className="w-12 h-12 text-[var(--text-muted)] mx-auto mb-3" />
+                <p className="text-[var(--text-secondary)]">No hay flujos creados</p>
                 <button onClick={() => setShowCreateModal(true)} className="btn-primary mt-4">
                   Crear primer flujo
                 </button>
@@ -453,8 +453,8 @@ export default function Flows() {
                         {roleLabels[selectedFlow.role_type]}
                       </span>
                     </div>
-                    <h2 className="text-xl font-bold text-white">{selectedFlow.name}</h2>
-                    <p className="text-surface-400 mt-1">{selectedFlow.description}</p>
+                    <h2 className="text-xl font-bold text-[var(--text)]">{selectedFlow.name}</h2>
+                    <p className="text-[var(--text-secondary)] mt-1">{selectedFlow.description}</p>
                   </div>
                   {!userProgress && (
                     <button onClick={() => startFlow(selectedFlow.id)} className="btn-primary">
@@ -468,8 +468,8 @@ export default function Flows() {
                 {userProgress && (
                   <div className="mt-6">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-surface-400">Progreso</span>
-                      <span className="text-sm font-medium text-white">{userProgress.progress_percentage.toFixed(0)}%</span>
+                      <span className="text-sm text-[var(--text-secondary)]">Progreso</span>
+                      <span className="text-sm font-medium text-[var(--text)]">{userProgress.progress_percentage.toFixed(0)}%</span>
                     </div>
                     <div className="h-3 bg-surface-800 rounded-full overflow-hidden">
                       <div
@@ -477,7 +477,7 @@ export default function Flows() {
                         style={{ width: `${userProgress.progress_percentage}%` }}
                       />
                     </div>
-                    <div className="flex items-center gap-4 mt-3 text-xs text-surface-500">
+                    <div className="flex items-center gap-4 mt-3 text-xs text-[var(--text-muted)]">
                       <span>Iniciado: {new Date(userProgress.started_at).toLocaleDateString()}</span>
                       {userProgress.completed_at && (
                         <span>Completado: {new Date(userProgress.completed_at).toLocaleDateString()}</span>
@@ -489,7 +489,7 @@ export default function Flows() {
 
               {/* Steps */}
               <div className="card p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Pasos del Flujo</h3>
+                <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Pasos del Flujo</h3>
                 <div className="space-y-3">
                   {selectedFlow.steps?.map((step, index) => {
                     const StepIcon = stepTypeIcons[step.step_type]
@@ -506,7 +506,7 @@ export default function Flows() {
                           isCompleted && 'border-emerald-500/30 bg-emerald-500/5',
                           isCurrent && 'border-violet-500/30 bg-violet-500/5',
                           isBlocked && 'border-rose-500/30 bg-rose-500/5',
-                          !isCompleted && !isCurrent && !isBlocked && 'border-white/5 bg-surface-900'
+                          !isCompleted && !isCurrent && !isBlocked && 'border-[var(--border)] bg-[var(--bg-secondary)]'
                         )}
                       >
                         {/* Step Number/Status */}
@@ -515,19 +515,19 @@ export default function Flows() {
                           isCompleted ? 'bg-emerald-500' : isCurrent ? 'bg-violet-500' : 'bg-surface-700'
                         )}>
                           {isCompleted ? (
-                            <CheckCircle2 className="w-5 h-5 text-white" />
+                            <CheckCircle2 className="w-5 h-5 text-[var(--text)]" />
                           ) : (
-                            <span className="text-white font-medium">{index + 1}</span>
+                            <span className="text-[var(--text)] font-medium">{index + 1}</span>
                           )}
                         </div>
 
                         {/* Step Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <h4 className={cn('font-medium', isCompleted ? 'text-emerald-400' : 'text-white')}>
+                            <h4 className={cn('font-medium', isCompleted ? 'text-emerald-400' : 'text-[var(--text)]')}>
                               {step.name}
                             </h4>
-                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-800 text-xs text-surface-400">
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-800 text-xs text-[var(--text-secondary)]">
                               <StepIcon className="w-3 h-3" />
                               {stepTypeLabels[step.step_type]}
                             </span>
@@ -536,9 +536,9 @@ export default function Flows() {
                             )}
                           </div>
                           {step.description && (
-                            <p className="text-sm text-surface-400 mt-1">{step.description}</p>
+                            <p className="text-sm text-[var(--text-secondary)] mt-1">{step.description}</p>
                           )}
-                          <div className="flex items-center gap-3 mt-2 text-xs text-surface-500">
+                          <div className="flex items-center gap-3 mt-2 text-xs text-[var(--text-muted)]">
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {step.estimated_hours}h estimadas
@@ -564,7 +564,7 @@ export default function Flows() {
               {/* Checklists */}
               {selectedFlow.checklists && selectedFlow.checklists.length > 0 && (
                 <div className="card p-6">
-                  <h3 className="text-lg font-semibold text-white mb-4">Checklists</h3>
+                  <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Checklists</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedFlow.checklists.map((checklist) => (
                       <ChecklistCard key={checklist.id} checklist={checklist} />
@@ -575,9 +575,9 @@ export default function Flows() {
             </div>
           ) : (
             <div className="card p-12 text-center">
-              <GitBranch className="w-16 h-16 text-surface-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">Selecciona un flujo</h3>
-              <p className="text-surface-400">Haz clic en un flujo para ver sus detalles y pasos</p>
+              <GitBranch className="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-[var(--text)] mb-2">Selecciona un flujo</h3>
+              <p className="text-[var(--text-secondary)]">Haz clic en un flujo para ver sus detalles y pasos</p>
             </div>
           )}
         </div>
@@ -595,10 +595,10 @@ export default function Flows() {
                     {roleLabels[template.role_type as keyof typeof roleLabels]}
                   </span>
                 </div>
-                <h3 className="font-semibold text-white mb-2">{template.name}</h3>
-                <p className="text-sm text-surface-400 mb-4">{template.description}</p>
+                <h3 className="font-semibold text-[var(--text)] mb-2">{template.name}</h3>
+                <p className="text-sm text-[var(--text-secondary)] mb-4">{template.description}</p>
                 {template.template_data?.steps && (
-                  <p className="text-xs text-surface-500 mb-4">
+                  <p className="text-xs text-[var(--text-muted)] mb-4">
                     {template.template_data.steps.length} pasos • {template.template_data.checklists?.length ?? 0} checklists
                   </p>
                 )}
@@ -622,14 +622,14 @@ export default function Flows() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="card w-full max-w-lg p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white">Nuevo Flujo de Onboarding</h2>
-              <button onClick={() => setShowCreateModal(false)} className="text-surface-400 hover:text-white">
+              <h2 className="text-xl font-bold text-[var(--text)]">Nuevo Flujo de Onboarding</h2>
+              <button onClick={() => setShowCreateModal(false)} className="text-[var(--text-secondary)] hover:text-[var(--text)]">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-surface-400 mb-1">Nombre del flujo</label>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Nombre del flujo</label>
                 <input
                   type="text"
                   value={newFlow.name}
@@ -639,7 +639,7 @@ export default function Flows() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-surface-400 mb-1">Descripción</label>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Descripción</label>
                 <textarea
                   value={newFlow.description}
                   onChange={(e) => setNewFlow({ ...newFlow, description: e.target.value })}
@@ -648,7 +648,7 @@ export default function Flows() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-surface-400 mb-1">Tipo de Rol</label>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Tipo de Rol</label>
                 <select
                   value={newFlow.role_type}
                   onChange={(e) => setNewFlow({ ...newFlow, role_type: e.target.value as Flow['role_type'] })}
@@ -661,7 +661,7 @@ export default function Flows() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-surface-400 mb-1">Días estimados</label>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Días estimados</label>
                 <input
                   type="number"
                   value={newFlow.estimated_days}
@@ -687,8 +687,8 @@ export default function Flows() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="card w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white">Seleccionar Template</h2>
-              <button onClick={() => setShowTemplateModal(false)} className="text-surface-400 hover:text-white">
+              <h2 className="text-xl font-bold text-[var(--text)]">Seleccionar Template</h2>
+              <button onClick={() => setShowTemplateModal(false)} className="text-[var(--text-secondary)] hover:text-[var(--text)]">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -696,17 +696,17 @@ export default function Flows() {
               {templates.map((template) => {
                 const colors = roleColors[template.role_type as keyof typeof roleColors]
                 return (
-                  <div key={template.id} className="border border-white/10 rounded-xl p-4 hover:border-violet-500/30">
+                  <div key={template.id} className="border border-[var(--border)] rounded-xl p-4 hover:border-violet-500/30">
                     <div className="flex items-center gap-2 mb-2">
                       <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', colors.bg, colors.text)}>
                         {roleLabels[template.role_type as keyof typeof roleLabels]}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-white mb-2">{template.name}</h3>
-                    <p className="text-sm text-surface-400 mb-3">{template.description}</p>
+                    <h3 className="font-semibold text-[var(--text)] mb-2">{template.name}</h3>
+                    <p className="text-sm text-[var(--text-secondary)] mb-3">{template.description}</p>
                     {template.template_data?.steps && (
-                      <div className="text-xs text-surface-500 mb-4">
-                        <p className="font-medium text-surface-400 mb-1">Pasos incluidos:</p>
+                      <div className="text-xs text-[var(--text-muted)] mb-4">
+                        <p className="font-medium text-[var(--text-secondary)] mb-1">Pasos incluidos:</p>
                         <ul className="list-disc list-inside">
                           {template.template_data.steps.slice(0, 4).map((step: TemplateStep, i: number) => (
                             <li key={i}>{step.name}</li>
@@ -774,18 +774,18 @@ function ChecklistCard({ checklist }: { checklist: Checklist }) {
   const progress = items.length > 0 ? (completedCount / items.length) * 100 : 0
 
   return (
-    <div className="border border-white/10 rounded-xl p-4">
+    <div className="border border-[var(--border)] rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="font-medium text-white">{checklist.name}</h4>
+        <h4 className="font-medium text-[var(--text)]">{checklist.name}</h4>
         <span className={cn(
           'px-2 py-0.5 rounded-full text-xs',
-          checklist.checklist_type === 'automated' ? 'bg-blue-500/10 text-blue-400' : 'bg-surface-700 text-surface-400'
+          checklist.checklist_type === 'automated' ? 'bg-blue-500/10 text-blue-400' : 'bg-surface-700 text-[var(--text-secondary)]'
         )}>
           {checklist.checklist_type}
         </span>
       </div>
       <div className="mb-3">
-        <div className="flex items-center justify-between text-xs text-surface-400 mb-1">
+        <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1">
           <span>{completedCount}/{items.length} completados</span>
           <span>{progress.toFixed(0)}%</span>
         </div>
@@ -810,11 +810,11 @@ function ChecklistCard({ checklist }: { checklist: Checklist }) {
               'w-5 h-5 rounded border flex items-center justify-center shrink-0',
               item.is_completed ? 'bg-emerald-500 border-emerald-500' : 'border-surface-600'
             )}>
-              {item.is_completed && <CheckCircle2 className="w-3 h-3 text-white" />}
+              {item.is_completed && <CheckCircle2 className="w-3 h-3 text-[var(--text)]" />}
             </div>
             <span className={cn(
               'text-sm',
-              item.is_completed ? 'text-emerald-400 line-through' : 'text-surface-300'
+              item.is_completed ? 'text-emerald-400 line-through' : 'text-[var(--text-secondary)]'
             )}>
               {item.item_text}
             </span>

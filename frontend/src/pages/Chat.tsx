@@ -188,13 +188,13 @@ export default function Chat() {
   const formatTime = (date: Date) => date.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
 
   return (
-    <div className={cn('animate-fade-in transition-all duration-300', isExpanded ? 'fixed inset-0 z-50 bg-surface-950 p-6' : '')}>
+    <div className={cn('dark-surface animate-fade-in bg-[var(--bg)] transition-all duration-300', isExpanded ? 'fixed inset-0 z-50 bg-[var(--bg)] p-6' : '')}>
       <div className={cn('flex gap-4', isExpanded ? 'h-full' : 'h-[calc(100vh-180px)]')}>
 
         {/* Sidebar - Conversations */}
         {showSidebar && (
           <div className="w-64 glass rounded-2xl overflow-hidden noise-overlay flex flex-col shrink-0">
-            <div className="p-3 border-b border-white/5">
+            <div className="p-3 border-b border-[var(--border)]">
               <button
                 onClick={startNewConversation}
                 className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl bg-teal-50 text-teal-500 text-sm font-medium hover:bg-violet-500/30 transition-colors"
@@ -206,7 +206,7 @@ export default function Chat() {
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {loadingConversations ? (
                 <div className="text-center py-4">
-                  <Loader2 className="w-5 h-5 text-surface-500 animate-spin mx-auto" />
+                  <Loader2 className="w-5 h-5 text-[var(--text-muted)] animate-spin mx-auto" />
                 </div>
               ) : conversations.length > 0 ? (
                 conversations.map(conv => (
@@ -215,22 +215,22 @@ export default function Chat() {
                     onClick={() => loadConversation(conv.id)}
                     className={cn(
                       'w-full text-left px-3 py-2.5 rounded-xl transition-colors text-sm',
-                      conversationId === conv.id ? 'bg-violet-500/10 text-teal-500' : 'text-surface-400 hover:bg-white/5 hover:text-white'
+                      conversationId === conv.id ? 'bg-violet-500/10 text-teal-500' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text)]'
                     )}
                   >
                     <p className="truncate font-medium">{conv.title}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-surface-500 flex items-center gap-1">
+                      <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
                         <MessageSquare className="w-3 h-3" />{conv.message_count}
                       </span>
-                      <span className="text-[10px] text-surface-600">
+                      <span className="text-[10px] text-[var(--text-muted)]">
                         {new Date(conv.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })}
                       </span>
                     </div>
                   </button>
                 ))
               ) : (
-                <p className="text-center text-xs text-surface-500 py-4">Sin conversaciones</p>
+                <p className="text-center text-xs text-[var(--text-muted)] py-4">Sin conversaciones</p>
               )}
             </div>
           </div>
@@ -238,23 +238,23 @@ export default function Chat() {
 
         {/* Main chat */}
         <div className="flex-1 glass rounded-2xl overflow-hidden noise-overlay flex flex-col">
-          <div className="p-4 border-b border-white/5 flex items-center justify-between">
+          <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => setShowSidebar(!showSidebar)} className="p-2 rounded-lg text-surface-400 hover:text-white hover:bg-white/5 transition-colors lg:hidden">
+              <button onClick={() => setShowSidebar(!showSidebar)} className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors lg:hidden">
                 <MessageSquare className="w-4 h-4" />
               </button>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-glow">
-                <Sparkles className="w-5 h-5 text-white" />
+                <Sparkles className="w-5 h-5 text-[var(--text)]" />
               </div>
               <div>
-                <h2 className="font-semibold text-white">MiMo AI</h2>
+                <h2 className="font-semibold text-[var(--text)]">MiMo AI</h2>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-xs text-surface-400">En línea • mimo-v2-omni</span>
+                  <span className="text-xs text-[var(--text-secondary)]">En línea • mimo-v2-omni</span>
                 </div>
               </div>
             </div>
-            <button onClick={() => setIsExpanded(!isExpanded)} className="p-2 rounded-lg text-surface-400 hover:text-white hover:bg-white/5 transition-colors">
+            <button onClick={() => setIsExpanded(!isExpanded)} className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors">
               {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
           </div>
@@ -266,16 +266,16 @@ export default function Chat() {
                   'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
                   message.role === 'user' ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : 'bg-gradient-to-br from-teal-500 to-cyan-500'
                 )}>
-                  {message.role === 'user' ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
+                  {message.role === 'user' ? <User className="w-4 h-4 text-[var(--text)]" /> : <Bot className="w-4 h-4 text-[var(--text)]" />}
                 </div>
                 <div className={cn(
                   'max-w-[80%] rounded-2xl p-4',
-                  message.role === 'user' ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-white/[0.03] border border-white/5'
+                  message.role === 'user' ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-[var(--bg-hover)] border border-[var(--border)]'
                 )}>
                   {message.isLoading ? (
                     <div className="flex items-center gap-2">
                       <Loader2 className="w-4 h-4 text-teal-500 animate-spin" />
-                      <span className="text-sm text-surface-400">MiMo está pensando...</span>
+                      <span className="text-sm text-[var(--text-secondary)]">MiMo está pensando...</span>
                     </div>
                   ) : (
                     <>
@@ -284,28 +284,28 @@ export default function Chat() {
                           __html: message.content
                             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                             .replace(/\n\n/g, '<br/><br/>')
-                            .replace(/## (.*?)\n/g, '<h3 class="text-white font-semibold mt-4 mb-2">$1</h3>')
-                            .replace(/# (.*?)\n/g, '<h2 class="text-white font-bold text-lg mt-2 mb-3">$1</h2>')
+                            .replace(/## (.*?)\n/g, '<h3 class="text-[var(--text)] font-semibold mt-4 mb-2">$1</h3>')
+                            .replace(/# (.*?)\n/g, '<h2 class="text-[var(--text)] font-bold text-lg mt-2 mb-3">$1</h2>')
                             .replace(/- (.*?)(?=\n|$)/g, '<li class="ml-4">$1</li>')
                             .replace(/\n/g, '<br/>')
                         }} />
                       </div>
                       {message.role === 'assistant' && message.id !== 'welcome' && (
-                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border)]">
                           <button
                             onClick={() => copyToClipboard(message.content, message.id)}
-                            className="p-1.5 rounded-lg text-surface-400 hover:text-white hover:bg-white/10 transition-colors"
+                            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors"
                             title="Copiar"
                           >
                             {copiedId === message.id ? <span className="text-xs text-emerald-400">Copiado</span> : <Copy className="w-3.5 h-3.5" />}
                           </button>
-                          <button className="p-1.5 rounded-lg text-surface-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors">
+                          <button className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors">
                             <ThumbsUp className="w-3.5 h-3.5" />
                           </button>
-                          <button className="p-1.5 rounded-lg text-surface-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors">
+                          <button className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-rose-400 hover:bg-rose-500/10 transition-colors">
                             <ThumbsDown className="w-3.5 h-3.5" />
                           </button>
-                          <span className="ml-auto text-[10px] text-surface-500">{formatTime(message.timestamp)}</span>
+                          <span className="ml-auto text-[10px] text-[var(--text-muted)]">{formatTime(message.timestamp)}</span>
                         </div>
                       )}
                     </>
@@ -316,7 +316,7 @@ export default function Chat() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-4 border-t border-white/5">
+          <div className="p-4 border-t border-[var(--border)]">
             <form onSubmit={handleSubmit} className="flex items-end gap-3">
               <div className="flex-1 relative">
                 <textarea
@@ -326,7 +326,7 @@ export default function Chat() {
                   onKeyDown={handleKeyDown}
                   placeholder="Escribe tu mensaje..."
                   rows={1}
-                  className="w-full px-4 py-3 pr-12 rounded-xl bg-white/[0.03] border border-white/8 text-white placeholder-surface-500 resize-none focus:outline-none focus:border-teal-400/50 transition-all"
+                  className="w-full px-4 py-3 pr-12 rounded-xl bg-[var(--bg-hover)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-muted)] resize-none focus:outline-none focus:border-teal-400/50 transition-all"
                   style={{ minHeight: '48px', maxHeight: '120px' }}
                   disabled={isLoading}
                 />
@@ -336,13 +336,13 @@ export default function Chat() {
                 disabled={!input.trim() || isLoading}
                 className={cn(
                   'p-3 rounded-xl transition-all',
-                  input.trim() && !isLoading ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-glow' : 'bg-white/5 text-surface-500 cursor-not-allowed'
+                  input.trim() && !isLoading ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-[var(--text)] shadow-glow' : 'bg-[var(--bg-hover)] text-[var(--text-muted)] cursor-not-allowed'
                 )}
               >
                 <Send className="w-5 h-5" />
               </button>
             </form>
-            <p className="text-[10px] text-surface-500 mt-2 text-center">MiMo v2 Omni • Las respuestas pueden contener errores</p>
+            <p className="text-[10px] text-[var(--text-muted)] mt-2 text-center">MiMo v2 Omni • Las respuestas pueden contener errores</p>
           </div>
         </div>
       </div>

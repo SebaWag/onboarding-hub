@@ -198,10 +198,10 @@ export default function Share() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-surface-950 flex items-center justify-center">
+      <div className="min-h-screen dark-surface bg-[var(--bg)] flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-violet-500 animate-spin mx-auto mb-4" />
-          <p className="text-surface-400">Cargando video...</p>
+          <p className="text-[var(--text-secondary)]">Cargando video...</p>
         </div>
       </div>
     )
@@ -209,14 +209,14 @@ export default function Share() {
 
   if (requiresPassword) {
     return (
-      <div className="min-h-screen bg-surface-950 flex items-center justify-center p-4">
+      <div className="min-h-screen dark-surface bg-[var(--bg)] flex items-center justify-center p-4">
         <div className="glass rounded-2xl p-8 max-w-md w-full noise-overlay">
           <div className="text-center mb-6">
             <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-4">
               <Lock className="w-8 h-8 text-teal-500" />
             </div>
-            <h2 className="text-xl font-bold text-white">Video Protegido</h2>
-            <p className="text-surface-400 mt-2">Este video requiere contrasena para acceder</p>
+            <h2 className="text-xl font-bold text-[var(--text)]">Video Protegido</h2>
+            <p className="text-[var(--text-secondary)] mt-2">Este video requiere contrasena para acceder</p>
           </div>
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Ingresa la contrasena" className="input-field" autoFocus />
@@ -229,13 +229,13 @@ export default function Share() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-surface-950 flex items-center justify-center p-4">
+      <div className="min-h-screen dark-surface bg-[var(--bg)] flex items-center justify-center p-4">
         <div className="glass rounded-2xl p-8 max-w-md w-full noise-overlay text-center">
           <div className="w-16 h-16 rounded-2xl bg-rose-500/20 flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">:(</span>
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">Error</h2>
-          <p className="text-surface-400">{error}</p>
+          <h2 className="text-xl font-bold text-[var(--text)] mb-2">Error</h2>
+          <p className="text-[var(--text-secondary)]">{error}</p>
         </div>
       </div>
     )
@@ -246,13 +246,13 @@ export default function Share() {
   const videoSrc = getVideoSrc()
 
   return (
-    <div className="min-h-screen bg-surface-950">
+    <div className="min-h-screen dark-surface bg-[var(--bg)]">
       <div className="max-w-7xl mx-auto p-4 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             {/* Video Player */}
             <div className="glass rounded-2xl overflow-hidden noise-overlay" ref={videoContainerRef}>
-              <div className="relative aspect-video bg-surface-950">
+              <div className="relative aspect-video bg-[var(--bg)]">
                 <video
                   ref={videoRef}
                   src={videoSrc}
@@ -270,7 +270,7 @@ export default function Share() {
                 {!isPlaying && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20 cursor-pointer" onClick={togglePlay}>
                     <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors">
-                      <Play className="w-8 h-8 text-white ml-1" />
+                      <Play className="w-8 h-8 text-[var(--text)] ml-1" />
                     </div>
                   </div>
                 )}
@@ -286,16 +286,16 @@ export default function Share() {
                 {/* Timestamp */}
                 <div className="absolute top-4 left-4">
                   <div className="px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-sm">
-                    <span className="text-xs font-mono text-white">{formatTime(currentTime)}</span>
+                    <span className="text-xs font-mono text-[var(--text)]">{formatTime(currentTime)}</span>
                   </div>
                 </div>
               </div>
 
               {/* Controls */}
-              <div className="p-4 border-t border-white/5">
+              <div className="p-4 border-t border-[var(--border)]">
                 {/* Progress */}
                 <div className="mb-4">
-                  <div className="flex items-center justify-between text-xs text-surface-400 mb-1">
+                  <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1">
                     <span>{formatTime(currentTime)}</span>
                     <span>{formatTime(duration)}</span>
                   </div>
@@ -315,19 +315,19 @@ export default function Share() {
                 {/* Buttons */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => skip(-10)} className="p-2 rounded-lg text-surface-400 hover:text-white hover:bg-white/5 transition-colors">
+                    <button onClick={() => skip(-10)} className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors">
                       <SkipBack className="w-5 h-5" />
                     </button>
-                    <button onClick={togglePlay} className="p-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-colors">
+                    <button onClick={togglePlay} className="p-3 rounded-xl bg-white/10 text-[var(--text)] hover:bg-white/20 transition-colors">
                       {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
                     </button>
-                    <button onClick={() => skip(10)} className="p-2 rounded-lg text-surface-400 hover:text-white hover:bg-white/5 transition-colors">
+                    <button onClick={() => skip(10)} className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors">
                       <SkipForward className="w-5 h-5" />
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 group/vol">
-                      <button onClick={toggleMute} className="p-2 rounded-lg text-surface-400 hover:text-white hover:bg-white/5 transition-colors">
+                      <button onClick={toggleMute} className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors">
                         {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                       </button>
                       <input
@@ -336,7 +336,7 @@ export default function Share() {
                         className="w-20 h-1 accent-violet-500 opacity-0 group-hover/vol:opacity-100 transition-opacity"
                       />
                     </div>
-                    <button onClick={toggleFullscreen} className="p-2 rounded-lg text-surface-400 hover:text-white hover:bg-white/5 transition-colors">
+                    <button onClick={toggleFullscreen} className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors">
                       {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
                     </button>
                   </div>
@@ -346,29 +346,29 @@ export default function Share() {
 
             {/* Video Info */}
             <div className="glass rounded-2xl p-6 noise-overlay">
-              <h1 className="text-2xl font-bold text-white">{video.title}</h1>
-              {video.description && <p className="text-surface-400 mt-2">{video.description}</p>}
-              <div className="flex items-center gap-4 mt-4 text-sm text-surface-500">
+              <h1 className="text-2xl font-bold text-[var(--text)]">{video.title}</h1>
+              {video.description && <p className="text-[var(--text-secondary)] mt-2">{video.description}</p>}
+              <div className="flex items-center gap-4 mt-4 text-sm text-[var(--text-muted)]">
                 <div className="flex items-center gap-1"><Clock className="w-4 h-4" />{formatTime(duration || video.duration)}</div>
                 <div className="flex items-center gap-1"><Eye className="w-4 h-4" />Tutorial</div>
               </div>
             </div>
 
-            <div className="text-center text-sm text-surface-600">
+            <div className="text-center text-sm text-[var(--text-muted)]">
               Creado con <span className="text-teal-500 font-medium">TutorialHub</span> by Konektor
             </div>
           </div>
 
           {/* Chat Panel */}
           <div className="glass rounded-2xl overflow-hidden noise-overlay flex flex-col h-[calc(100vh-200px)]">
-            <div className="p-4 border-b border-white/5">
+            <div className="p-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
+                  <Sparkles className="w-5 h-5 text-[var(--text)]" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">Chat con MiMo</h3>
-                  <p className="text-xs text-surface-400">Pregunta sobre este tutorial</p>
+                  <h3 className="font-semibold text-[var(--text)]">Chat con MiMo</h3>
+                  <p className="text-xs text-[var(--text-secondary)]">Pregunta sobre este tutorial</p>
                 </div>
               </div>
             </div>
@@ -376,26 +376,26 @@ export default function Share() {
               {messages.map((message) => (
                 <div key={message.id} className={cn('flex gap-3', message.role === 'user' ? 'flex-row-reverse' : '')}>
                   <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', message.role === 'user' ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : 'bg-gradient-to-br from-teal-500 to-cyan-500')}>
-                    {message.role === 'user' ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
+                    {message.role === 'user' ? <User className="w-4 h-4 text-[var(--text)]" /> : <Bot className="w-4 h-4 text-[var(--text)]" />}
                   </div>
-                  <div className={cn('max-w-[85%] rounded-xl p-3', message.role === 'user' ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-white/[0.03] border border-white/5')}>
-                    <p className="text-sm text-surface-200 whitespace-pre-wrap">{message.content}</p>
+                  <div className={cn('max-w-[85%] rounded-xl p-3', message.role === 'user' ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-[var(--bg-hover)] border border-[var(--border)]')}>
+                    <p className="text-sm text-[var(--text)] whitespace-pre-wrap">{message.content}</p>
                   </div>
                 </div>
               ))}
               {isChatLoading && (
                 <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center"><Bot className="w-4 h-4 text-white" /></div>
-                  <div className="bg-white/[0.03] border border-white/5 rounded-xl p-3">
-                    <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 text-teal-500 animate-spin" /><span className="text-sm text-surface-400">Analizando...</span></div>
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center"><Bot className="w-4 h-4 text-[var(--text)]" /></div>
+                  <div className="bg-[var(--bg-hover)] border border-[var(--border)] rounded-xl p-3">
+                    <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 text-teal-500 animate-spin" /><span className="text-sm text-[var(--text-secondary)]">Analizando...</span></div>
                   </div>
                 </div>
               )}
             </div>
-            <div className="p-4 border-t border-white/5">
+            <div className="p-4 border-t border-[var(--border)]">
               <form onSubmit={handleChatSubmit} className="flex gap-2">
-                <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Pregunta sobre el tutorial..." className="flex-1 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/8 text-white text-sm placeholder-surface-500 focus:outline-none focus:border-teal-400/50" />
-                <button type="submit" disabled={!input.trim() || isChatLoading} className={cn('p-2.5 rounded-xl transition-all', input.trim() && !isChatLoading ? 'bg-violet-500 text-white' : 'bg-white/5 text-surface-500')}>
+                <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Pregunta sobre el tutorial..." className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-hover)] border border-[var(--border)] text-[var(--text)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-400/50" />
+                <button type="submit" disabled={!input.trim() || isChatLoading} className={cn('p-2.5 rounded-xl transition-all', input.trim() && !isChatLoading ? 'bg-violet-500 text-[var(--text)]' : 'bg-[var(--bg-hover)] text-[var(--text-muted)]')}>
                   <Send className="w-5 h-5" />
                 </button>
               </form>

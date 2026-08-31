@@ -529,7 +529,7 @@ export default function VideoDetail() {
       <div className="flex items-center justify-center h-[60vh]">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-violet-500 animate-spin mx-auto mb-4" />
-          <p className="text-surface-400">Cargando video...</p>
+          <p className="text-[var(--text-secondary)]">Cargando video...</p>
         </div>
       </div>
     )
@@ -538,10 +538,10 @@ export default function VideoDetail() {
   if (error || !video) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-center glass rounded-2xl p-8 max-w-md">
+        <div className="dark-surface text-center glass rounded-2xl p-8 max-w-md">
           <AlertCircle className="w-12 h-12 text-rose-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white mb-2">Error</h2>
-          <p className="text-surface-400 mb-4">{error || 'Video no encontrado'}</p>
+          <h2 className="text-xl font-bold text-[var(--text)] mb-2">Error</h2>
+          <p className="text-[var(--text-secondary)] mb-4">{error || 'Video no encontrado'}</p>
           <button onClick={() => navigate('/')} className="btn-primary">Volver al Studio</button>
         </div>
       </div>
@@ -550,9 +550,9 @@ export default function VideoDetail() {
 
   // ============ RENDER ============
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in dark-surface bg-[var(--bg)] rounded-2xl">
       {/* Back button */}
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-surface-400 hover:text-white mb-4 transition-colors">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text)] mb-4 transition-colors">
         <ArrowLeft className="w-4 h-4" />
         <span className="text-sm">Volver</span>
       </button>
@@ -587,7 +587,7 @@ export default function VideoDetail() {
         {/* ============ RIGHT: TABS PANEL ============ */}
         <div className="glass rounded-2xl overflow-hidden noise-overlay flex flex-col h-[calc(100vh-200px)]">
           {/* Tab headers */}
-          <div className="flex border-b border-white/5">
+          <div className="flex border-b border-[var(--border)]">
             {([
               { id: 'chat' as const, label: 'Chat IA', icon: Sparkles },
               { id: 'chapters' as const, label: 'Capítulos', icon: List },
@@ -599,7 +599,7 @@ export default function VideoDetail() {
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
                   'flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium transition-colors',
-                  activeTab === tab.id ? 'text-teal-500 border-b-2 border-violet-500' : 'text-surface-400 hover:text-white'
+                  activeTab === tab.id ? 'text-teal-500 border-b-2 border-violet-500' : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
                 )}
               >
                 <tab.icon className="w-3.5 h-3.5" />
@@ -618,16 +618,16 @@ export default function VideoDetail() {
                       'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
                       message.role === 'user' ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : 'bg-gradient-to-br from-teal-500 to-cyan-500'
                     )}>
-                      {message.role === 'user' ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
+                      {message.role === 'user' ? <User className="w-4 h-4 text-[var(--text)]" /> : <Bot className="w-4 h-4 text-[var(--text)]" />}
                     </div>
                     <div className={cn(
                       'max-w-[85%] rounded-xl p-3',
-                      message.role === 'user' ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-white/[0.03] border border-white/5'
+                      message.role === 'user' ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-[var(--bg-hover)] border border-[var(--border)]'
                     )}>
                       {message.isLoading ? (
                         <div className="flex items-center gap-2">
                           <Loader2 className="w-4 h-4 text-teal-500 animate-spin" />
-                          <span className="text-sm text-surface-400">Analizando video...</span>
+                          <span className="text-sm text-[var(--text-secondary)]">Analizando video...</span>
                         </div>
                       ) : (
                         <>
@@ -657,14 +657,14 @@ export default function VideoDetail() {
               </div>
 
               {/* Chat input */}
-              <div className="p-4 border-t border-white/5">
+              <div className="p-4 border-t border-[var(--border)]">
                 <form onSubmit={handleChatSubmit} className="flex gap-2">
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Pregunta sobre este tutorial..."
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/8 text-white text-sm placeholder-surface-500 focus:outline-none focus:border-teal-400/50"
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-hover)] border border-[var(--border)] text-[var(--text)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-400/50"
                     disabled={isChatLoading}
                   />
                   <button
@@ -672,13 +672,13 @@ export default function VideoDetail() {
                     disabled={!chatInput.trim() || isChatLoading}
                     className={cn(
                       'p-2.5 rounded-xl transition-all',
-                      chatInput.trim() && !isChatLoading ? 'bg-violet-500 text-white' : 'bg-white/5 text-surface-500'
+                      chatInput.trim() && !isChatLoading ? 'bg-violet-500 text-[var(--text)]' : 'bg-[var(--bg-hover)] text-[var(--text-muted)]'
                     )}
                   >
                     <Send className="w-5 h-5" />
                   </button>
                 </form>
-                <p className="text-[10px] text-surface-500 mt-1.5 text-center">
+                <p className="text-[10px] text-[var(--text-muted)] mt-1.5 text-center">
                   {video.transcript ? 'Chat contextual basado en la transcripción del video' : 'Transcribe el video para respuestas más precisas'}
                 </p>
               </div>
@@ -699,29 +699,29 @@ export default function VideoDetail() {
                         onClick={() => seekTo(chapterSec)}
                         className={cn(
                           'w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-left group',
-                          isActive ? 'bg-violet-500/10 border border-violet-500/20' : 'hover:bg-white/5'
+                          isActive ? 'bg-violet-500/10 border border-violet-500/20' : 'hover:bg-[var(--bg-hover)]'
                         )}
                       >
                         <div className={cn(
                           'w-12 h-8 rounded-lg flex items-center justify-center text-xs font-mono transition-colors',
-                          isActive ? 'bg-teal-50 text-teal-500' : 'bg-surface-800 text-surface-400 group-hover:bg-teal-50 group-hover:text-teal-500'
+                          isActive ? 'bg-teal-50 text-teal-500' : 'bg-surface-800 text-[var(--text-secondary)] group-hover:bg-teal-50 group-hover:text-teal-500'
                         )}>
                           {chapter.time}
                         </div>
                         <div className="flex-1">
-                          <p className={cn('text-sm font-medium', isActive ? 'text-teal-500' : 'text-white')}>{chapter.title}</p>
-                          {chapter.duration && <p className="text-xs text-surface-500">{chapter.duration}</p>}
+                          <p className={cn('text-sm font-medium', isActive ? 'text-teal-500' : 'text-[var(--text)]')}>{chapter.title}</p>
+                          {chapter.duration && <p className="text-xs text-[var(--text-muted)]">{chapter.duration}</p>}
                         </div>
-                        <ChevronRight className={cn('w-4 h-4 transition-colors', isActive ? 'text-teal-500' : 'text-surface-600 group-hover:text-teal-500')} />
+                        <ChevronRight className={cn('w-4 h-4 transition-colors', isActive ? 'text-teal-500' : 'text-[var(--text-muted)] group-hover:text-teal-500')} />
                       </button>
                     )
                   })}
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <List className="w-10 h-10 text-surface-600 mx-auto mb-3" />
-                  <p className="text-surface-400 text-sm">No hay capítulos disponibles</p>
-                  <p className="text-surface-500 text-xs mt-1">Transcribe el video para generar capítulos automáticos</p>
+                  <List className="w-10 h-10 text-[var(--text-muted)] mx-auto mb-3" />
+                  <p className="text-[var(--text-secondary)] text-sm">No hay capítulos disponibles</p>
+                  <p className="text-[var(--text-muted)] text-xs mt-1">Transcribe el video para generar capítulos automáticos</p>
                 </div>
               )}
             </div>
@@ -735,14 +735,14 @@ export default function VideoDetail() {
                   {segments.map((segment, i) => {
                     const isActive = currentTime >= segment.start && currentTime < segment.end
                     return (
-                      <div key={i} className={cn('group rounded-lg p-2 -mx-2 transition-colors', isActive ? 'bg-violet-500/10' : 'hover:bg-white/5')}>
+                      <div key={i} className={cn('group rounded-lg p-2 -mx-2 transition-colors', isActive ? 'bg-violet-500/10' : 'hover:bg-[var(--bg-hover)]')}>
                         <button
                           onClick={() => seekTo(segment.start)}
                           className={cn('font-mono text-xs transition-colors', isActive ? 'text-teal-500' : 'text-violet-500 hover:text-violet-300')}
                         >
                           {formatTime(segment.start)}
                         </button>
-                        <p className={cn('mt-1 transition-colors', isActive ? 'text-white' : 'text-surface-300 group-hover:text-white')}>
+                        <p className={cn('mt-1 transition-colors', isActive ? 'text-[var(--text)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text)]')}>
                           {segment.text}
                         </p>
                       </div>
@@ -750,13 +750,13 @@ export default function VideoDetail() {
                   })}
                 </div>
               ) : video?.transcript ? (
-                <div className="text-sm text-surface-300 leading-relaxed whitespace-pre-wrap">
+                <div className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
                   {video.transcript}
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <FileText className="w-10 h-10 text-surface-600 mx-auto mb-3" />
-                  <p className="text-surface-400 text-sm">No hay transcripción disponible</p>
+                  <FileText className="w-10 h-10 text-[var(--text-muted)] mx-auto mb-3" />
+                  <p className="text-[var(--text-secondary)] text-sm">No hay transcripción disponible</p>
                   <button onClick={handleTranscribe} disabled={isTranscribing} className="mt-3 px-4 py-2 rounded-xl bg-teal-50 text-teal-500 text-sm hover:bg-violet-500/30 transition-colors disabled:opacity-50">
                     {isTranscribing ? 'Transcribiendo...' : 'Transcribir ahora'}
                   </button>
@@ -784,7 +784,7 @@ export default function VideoDetail() {
       {isShareModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setIsShareModalOpen(false)}>
           <div className="glass rounded-2xl p-6 max-w-md w-full noise-overlay" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-bold text-[var(--text)] mb-4 flex items-center gap-2">
               <Share2 className="w-5 h-5 text-teal-500" />
               Compartir Tutorial
             </h3>
@@ -792,18 +792,18 @@ export default function VideoDetail() {
             {isGeneratingShare ? (
               <div className="text-center py-8">
                 <Loader2 className="w-8 h-8 text-teal-500 animate-spin mx-auto mb-3" />
-                <p className="text-surface-400 text-sm">Generando enlace...</p>
+                <p className="text-[var(--text-secondary)] text-sm">Generando enlace...</p>
               </div>
             ) : shareUrl ? (
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs text-surface-400 mb-1 block">Enlace para compartir</label>
+                  <label className="text-xs text-[var(--text-secondary)] mb-1 block">Enlace para compartir</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       readOnly
                       value={shareUrl}
-                      className="flex-1 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/10 text-white text-sm font-mono truncate"
+                      className="flex-1 px-3 py-2 rounded-lg bg-[var(--bg-hover)] border border-[var(--border)] text-[var(--text)] text-sm font-mono truncate"
                     />
                     <button
                       onClick={handleCopyShareUrl}
@@ -811,25 +811,25 @@ export default function VideoDetail() {
                         "px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
                         shareCopied
                           ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                          : "bg-violet-500 text-white hover:bg-violet-600"
+                          : "bg-violet-500 text-[var(--text)] hover:bg-violet-600"
                       )}
                     >
                       {shareCopied ? '¡Copiado!' : 'Copiar'}
                     </button>
                   </div>
                 </div>
-                <p className="text-xs text-surface-500">Este enlace expira en 72 horas. Cualquier persona con el enlace podrá ver el video y chatear con MiMo.</p>
+                <p className="text-xs text-[var(--text-muted)]">Este enlace expira en 72 horas. Cualquier persona con el enlace podrá ver el video y chatear con MiMo.</p>
                 <button
                   onClick={() => setIsShareModalOpen(false)}
-                  className="w-full py-2 rounded-lg bg-white/5 text-surface-300 hover:text-white hover:bg-white/10 transition-colors text-sm"
+                  className="w-full py-2 rounded-lg bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors text-sm"
                 >
                   Cerrar
                 </button>
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-surface-400 text-sm">Error al generar el enlace. Intenta de nuevo.</p>
-                <button onClick={handleShare} className="mt-3 px-4 py-2 rounded-lg bg-violet-500 text-white text-sm">
+                <p className="text-[var(--text-secondary)] text-sm">Error al generar el enlace. Intenta de nuevo.</p>
+                <button onClick={handleShare} className="mt-3 px-4 py-2 rounded-lg bg-violet-500 text-[var(--text)] text-sm">
                   Reintentar
                 </button>
               </div>
