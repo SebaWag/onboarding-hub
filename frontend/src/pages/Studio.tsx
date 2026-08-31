@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Mic, MicOff, Monitor, Camera, Circle, Square, Pause, Play, Sparkles, Upload, ChevronRight, Wand2, Film, Clock, RefreshCw, X, PictureInPicture2 } from 'lucide-react'
 import { cn, mediaProxyUrl } from '../lib/utils'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useMediaRecorder } from '../hooks/useMediaRecorder'
 import type { RecordingMode } from '../hooks/useMediaRecorder'
 import CameraPreview from '../components/CameraPreview'
@@ -40,6 +41,7 @@ export default function Studio() {
   const [loadingVideos, setLoadingVideos] = useState(false)
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null)
   const navigate = useNavigate()
+  useEscapeKey(!!selectedVideo, () => setSelectedVideo(null))
 
   const { isRecording, isPaused, recordingTime, permissionError, screenStream, cameraStream, startRecording, stopRecording, togglePause } = useMediaRecorder({
     audioEnabled: micEnabled,

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {Play, Sparkles, Send, Share2, ChevronRight, Bot, User, Loader2, FileText, List, MessageSquare, ArrowLeft, AlertCircle } from 'lucide-react'
 import { cn, mediaProxyUrl } from '../lib/utils'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { apiRequest, api, type RequestOptions } from '../lib/api'
 import { useToast } from '../lib/toast'
 import VideoPlayer from '../components/video/VideoPlayer'
@@ -90,6 +91,7 @@ export default function VideoDetail() {
   const [shareCopied, setShareCopied] = useState(false)
   const [isGeneratingShare, setIsGeneratingShare] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
+  useEscapeKey(isShareModalOpen, () => setIsShareModalOpen(false))
 
   // ============ FETCH VIDEO ============
   useEffect(() => {

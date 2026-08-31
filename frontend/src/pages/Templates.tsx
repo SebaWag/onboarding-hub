@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useToast } from '../lib/toast'
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
@@ -109,6 +110,8 @@ export default function Templates() {
   // Modal de preview
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [previewData, setPreviewData] = useState<{ type?: string; name?: string; message?: string } | null>(null)
+  useEscapeKey(showUploadModal, () => setShowUploadModal(false))
+  useEscapeKey(showPreviewModal, () => { setShowPreviewModal(false); setPreviewData(null) })
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dragRef = useRef<HTMLDivElement>(null)
@@ -638,8 +641,8 @@ export default function Templates() {
 
       {/* Modal de Upload */}
       {showUploadModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => setShowUploadModal(false)}>
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-[var(--text-primary)]">Subir Recurso</h2>
               <button onClick={() => setShowUploadModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
@@ -793,8 +796,8 @@ export default function Templates() {
 
       {/* Modal de Preview (para archivos sin preview nativa) */}
       {showPreviewModal && previewData && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl w-full max-w-md p-6">
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => { setShowPreviewModal(false); setPreviewData(null) }}>
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl w-full max-w-md p-6 animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-[var(--text-primary)]">{previewData.name}</h3>
               <button 

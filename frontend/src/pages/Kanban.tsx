@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Columns3, Plus, X, Clock, MessageSquare } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 
 interface Card { id: string; title: string; description: string; priority: 'low' | 'medium' | 'high' | 'urgent'; assigned_name: string; due_date: string | null; tags: string[]; card_order?: number; comments?: Comment[] }
 interface Column { id: string; name: string; color: string; cards: Card[] }
@@ -23,6 +24,7 @@ export default function Kanban() {
   const [showModal, setShowModal] = useState(false)
   const [selectedColumn, setSelectedColumn] = useState<string>('')
   const [newCard, setNewCard] = useState<{ title: string; description: string; priority: Card['priority']; assigned_name: string; due_date: string }>({ title: '', description: '', priority: 'medium', assigned_name: '', due_date: '' })
+  useEscapeKey(showModal, () => setShowModal(false))
 
   const addCard = () => {
     if (!newCard.title || !selectedColumn) return
@@ -98,8 +100,8 @@ export default function Kanban() {
 
       {/* Add Card Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)}>
-          <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-full max-w-md border border-[var(--border-color)] shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowModal(false)}>
+          <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-full max-w-md border border-[var(--border-color)] shadow-xl animate-slide-up" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-[var(--text-primary)]">Nueva Tarea</h2>
               <button onClick={() => setShowModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X className="w-5 h-5" /></button>

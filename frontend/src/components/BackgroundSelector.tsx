@@ -1,5 +1,6 @@
 import { X, Check, Camera, Sparkles } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { BACKGROUNDS } from '../hooks/useBackgroundRemoval'
 import type { BackgroundOption } from '../hooks/useBackgroundRemoval'
 
@@ -15,6 +16,8 @@ interface Props {
 export default function BackgroundSelector({
   currentBackground, isModelReady, modelLoading, onSelect, onClose, isOpen,
 }: Props) {
+  useEscapeKey(isOpen, onClose)
+
   if (!isOpen) return null
 
   const solidColors = BACKGROUNDS.filter(b => b.mode === 'color')

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Film, Clock, Play, RefreshCw, Search, Grid, List as ListIcon, Pencil, Trash2, ImagePlus } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useToast } from '../lib/toast'
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
@@ -29,6 +30,7 @@ export default function Library() {
   const [renameTarget, setRenameTarget] = useState<VideoItem | null>(null)
   const [newTitle, setNewTitle] = useState("")
   const [filterStatus, setFilterStatus] = useState<'all' | 'ready' | 'transcribed'>('all')
+  useEscapeKey(!!renameTarget, () => setRenameTarget(null))
 
   const fetchVideos = async () => {
     setLoading(true)
@@ -305,16 +307,16 @@ export default function Library() {
       
 {/* Modal Renombrar */}
       {renameTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setRenameTarget(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setRenameTarget(null)}>
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative w-full max-w-md bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-4">Renombrar Video</h3>
+          <div className="relative w-full max-w-md bg-[var(--bg-card)] rounded-2xl border border-[var(--border)] shadow-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Renombrar Video</h3>
             <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white text-sm mb-4 focus:border-teal-500 focus:outline-none"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text)] text-sm mb-4 focus:border-teal-500 focus:outline-none"
               placeholder="Nuevo nombre..." autoFocus />
             <div className="flex gap-3 justify-end">
               <button onClick={() => setRenameTarget(null)}
-                className="px-4 py-2 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors text-sm">Cancelar</button>
+                className="px-4 py-2 rounded-lg bg-[var(--bg-hover)] border border-[var(--border)] text-[var(--text)] hover:bg-[var(--bg-secondary)] transition-colors text-sm">Cancelar</button>
               <button onClick={handleRename}
                 className="px-4 py-2 rounded-lg bg-gradient-to-r from-teal-600 to-cyan-600 text-white text-sm font-medium hover:shadow-lg transition-all">Guardar</button>
             </div>

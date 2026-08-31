@@ -6,6 +6,7 @@ import {
   X, ArrowRight, BarChart3, Target, Layers
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { Skeleton, SkeletonCard } from '../components/Skeleton'
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
@@ -144,6 +145,8 @@ export default function Flows() {
   const [activeTab, setActiveTab] = useState<'flows' | 'templates' | 'metrics'>('flows')
 
   const [newFlow, setNewFlow] = useState<{ name: string; description: string; role_type: Flow['role_type']; estimated_days: number }>({ name: '', description: '', role_type: 'general', estimated_days: 30 })
+  useEscapeKey(showCreateModal, () => setShowCreateModal(false))
+  useEscapeKey(showTemplateModal, () => setShowTemplateModal(false))
 
   useEffect(() => {
     fetchFlows()
@@ -641,8 +644,8 @@ export default function Flows() {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="card w-full max-w-lg p-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => setShowCreateModal(false)}>
+          <div className="card w-full max-w-lg p-6 animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-[var(--text)]">Nuevo Flujo de Onboarding</h2>
               <button onClick={() => setShowCreateModal(false)} className="text-[var(--text-secondary)] hover:text-[var(--text)]">
@@ -706,8 +709,8 @@ export default function Flows() {
 
       {/* Template Modal */}
       {showTemplateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="card w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => setShowTemplateModal(false)}>
+          <div className="card w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-[var(--text)]">Seleccionar Template</h2>
               <button onClick={() => setShowTemplateModal(false)} className="text-[var(--text-secondary)] hover:text-[var(--text)]">

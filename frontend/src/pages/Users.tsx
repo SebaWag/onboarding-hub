@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Users as UsersIcon, Search, Mail, UserPlus, X, Video, MessageSquare, Loader2 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { Skeleton, SkeletonCard } from '../components/Skeleton'
 import { useToast } from '../lib/toast'
 import { api } from '../lib/api'
@@ -23,6 +24,7 @@ export default function Users() {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [inviteForm, setInviteForm] = useState<InviteFormData>({ email: '', name: '', department: '', position: '', org_role: 'viewer' })
+  useEscapeKey(showInviteModal, () => setShowInviteModal(false))
 
   useEffect(() => { fetchUsers(); fetchStats() }, [selectedRole, statusFilter])
 

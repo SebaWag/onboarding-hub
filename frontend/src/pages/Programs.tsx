@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Search, Grid3X3, List, Loader2, X, Eye, ChevronRight, Play, Film, FolderOpen, PlusCircle, Trash2, Link as LinkIcon } from 'lucide-react'
 import { cn, mediaProxyUrl } from '../lib/utils'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { Skeleton, SkeletonCard } from '../components/Skeleton'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../lib/toast'
@@ -35,6 +36,11 @@ export default function Programs() {
   const [playingVideo, setPlayingVideo] = useState<{ title: string; storageKey: string } | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [formData, setFormData] = useState({ title: '', description: '' })
+  useEscapeKey(showCreateModal, () => setShowCreateModal(false))
+  useEscapeKey(showDetailModal, () => { setShowDetailModal(false); setModules([]) })
+  useEscapeKey(showModuleModal, () => setShowModuleModal(false))
+  useEscapeKey(showContentModal, () => setShowContentModal(false))
+  useEscapeKey(!!playingVideo, () => setPlayingVideo(null))
 
   useEffect(() => { fetchPrograms() }, [])
 
@@ -207,8 +213,8 @@ export default function Programs() {
 
       {/* Create Program Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-full max-w-lg border border-[var(--border-color)] shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowCreateModal(false)}>
+          <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-full max-w-lg border border-[var(--border-color)] shadow-xl animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-[var(--text-primary)]">Nuevo Programa</h2>
               <button onClick={() => setShowCreateModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X className="w-5 h-5" /></button>
@@ -235,8 +241,8 @@ export default function Programs() {
 
       {/* Program Detail Modal */}
       {showDetailModal && selectedProgram && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-[var(--border-color)] shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => { setShowDetailModal(false); setModules([]) }}>
+          <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-[var(--border-color)] shadow-xl animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-xl font-semibold text-[var(--text-primary)]">{selectedProgram.title}</h2>
@@ -321,8 +327,8 @@ export default function Programs() {
 
       {/* Video Player Modal */}
       {playingVideo && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm">
-          <div className="w-full max-w-4xl mx-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-fade-in" onClick={() => setPlayingVideo(null)}>
+          <div className="w-full max-w-4xl mx-4 animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">{playingVideo.title}</h3>
               <button onClick={() => setPlayingVideo(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
@@ -334,8 +340,8 @@ export default function Programs() {
 
       {/* Create Module Modal */}
       {showModuleModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-full max-w-md border border-[var(--border-color)] shadow-xl">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowModuleModal(false)}>
+          <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-full max-w-md border border-[var(--border-color)] shadow-xl animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-[var(--text-primary)]">Nuevo Módulo</h2>
               <button onClick={() => setShowModuleModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X className="w-5 h-5" /></button>
@@ -362,8 +368,8 @@ export default function Programs() {
 
       {/* Add Content Modal */}
       {showContentModal && selectedModule && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto border border-[var(--border-color)] shadow-xl">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowContentModal(false)}>
+          <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto border border-[var(--border-color)] shadow-xl animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-[var(--text-primary)]">Agregar a "{selectedModule.title}"</h2>
               <button onClick={() => setShowContentModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X className="w-5 h-5" /></button>
