@@ -61,7 +61,7 @@ export default function VideoMeta({
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-xl transition-colors text-sm",
                   isLiked
-                    ? "bg-teal-50 text-teal-500 border border-violet-500/30"
+                    ? "bg-teal-50 text-teal-500 border border-teal-500/30"
                     : "bg-white/5 text-surface-300 hover:text-white hover:bg-white/10"
                 )}
               >

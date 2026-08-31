@@ -235,7 +235,7 @@ if (key) return mediaProxyUrl(key)
       {uploadStatus === 'uploading' && (
         <div className="bg-[var(--bg-card)] rounded-xl p-4 border border-teal-200 dark:border-teal-500/20">
           <div className="flex items-center gap-3">
-            <div className="animate-spin w-5 h-5 border-2 border-violet-600 dark:border-violet-400 border-t-transparent rounded-full" />
+            <div className="animate-spin w-5 h-5 border-2 border-teal-600 dark:border-teal-400 border-t-transparent rounded-full" />
             <span className="text-teal-600 dark:text-teal-500">Subiendo video...</span>
           </div>
         </div>
@@ -322,7 +322,7 @@ if (key) return mediaProxyUrl(key)
                       <button onClick={handleTogglePip}
                         className={cn('p-3 rounded-xl transition-all border',
                           isPipActive
-                            ? 'bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/30'
+                            ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 border-teal-200 dark:border-teal-500/30'
                             : 'bg-[var(--bg-hover)] text-[var(--text-muted)] border-[var(--border-color)] hover:text-[var(--text)]')}
                         title="Cámara flotante (PiP)">
                         <PictureInPicture2 className="w-5 h-5" />
@@ -358,7 +358,7 @@ if (key) return mediaProxyUrl(key)
             </div>
 
             {/* AI Features Card */}
-            <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-teal-200 dark:border-violet-500/20 shadow-sm">
+            <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-teal-200 dark:border-teal-500/20 shadow-sm">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shrink-0 shadow-lg">
                   <Wand2 className="w-6 h-6 text-white" />
@@ -380,13 +380,13 @@ if (key) return mediaProxyUrl(key)
           <div className="space-y-4">
             <div className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-color)] shadow-sm">
               <h3 className="font-medium text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-violet-500" />
+                <Sparkles className="w-4 h-4 text-teal-500" />
                 Tips para buenos tutoriales
               </h3>
               <ul className="space-y-3">
                 {['Explica el por que ademas del como', 'Usa nombres descriptivos', 'Graba en ambiente silencioso', 'Muestra el cursor y destaca clics', 'Agrega pausas naturales'].map((tip, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-[var(--text-muted)]">
-                    <ChevronRight className="w-4 h-4 text-violet-500 shrink-0 mt-0.5" />
+                    <ChevronRight className="w-4 h-4 text-teal-500 shrink-0 mt-0.5" />
                     {tip}
                   </li>
                 ))}

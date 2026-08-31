@@ -41,8 +41,8 @@ export default {
         },
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(139, 92, 246, 0.3)',
-        'glow-lg': '0 0 40px rgba(139, 92, 246, 0.4)',
+        'glow': '0 0 20px rgba(20, 184, 166, 0.35)',
+        'glow-lg': '0 0 40px rgba(20, 184, 166, 0.45)',
       },
     },
   },

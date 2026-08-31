@@ -50,10 +50,10 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsProps) {
 
   const getIconColor = (type: string) => {
     switch (type) {
-      case 'view': return 'bg-violet-500/10 text-violet-400'
+      case 'view': return 'bg-teal-500/10 text-teal-400'
       case 'question': return 'bg-emerald-500/10 text-emerald-400'
       case 'video_ready': return 'bg-emerald-500/10 text-emerald-400'
-      case 'ai_insight': return 'bg-violet-500/10 text-violet-400'
+      case 'ai_insight': return 'bg-teal-500/10 text-teal-400'
       default: return 'bg-surface-700 text-surface-400'
     }
   }
@@ -76,9 +76,9 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsProps) {
       <div className="fixed right-4 top-16 w-96 max-h-[calc(100vh-5rem)] glass rounded-2xl overflow-hidden shadow-2xl z-50 animate-slide-down">
         <div className="p-4 border-b border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Bell className="w-5 h-5 text-violet-400" />
+            <Bell className="w-5 h-5 text-teal-400" />
             <h3 className="font-semibold text-white">Notificaciones</h3>
-            {unreadCount > 0 && <span className="badge badge-violet">{unreadCount} nuevas</span>}
+            {unreadCount > 0 && <span className="badge badge-teal">{unreadCount} nuevas</span>}
           </div>
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
@@ -100,7 +100,7 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsProps) {
           ) : (
             <div className="divide-y divide-white/5">
               {notifications.map((notification) => (
-                <div key={notification.id} onClick={() => markAsRead(notification.id)} className={cn('p-4 hover:bg-white/[0.02] transition-colors cursor-pointer', !notification.read && 'bg-violet-500/[0.03]')}>
+                <div key={notification.id} onClick={() => markAsRead(notification.id)} className={cn('p-4 hover:bg-white/[0.02] transition-colors cursor-pointer', !notification.read && 'bg-teal-500/[0.03]')}>
                   <div className="flex items-start gap-3">
                     <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', getIconColor(notification.type))}>
                       {getIcon(notification.type)}
@@ -110,7 +110,7 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsProps) {
                         <p className={cn('text-sm', notification.read ? 'text-surface-300' : 'text-white font-medium')}>
                           {notification.title}
                         </p>
-                        {!notification.read && <div className="w-2 h-2 rounded-full bg-violet-500 shrink-0 mt-1.5" />}
+                        {!notification.read && <div className="w-2 h-2 rounded-full bg-teal-500 shrink-0 mt-1.5" />}
                       </div>
                       <p className="text-sm text-surface-500 mt-0.5 line-clamp-2">{notification.message}</p>
                       <p className="text-xs text-surface-600 mt-1">{formatTime(notification.timestamp)}</p>
@@ -122,7 +122,7 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsProps) {
           )}
         </div>
         <div className="p-3 border-t border-white/5">
-          <button className="w-full py-2 text-sm text-violet-400 hover:text-violet-300 transition-colors">
+          <button className="w-full py-2 text-sm text-teal-400 hover:text-teal-300 transition-colors">
             Ver todas las notificaciones
           </button>
         </div>

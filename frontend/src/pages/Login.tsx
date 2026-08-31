@@ -38,7 +38,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-surface-950 flex">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-fuchsia-600/20 to-rose-600/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-teal-600/20 via-cyan-600/20 to-teal-500/10" />
         <div className="relative z-10 flex flex-col justify-center p-12">
           <div className="flex items-center gap-3 mb-8">
             <img
@@ -50,7 +50,7 @@ export default function Login() {
           </div>
           <h2 className="text-4xl font-bold text-white mb-4">
             Crea tutoriales que<br />
-            <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">conversan contigo</span>
+            <span className="bg-gradient-to-r from-teal-300 to-cyan-300 bg-clip-text text-transparent">conversan contigo</span>
           </h2>
           <p className="text-surface-300 text-lg mb-8">
             Graba tu pantalla, comparte conocimiento y deja que la IA responda las preguntas de tu equipo.

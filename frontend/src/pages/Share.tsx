@@ -200,7 +200,7 @@ export default function Share() {
     return (
       <div className="min-h-screen dark-surface bg-[var(--bg)] flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-violet-500 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 text-teal-500 animate-spin mx-auto mb-4" />
           <p className="text-[var(--text-secondary)]">Cargando video...</p>
         </div>
       </div>
@@ -277,9 +277,9 @@ export default function Share() {
 
                 {/* AI badge */}
                 <div className="absolute top-4 right-4">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 backdrop-blur-sm border border-violet-500/30">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 backdrop-blur-sm border border-teal-500/30">
                     <Sparkles className="w-4 h-4 text-teal-500" />
-                    <span className="text-xs text-violet-300">Preguntale al video</span>
+                    <span className="text-xs text-teal-300">Preguntale al video</span>
                   </div>
                 </div>
 
@@ -333,7 +333,7 @@ export default function Share() {
                       <input
                         type="range" min="0" max="1" step="0.05" value={volume}
                         onChange={handleVolumeChange}
-                        className="w-20 h-1 accent-violet-500 opacity-0 group-hover/vol:opacity-100 transition-opacity"
+                        className="w-20 h-1 accent-teal-500 opacity-0 group-hover/vol:opacity-100 transition-opacity"
                       />
                     </div>
                     <button onClick={toggleFullscreen} className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors">
@@ -378,7 +378,7 @@ export default function Share() {
                   <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', message.role === 'user' ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : 'bg-gradient-to-br from-teal-500 to-cyan-500')}>
                     {message.role === 'user' ? <User className="w-4 h-4 text-[var(--text)]" /> : <Bot className="w-4 h-4 text-[var(--text)]" />}
                   </div>
-                  <div className={cn('max-w-[85%] rounded-xl p-3', message.role === 'user' ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-[var(--bg-hover)] border border-[var(--border)]')}>
+                  <div className={cn('max-w-[85%] rounded-xl p-3', message.role === 'user' ? 'bg-teal-500/10 border border-teal-500/20' : 'bg-[var(--bg-hover)] border border-[var(--border)]')}>
                     <p className="text-sm text-[var(--text)] whitespace-pre-wrap">{message.content}</p>
                   </div>
                 </div>
@@ -395,7 +395,7 @@ export default function Share() {
             <div className="p-4 border-t border-[var(--border)]">
               <form onSubmit={handleChatSubmit} className="flex gap-2">
                 <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Pregunta sobre el tutorial..." className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-hover)] border border-[var(--border)] text-[var(--text)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-400/50" />
-                <button type="submit" disabled={!input.trim() || isChatLoading} className={cn('p-2.5 rounded-xl transition-all', input.trim() && !isChatLoading ? 'bg-violet-500 text-[var(--text)]' : 'bg-[var(--bg-hover)] text-[var(--text-muted)]')}>
+                <button type="submit" disabled={!input.trim() || isChatLoading} className={cn('p-2.5 rounded-xl transition-all', input.trim() && !isChatLoading ? 'bg-teal-500 text-[var(--text)] hover:bg-teal-600' : 'bg-[var(--bg-hover)] text-[var(--text-muted)]')}>
                   <Send className="w-5 h-5" />
                 </button>
               </form>

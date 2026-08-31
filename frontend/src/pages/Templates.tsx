@@ -16,7 +16,7 @@ const CATEGORY_CONFIG: Record<string, { icon: LucideIcon; color: string; bgColor
   spreadsheets: { icon: Table, color: '#10b981', bgColor: 'bg-emerald-500/10' },
   presentations: { icon: Presentation, color: '#f59e0b', bgColor: 'bg-amber-500/10' },
   pdfs: { icon: FileArchive, color: '#ef4444', bgColor: 'bg-rose-500/10' },
-  images: { icon: Image, color: '#8b5cf6', bgColor: 'bg-violet-500/10' },
+  images: { icon: Image, color: '#14b8a6', bgColor: 'bg-teal-500/10' },
   invoices: { icon: Receipt, color: '#06b6d4', bgColor: 'bg-cyan-500/10' },
   multimedia: { icon: Video, color: '#ec4899', bgColor: 'bg-pink-500/10' },
 }
@@ -354,7 +354,7 @@ export default function Templates() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -455,7 +455,7 @@ export default function Templates() {
               <button
                 key={category.id}
                 onClick={() => goToCategory(category)}
-                className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-6 hover:border-violet-500/30 transition-all group text-left"
+                className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-6 hover:border-teal-500/30 transition-all group text-left"
               >
                 <div className="flex items-start gap-4">
                   <div className={cn('w-14 h-14 rounded-xl flex items-center justify-center shrink-0', config.bgColor)}>
@@ -515,7 +515,7 @@ export default function Templates() {
                 return (
                   <div
                     key={resource.id}
-                    className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 hover:border-violet-500/30 transition-all group"
+                    className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 hover:border-teal-500/30 transition-all group"
                   >
                     {/* Preview del archivo */}
                     <div 
@@ -655,7 +655,7 @@ export default function Templates() {
                         className={cn(
                           'p-3 rounded-lg border transition-all flex items-center gap-2',
                           uploadForm.category_id === cat.id 
-                            ? 'border-violet-500 bg-violet-500/10' 
+                            ? 'border-teal-500 bg-teal-500/10' 
                             : 'border-white/10 hover:border-white/20'
                         )}
                       >
@@ -677,7 +677,7 @@ export default function Templates() {
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
                   'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
-                  dragActive ? 'border-violet-500 bg-violet-500/10' : 'border-white/10 hover:border-white/20',
+                  dragActive ? 'border-teal-500 bg-teal-500/10' : 'border-white/10 hover:border-white/20',
                   selectedFile && 'border-emerald-500 bg-emerald-500/10'
                 )}
               >

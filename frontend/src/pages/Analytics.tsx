@@ -8,7 +8,7 @@ import type { ApiResponse } from '../lib/api'
 interface OverviewStats { total_users: number; active_users: number; active_programs: number; total_videos: number; total_views: number; flows_in_progress: number; flows_completed: number }
 interface VideoMetric { id: string; title: string; thumbnail_url?: string; duration_seconds: number; view_count?: number; content_title?: string; module_title?: string; created_at?: string }
 interface WeeklyData { day: string; views: number; questions: number }
-interface Insight { type: 'violet' | 'emerald' | 'amber' | 'rose'; text: string }
+interface Insight { type: 'teal' | 'emerald' | 'amber' | 'rose'; text: string }
 
 export default function Analytics() {
   const [selectedPeriod, setSelectedPeriod] = useState('week')
@@ -44,11 +44,11 @@ export default function Analytics() {
 const generateInsights = (overviewData: OverviewStats | null, videosData: VideosResponse, weeklyData: WeeklyData[]) => {
     const newInsights: Insight[] = []
     const topVideos = videosData.top_videos ?? []
-    if (topVideos.length > 0) newInsights.push({ type: 'violet', text: `${topVideos[0].title || 'Tu video'} es tu tutorial más visto.` })
+    if (topVideos.length > 0) newInsights.push({ type: 'teal', text: `${topVideos[0].title || 'Tu video'} es tu tutorial más visto.` })
     if (overviewData && overviewData.active_programs > 0) newInsights.push({ type: 'emerald', text: `Tienes ${overviewData.active_programs} programas activos con ${overviewData.total_videos} videos.` })
     if (weeklyData && weeklyData.length > 0) { const total = weeklyData.reduce((sum, d) => sum + (d.views || 0), 0); if (total > 0) newInsights.push({ type: 'amber', text: `Esta semana se han visto ${total} videos.` }) }
     if (overviewData && overviewData.total_users > overviewData.active_users) newInsights.push({ type: 'rose', text: `${overviewData.total_users - overviewData.active_users} usuarios no han iniciado sesión.` })
-    if (newInsights.length === 0) { newInsights.push({ type: 'violet', text: 'Comienza a subir videos para ver métricas.' }, { type: 'emerald', text: 'Los videos cortos tienen mayor tasa de completado.' }) }
+    if (newInsights.length === 0) { newInsights.push({ type: 'teal', text: 'Comienza a subir videos para ver métricas.' }, { type: 'emerald', text: 'Los videos cortos tienen mayor tasa de completado.' }) }
     setInsights(newInsights)
   }
 
@@ -56,13 +56,13 @@ const generateInsights = (overviewData: OverviewStats | null, videosData: Videos
   const maxViews = Math.max(...weeklyData.map(d => d.views || 0), 1)
 
   const stats = [
-    { name: 'Total Visualizaciones', value: overview?.total_views ?? 0, change: '+23.5%', trend: 'up' as const, icon: Eye, color: 'violet' },
+    { name: 'Total Visualizaciones', value: overview?.total_views ?? 0, change: '+23.5%', trend: 'up' as const, icon: Eye, color: 'teal' },
     { name: 'Usuarios Activos', value: overview?.active_users ?? 0, change: '+12.3%', trend: 'up' as const, icon: Users, color: 'emerald' },
     { name: 'Videos Totales', value: overview?.total_videos ?? 0, change: '+8', trend: 'up' as const, icon: PlayCircle, color: 'amber' },
     { name: 'Flujos Completados', value: overview?.flows_completed ?? 0, change: '+45.8%', trend: 'up' as const, icon: MessageSquare, color: 'rose' },
   ]
 
-  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 text-violet-500 animate-spin" /></div>
+  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 text-teal-500 animate-spin" /></div>
   if (error) return <div className="flex items-center justify-center min-h-[400px]"><div className="text-center"><p className="text-rose-500 mb-2">Error: {error}</p><button onClick={fetchAnalyticsData} className="px-4 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)]">Reintentar</button></div></div>
 
   return (
@@ -97,7 +97,7 @@ const generateInsights = (overviewData: OverviewStats | null, videosData: Videos
         {stats.map((stat) => (
           <div key={stat.name} className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-color)] shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
-              <div className={cn('p-2.5 rounded-xl', stat.color === 'violet' && 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-500', stat.color === 'emerald' && 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400', stat.color === 'amber' && 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400', stat.color === 'rose' && 'bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400')}>
+              <div className={cn('p-2.5 rounded-xl', stat.color === 'teal' && 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-500', stat.color === 'emerald' && 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400', stat.color === 'amber' && 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400', stat.color === 'rose' && 'bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400')}>
                 <stat.icon className="w-5 h-5" />
               </div>
               <div className={cn('flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full', stat.trend === 'up' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400')}>
@@ -118,7 +118,7 @@ const generateInsights = (overviewData: OverviewStats | null, videosData: Videos
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Actividad Semanal</h2>
             <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-violet-500" /><span className="text-[var(--text-muted)]">Visualizaciones</span></div>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-teal-500" /><span className="text-[var(--text-muted)]">Visualizaciones</span></div>
               <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500" /><span className="text-[var(--text-muted)]">Preguntas</span></div>
             </div>
           </div>
@@ -126,7 +126,7 @@ const generateInsights = (overviewData: OverviewStats | null, videosData: Videos
             {weeklyData.length > 0 ? weeklyData.map((day, idx) => (
               <div key={idx} className="flex-1 flex flex-col items-center gap-2">
                 <div className="w-full flex gap-1 items-end h-40">
-                  <div className="flex-1 bg-gradient-to-t from-violet-500 to-violet-400 rounded-t-md transition-all hover:opacity-80" style={{ height: `${((day.views || 0) / maxViews) * 100}%` }} />
+                  <div className="flex-1 bg-gradient-to-t from-teal-500 to-cyan-400 rounded-t-md transition-all hover:opacity-80" style={{ height: `${((day.views || 0) / maxViews) * 100}%` }} />
                   <div className="flex-1 bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-md transition-all hover:opacity-80" style={{ height: `${((day.questions || 0) / 100) * 100}%` }} />
                 </div>
                 <span className="text-xs text-[var(--text-muted)]">{day.day}</span>
@@ -138,15 +138,15 @@ const generateInsights = (overviewData: OverviewStats | null, videosData: Videos
         </div>
 
         {/* Insights Card */}
-        <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-teal-200 dark:border-violet-500/20 shadow-sm">
+        <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-teal-200 dark:border-teal-500/20 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <Sparkles className="w-5 h-5 text-violet-500" />
+            <Sparkles className="w-5 h-5 text-teal-500" />
             <h3 className="font-semibold text-[var(--text-primary)]">Insights de MiMo</h3>
           </div>
           <ul className="space-y-3">
             {insights.map((insight, idx) => (
               <li key={idx} className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
-                <span className={cn('font-bold', insight.type === 'violet' && 'text-violet-500', insight.type === 'emerald' && 'text-emerald-500', insight.type === 'amber' && 'text-amber-500', insight.type === 'rose' && 'text-rose-500')}>•</span>
+                <span className={cn('font-bold', insight.type === 'teal' && 'text-teal-500', insight.type === 'emerald' && 'text-emerald-500', insight.type === 'amber' && 'text-amber-500', insight.type === 'rose' && 'text-rose-500')}>•</span>
                 {insight.text}
               </li>
             ))}

@@ -29,7 +29,7 @@ export default function BackgroundSelector({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-700">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
               <Camera className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -52,7 +52,7 @@ export default function BackgroundSelector({
           {/* Sin fondo */}
           <button onClick={() => onSelect(effects[0])}
             className={cn('w-full flex items-center gap-3 p-3 rounded-xl transition-all',
-              currentBackground.mode === 'none' ? 'bg-violet-500/20 ring-2 ring-violet-500' : 'bg-slate-700/50 hover:bg-slate-700')}>
+              currentBackground.mode === 'none' ? 'bg-teal-500/20 ring-2 ring-teal-500' : 'bg-slate-700/50 hover:bg-slate-700')}>
             <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center">
               <Camera className="w-5 h-5 text-slate-300" />
             </div>
@@ -60,7 +60,7 @@ export default function BackgroundSelector({
               <p className="text-sm font-medium text-white">Original</p>
               <p className="text-xs text-slate-400">Sin efectos de fondo</p>
             </div>
-            {currentBackground.mode === 'none' && <Check className="w-5 h-5 text-violet-400" />}
+            {currentBackground.mode === 'none' && <Check className="w-5 h-5 text-teal-400" />}
           </button>
 
           {/* Fondos con Imagen */}
@@ -73,7 +73,7 @@ export default function BackgroundSelector({
                   return (
                     <button key={item.label} onClick={() => onSelect(item)}
                       className={cn('relative flex flex-col items-center rounded-xl overflow-hidden transition-all border',
-                        sel ? 'ring-2 ring-violet-500 border-violet-500' : 'border-slate-700 hover:border-slate-500')}>
+                        sel ? 'ring-2 ring-teal-500 border-teal-500' : 'border-slate-700 hover:border-slate-500')}>
                       <div className="w-full h-20 bg-slate-700 relative">
                         {item.thumbnail && (
                           <img src={item.thumbnail} alt={item.label}
@@ -81,13 +81,13 @@ export default function BackgroundSelector({
                             loading="lazy" />
                         )}
                         {sel && (
-                          <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
+                          <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center">
                             <Check className="w-3 h-3 text-white" />
                           </div>
                         )}
                       </div>
                       <div className="w-full p-1.5 bg-slate-900/80 text-center">
-                        <span className={cn('text-[10px]', sel ? 'text-violet-400' : 'text-slate-300')}>
+                        <span className={cn('text-[10px]', sel ? 'text-teal-400' : 'text-slate-300')}>
                           {item.label}
                         </span>
                       </div>
@@ -106,12 +106,12 @@ export default function BackgroundSelector({
               return (
                 <button key={item.label} onClick={() => onSelect(item)}
                   className={cn('relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all',
-                    sel ? 'ring-2 ring-violet-500 bg-violet-500/10' : 'hover:bg-slate-700/50')}>
+                    sel ? 'ring-2 ring-teal-500 bg-teal-500/10' : 'hover:bg-slate-700/50')}>
                   <div className="w-full h-10 rounded-lg border border-white/10 shadow-sm"
                     style={{ backgroundColor: item.color }} />
                   <span className={cn('text-[10px] truncate w-full text-center',
-                    sel ? 'text-violet-400' : 'text-slate-400')}>{item.label}</span>
-                  {sel && <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-violet-500 flex items-center justify-center"><Check className="w-2.5 h-2.5 text-white" /></div>}
+                    sel ? 'text-teal-400' : 'text-slate-400')}>{item.label}</span>
+                  {sel && <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-teal-500 flex items-center justify-center"><Check className="w-2.5 h-2.5 text-white" /></div>}
                 </button>
               )
             })}
@@ -125,7 +125,7 @@ export default function BackgroundSelector({
               return (
                 <button key={item.label} onClick={() => onSelect(item)}
                   className={cn('flex items-center gap-3 p-3 rounded-xl transition-all',
-                    sel ? 'bg-violet-500/20 ring-2 ring-violet-500' : 'bg-slate-700/50 hover:bg-slate-700')}>
+                    sel ? 'bg-teal-500/20 ring-2 ring-teal-500' : 'bg-slate-700/50 hover:bg-slate-700')}>
                   <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center border border-green-500/30">
                     <span className="text-[10px] text-green-400 font-mono">01</span>
                   </div>
@@ -133,7 +133,7 @@ export default function BackgroundSelector({
                     <p className="text-sm font-medium text-white">{item.label}</p>
                     <p className="text-xs text-slate-400">Efecto Matrix estilo hacker</p>
                   </div>
-                  {sel && <Check className="w-5 h-5 text-violet-400" />}
+                  {sel && <Check className="w-5 h-5 text-teal-400" />}
                 </button>
               )
             })}

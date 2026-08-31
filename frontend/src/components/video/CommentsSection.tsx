@@ -55,7 +55,7 @@ export default function CommentsSection({
                               {comment.timestamp_seconds !== null && (
                                 <button
                                   onClick={() => seekTo(comment.timestamp_seconds!)}
-                                  className="flex items-center gap-1 text-xs text-teal-500 hover:text-violet-300"
+                                  className="flex items-center gap-1 text-xs text-teal-500 hover:text-teal-300"
                                 >
                                   <Play className="w-3 h-3" />{formatTime(comment.timestamp_seconds)}
                                 </button>
@@ -103,11 +103,11 @@ export default function CommentsSection({
                                   value={replyInput}
                                   onChange={(e) => setReplyInput(e.target.value)}
                                   placeholder="Escribe una respuesta..."
-                                  className="flex-1 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/8 text-white text-xs placeholder-surface-500 focus:outline-none focus:border-teal-400/50"
+                                  className="flex-1 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/10 text-white text-xs placeholder-surface-500 focus:outline-none focus:border-teal-400/50"
                                   autoFocus
                                   onKeyDown={(e) => e.key === 'Enter' && handleReplySubmit(comment.id)}
                                 />
-                                <button onClick={() => handleReplySubmit(comment.id)} className="p-1.5 rounded-lg bg-violet-500 text-white">
+                                <button onClick={() => handleReplySubmit(comment.id)} className="p-1.5 rounded-lg bg-teal-500 text-white">
                                   <Send className="w-3.5 h-3.5" />
                                 </button>
                               </div>
@@ -135,12 +135,12 @@ export default function CommentsSection({
                       value={commentInput}
                       onChange={(e) => setCommentInput(e.target.value)}
                       placeholder="Agregar una nota..."
-                      className="flex-1 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/8 text-white text-sm placeholder-surface-500 focus:outline-none focus:border-teal-400/50"
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm placeholder-surface-500 focus:outline-none focus:border-teal-400/50"
                     />
                     <button
                       type="submit"
                       disabled={!commentInput.trim()}
-                      className={cn('p-2.5 rounded-xl transition-all', commentInput.trim() ? 'bg-violet-500 text-white' : 'bg-white/5 text-surface-500')}
+                      className={cn('p-2.5 rounded-xl transition-all', commentInput.trim() ? 'bg-teal-500 text-white' : 'bg-white/5 text-surface-500')}
                     >
                       <Send className="w-5 h-5" />
                     </button>
@@ -150,7 +150,7 @@ export default function CommentsSection({
                       type="checkbox"
                       checked={commentTimestamp}
                       onChange={(e) => setCommentTimestamp(e.target.checked)}
-                      className="rounded border-surface-600 bg-surface-800 text-violet-500 focus:ring-teal-500"
+                      className="rounded border-surface-600 bg-surface-800 text-teal-500 focus:ring-teal-500"
                     />
                     Vincular al momento actual ({formatTime(currentTime)})
                   </label>

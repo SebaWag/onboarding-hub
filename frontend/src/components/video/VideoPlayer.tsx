@@ -89,9 +89,9 @@ export default function VideoPlayer({
 
               {/* AI badge */}
               <div className="absolute top-4 right-4">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 backdrop-blur-sm border border-violet-500/30">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 backdrop-blur-sm border border-teal-500/30">
                   <Sparkles className="w-4 h-4 text-teal-500" />
-                  <span className="text-xs text-violet-300">IA Activa</span>
+                  <span className="text-xs text-teal-300">IA Activa</span>
                 </div>
               </div>
 
@@ -157,7 +157,7 @@ export default function VideoPlayer({
                     <input
                       type="range" min="0" max="1" step="0.05" value={volume}
                       onChange={handleVolumeChange}
-                      className="w-20 h-1 accent-violet-500 opacity-0 group-hover/vol:opacity-100 transition-opacity"
+                      className="w-20 h-1 accent-teal-500 opacity-0 group-hover/vol:opacity-100 transition-opacity"
                     />
                   </div>
                   <button onClick={toggleFullscreen} className="p-2 rounded-lg text-surface-400 hover:text-white hover:bg-white/5 transition-colors">

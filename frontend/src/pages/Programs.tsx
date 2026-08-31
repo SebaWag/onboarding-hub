@@ -114,7 +114,7 @@ export default function Programs() {
   const filteredPrograms = programs.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()))
   const formatDuration = (secs: number) => secs ? `${Math.floor(secs / 60)}:${(secs % 60).toString().padStart(2, '0')}` : '0:00'
 
-  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 text-violet-500 animate-spin" /></div>
+  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 text-teal-500 animate-spin" /></div>
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -212,7 +212,7 @@ export default function Programs() {
 
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-                <FolderOpen className="w-5 h-5 text-violet-500" />
+                <FolderOpen className="w-5 h-5 text-teal-500" />
                 Módulos ({modules.length})
               </h3>
               <button onClick={() => setShowModuleModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-medium hover:bg-[var(--bg-hover)]">
@@ -240,7 +240,7 @@ export default function Programs() {
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => openContentSelector(mod)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm hover:bg-[var(--bg-hover)]">
-                          <Film className="w-4 h-4 text-violet-500" /> Video
+                          <Film className="w-4 h-4 text-teal-500" /> Video
                         </button>
                         <button onClick={() => openLinkForm(mod)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm hover:bg-[var(--bg-hover)]">
                           <LinkIcon className="w-4 h-4 text-emerald-500" /> Enlace
@@ -249,12 +249,12 @@ export default function Programs() {
                     </div>
                     
                     {mod.contents && mod.contents.length > 0 && (
-                      <div className="pl-4 border-l-2 border-teal-200 dark:border-violet-500/30 space-y-2 mt-3">
+                      <div className="pl-4 border-l-2 border-teal-200 dark:border-teal-500/30 space-y-2 mt-3">
                         {mod.contents.map((content) => (
                           <div key={content.id} className="flex items-center justify-between p-3 rounded-lg bg-[var(--bg-card)]">
                             <div className="flex items-center gap-3">
                               {content.content_type === 'video' ? (
-                                <button onClick={() => playVideo(content)} className="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-500/10 flex items-center justify-center text-teal-600 dark:text-teal-500 hover:bg-violet-200 dark:hover:bg-violet-500/30 transition-colors">
+                                <button onClick={() => playVideo(content)} className="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-500/10 flex items-center justify-center text-teal-600 dark:text-teal-500 hover:bg-teal-200 dark:hover:bg-teal-500/30 transition-colors">
                                   <Play className="w-5 h-5" />
                                 </button>
                               ) : (

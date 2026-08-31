@@ -197,7 +197,7 @@ export default function Chat() {
             <div className="p-3 border-b border-[var(--border)]">
               <button
                 onClick={startNewConversation}
-                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl bg-teal-50 text-teal-500 text-sm font-medium hover:bg-violet-500/30 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl bg-teal-50 text-teal-500 text-sm font-medium hover:bg-teal-500/30 transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Nueva conversación
@@ -215,7 +215,7 @@ export default function Chat() {
                     onClick={() => loadConversation(conv.id)}
                     className={cn(
                       'w-full text-left px-3 py-2.5 rounded-xl transition-colors text-sm',
-                      conversationId === conv.id ? 'bg-violet-500/10 text-teal-500' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text)]'
+                      conversationId === conv.id ? 'bg-teal-500/10 text-teal-500' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text)]'
                     )}
                   >
                     <p className="truncate font-medium">{conv.title}</p>
@@ -270,7 +270,7 @@ export default function Chat() {
                 </div>
                 <div className={cn(
                   'max-w-[80%] rounded-2xl p-4',
-                  message.role === 'user' ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-[var(--bg-hover)] border border-[var(--border)]'
+                  message.role === 'user' ? 'bg-teal-500/10 border border-teal-500/20' : 'bg-[var(--bg-hover)] border border-[var(--border)]'
                 )}>
                   {message.isLoading ? (
                     <div className="flex items-center gap-2">

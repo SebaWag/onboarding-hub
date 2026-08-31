@@ -87,7 +87,7 @@ export default function CameraPreview({
       {hasBgEffect && isModelLoading && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 text-violet-400 animate-spin mx-auto mb-2" />
+            <Loader2 className="w-8 h-8 text-teal-400 animate-spin mx-auto mb-2" />
             <p className="text-xs text-white/80">Cargando IA de segmentación...</p>
           </div>
         </div>

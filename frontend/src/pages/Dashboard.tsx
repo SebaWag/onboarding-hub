@@ -78,7 +78,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
       </div>
     )
   }
@@ -97,7 +97,7 @@ export default function Dashboard() {
   }
 
   const statsData = [
-    { name: 'Usuarios Activos', value: stats?.active_users?.toLocaleString() || '0', change: '+12.5%', trend: 'up' as const, icon: Users, color: 'violet' },
+    { name: 'Usuarios Activos', value: stats?.active_users?.toLocaleString() || '0', change: '+12.5%', trend: 'up' as const, icon: Users, color: 'teal' },
     { name: 'Programas Activos', value: stats?.active_programs?.toString() || '0', change: '+3', trend: 'up' as const, icon: BookOpen, color: 'emerald' },
     { name: 'Videos Totales', value: stats?.total_videos?.toString() || '0', change: '+8', trend: 'up' as const, icon: Video, color: 'amber' },
     { name: 'Flujos Completados', value: stats?.flows_completed?.toString() || '0', change: stats?.flows_in_progress ? `+${stats.flows_in_progress}` : '+0', trend: 'up' as const, icon: CheckCircle2, color: 'rose' },
@@ -126,7 +126,7 @@ export default function Dashboard() {
           <div key={stat.name} className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-color)] shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
               <div className={cn('p-2.5 rounded-xl', 
-                stat.color === 'violet' && 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-500',
+                stat.color === 'teal' && 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-500',
                 stat.color === 'emerald' && 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
                 stat.color === 'amber' && 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400',
                 stat.color === 'rose' && 'bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400')}>
@@ -152,12 +152,12 @@ export default function Dashboard() {
         <div className="lg:col-span-2 bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-color)] shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-violet-500" />
+              <TrendingUp className="w-5 h-5 text-teal-500" />
               Actividad Semanal
             </h2>
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-violet-500" />
+                <div className="w-3 h-3 rounded-full bg-teal-500" />
                 <span className="text-[var(--text-muted)]">Visualizaciones</span>
               </div>
               <div className="flex items-center gap-2">
@@ -171,7 +171,7 @@ export default function Dashboard() {
               <div key={index} className="flex-1 flex flex-col items-center gap-2">
                 <div className="w-full flex gap-1 items-end h-36">
                   <div 
-                    className="flex-1 bg-gradient-to-t from-violet-500 to-violet-400 rounded-t-md transition-all hover:opacity-80" 
+                    className="flex-1 bg-gradient-to-t from-teal-500 to-cyan-400 rounded-t-md transition-all hover:opacity-80" 
                     style={{ height: `${((day.views || 0) / maxViews) * 100}%` }} 
                     title={`${day.views || 0} visualizaciones`}
                   />
@@ -192,7 +192,7 @@ export default function Dashboard() {
         </div>
 
         {/* AI Assistant Card */}
-        <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-violet-500/20 shadow-sm">
+        <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-teal-500/20 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-lg">
               <Sparkles className="w-5 h-5 text-white" />

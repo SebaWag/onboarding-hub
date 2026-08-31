@@ -42,7 +42,7 @@ export default function Settings() {
         <div className="bg-[var(--bg-card)] rounded-2xl p-4 border border-[var(--border-color)] h-fit">
           <nav className="space-y-1">
             {sections.map((section) => (
-              <button key={section.id} onClick={() => setActiveSection(section.id)} className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all font-medium', activeSection === section.id ? 'bg-violet-500/10 text-teal-600 dark:text-teal-500' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]')}>
+              <button key={section.id} onClick={() => setActiveSection(section.id)} className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all font-medium', activeSection === section.id ? 'bg-[var(--accent-bg)] text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]')}>
                 <section.icon className="w-5 h-5" />
                 {section.label}
               </button>
@@ -94,7 +94,7 @@ export default function Settings() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Plan</label>
-                  <input type="text" value="Enterprise" className="w-full px-4 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/30 text-teal-600 dark:text-teal-500" disabled />
+                  <input type="text" value="Enterprise" className="w-full px-4 py-2.5 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-600 dark:text-teal-500" disabled />
                 </div>
               </div>
             </div>
@@ -109,7 +109,7 @@ export default function Settings() {
                     <p className="font-medium text-[var(--text-primary)]">Transcripción automática</p>
                     <p className="text-sm text-[var(--text-muted)]">Generar transcripción al subir videos</p>
                   </div>
-                  <div className="w-12 h-6 rounded-full bg-violet-500 relative cursor-pointer">
+                  <div className="w-12 h-6 rounded-full bg-teal-500 relative cursor-pointer">
                     <div className="absolute right-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" />
                   </div>
                 </div>
@@ -118,7 +118,7 @@ export default function Settings() {
                     <p className="font-medium text-[var(--text-primary)]">Capítulos inteligentes</p>
                     <p className="text-sm text-[var(--text-muted)]">Detectar automáticamente cambios de tema</p>
                   </div>
-                  <div className="w-12 h-6 rounded-full bg-violet-500 relative cursor-pointer">
+                  <div className="w-12 h-6 rounded-full bg-teal-500 relative cursor-pointer">
                     <div className="absolute right-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" />
                   </div>
                 </div>
@@ -129,7 +129,7 @@ export default function Settings() {
           {activeSection === 'security' && (
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-3">
-                <Lock className="w-5 h-5 text-violet-500" />
+                <Lock className="w-5 h-5 text-teal-500" />
                 Seguridad
               </h2>
               <div className="space-y-4">
@@ -158,7 +158,7 @@ export default function Settings() {
                 {['Nuevos comentarios', 'Asignación de tareas', 'Recordatorios de vencimiento', 'Nuevos videos en programas'].map((item) => (
                   <div key={item} className="flex items-center justify-between p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]">
                     <p className="font-medium text-[var(--text-primary)]">{item}</p>
-                    <div className="w-12 h-6 rounded-full bg-violet-500 relative cursor-pointer">
+                    <div className="w-12 h-6 rounded-full bg-teal-500 relative cursor-pointer">
                       <div className="absolute right-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" />
                     </div>
                   </div>

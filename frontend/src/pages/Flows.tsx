@@ -258,7 +258,7 @@ export default function Flows() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -269,7 +269,7 @@ export default function Flows() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text)] flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
               <GitBranch className="w-5 h-5 text-[var(--text)]" />
             </div>
             Flujos de Onboarding
@@ -301,7 +301,7 @@ export default function Flows() {
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
               activeTab === tab.key
-                ? 'bg-violet-500/10 text-teal-500'
+                ? 'bg-teal-500/10 text-teal-500'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)]'
             )}
           >
@@ -320,7 +320,7 @@ export default function Flows() {
                 <p className="text-[var(--text-secondary)] text-sm">Flujos Activos</p>
                 <p className="text-2xl font-bold text-[var(--text)]">{metrics.total_flows}</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-teal-500/10 flex items-center justify-center">
                 <GitBranch className="w-5 h-5 text-teal-500" />
               </div>
             </div>
@@ -388,8 +388,8 @@ export default function Flows() {
                   key={flow.id}
                   onClick={() => fetchFlowDetails(flow.id)}
                   className={cn(
-                    'card p-4 cursor-pointer transition-all hover:border-violet-500/30',
-                    selectedFlow?.id === flow.id && 'border-teal-400/50 bg-violet-500/5'
+                    'card p-4 cursor-pointer transition-all hover:border-teal-500/30',
+                    selectedFlow?.id === flow.id && 'border-teal-400/50 bg-teal-500/5'
                   )}
                 >
                   <div className="flex items-start justify-between">
@@ -473,7 +473,7 @@ export default function Flows() {
                     </div>
                     <div className="h-3 bg-surface-800 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500"
+                        className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full transition-all duration-500"
                         style={{ width: `${userProgress.progress_percentage}%` }}
                       />
                     </div>
@@ -504,7 +504,7 @@ export default function Flows() {
                         className={cn(
                           'flex items-center gap-4 p-4 rounded-xl border transition-all',
                           isCompleted && 'border-emerald-500/30 bg-emerald-500/5',
-                          isCurrent && 'border-violet-500/30 bg-violet-500/5',
+                          isCurrent && 'border-teal-500/30 bg-teal-500/5',
                           isBlocked && 'border-rose-500/30 bg-rose-500/5',
                           !isCompleted && !isCurrent && !isBlocked && 'border-[var(--border)] bg-[var(--bg-secondary)]'
                         )}
@@ -512,7 +512,7 @@ export default function Flows() {
                         {/* Step Number/Status */}
                         <div className={cn(
                           'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-                          isCompleted ? 'bg-emerald-500' : isCurrent ? 'bg-violet-500' : 'bg-surface-700'
+                          isCompleted ? 'bg-emerald-500' : isCurrent ? 'bg-teal-500' : 'bg-surface-700'
                         )}>
                           {isCompleted ? (
                             <CheckCircle2 className="w-5 h-5 text-[var(--text)]" />
@@ -696,7 +696,7 @@ export default function Flows() {
               {templates.map((template) => {
                 const colors = roleColors[template.role_type as keyof typeof roleColors]
                 return (
-                  <div key={template.id} className="border border-[var(--border)] rounded-xl p-4 hover:border-violet-500/30">
+                  <div key={template.id} className="border border-[var(--border)] rounded-xl p-4 hover:border-teal-500/30">
                     <div className="flex items-center gap-2 mb-2">
                       <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', colors.bg, colors.text)}>
                         {roleLabels[template.role_type as keyof typeof roleLabels]}
