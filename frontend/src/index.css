@@ -215,6 +215,25 @@ html.dark {
   .empty-state p {
     @apply text-sm text-[var(--text-muted,#a1a1aa)];
   }
+
+  /* ==== Skeletons con shimmer (B5) ==== */
+  .skeleton {
+    @apply relative overflow-hidden rounded-lg animate-pulse;
+    background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+  }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+    animation: shimmer 1.6s infinite;
+  }
+  html.dark .skeleton::after,
+  .dark-surface .skeleton::after {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07), transparent);
+  }
+  @keyframes shimmer { 100% { transform: translateX(100%); } }
   /* ==== P0-2: clases que se usaban pero no existían ==== */
   .glass {
     background: rgba(15, 15, 20, 0.55);

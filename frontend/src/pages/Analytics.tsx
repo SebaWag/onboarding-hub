@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { BarChart3, Users, Eye, Clock, MessageSquare, ArrowUpRight, ArrowDownRight, Sparkles, Download, Loader2, PlayCircle } from 'lucide-react'
+import { BarChart3, Users, Eye, Clock, MessageSquare, ArrowUpRight, ArrowDownRight, Sparkles, Download, PlayCircle } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { Skeleton, SkeletonCard, SkeletonLines } from '../components/Skeleton'
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
 
@@ -62,7 +63,50 @@ const generateInsights = (overviewData: OverviewStats | null, videosData: Videos
     { name: 'Flujos Completados', value: overview?.flows_completed ?? 0, change: '+45.8%', trend: 'up' as const, icon: MessageSquare, color: 'rose' },
   ]
 
-  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 text-teal-500 animate-spin" /></div>
+  if (loading) {
+    return (
+      <div className="animate-fade-in space-y-6" aria-busy="true" aria-label="Cargando métricas">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map(i => (
+            <SkeletonCard key={i} className="p-5">
+              <div className="flex items-start justify-between">
+                <Skeleton className="w-11 h-11 rounded-xl" />
+                <Skeleton className="w-14 h-6 rounded-full" />
+              </div>
+              <Skeleton className="w-24 h-7 mt-4" />
+              <Skeleton className="w-32 h-4 mt-2" />
+            </SkeletonCard>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <SkeletonCard className="lg:col-span-2 p-6">
+            <Skeleton className="w-44 h-5 mb-6" />
+            <div className="flex items-end gap-2 h-48">
+              {[45, 70, 35, 85, 60, 75, 40, 90, 55, 80, 65, 50].map((h, i) => (
+                <Skeleton key={i} className="flex-1 rounded-t-md" style={{ height: `${h}%` }} />
+              ))}
+            </div>
+          </SkeletonCard>
+          <SkeletonCard className="p-6">
+            <Skeleton className="w-40 h-5 mb-4" />
+            <SkeletonLines widths={['w-full', 'w-5/6', 'w-4/6', 'w-full']} />
+            <SkeletonLines className="mt-4" widths={['w-4/6', 'w-3/6']} />
+          </SkeletonCard>
+        </div>
+        <SkeletonCard className="p-6">
+          <Skeleton className="w-36 h-5 mb-2" />
+          {[0, 1, 2, 3, 4].map(i => (
+            <div key={i} className="flex items-center gap-4 py-3.5 border-b border-[var(--border)] last:border-0">
+              <Skeleton className="w-8 h-8 rounded-lg" />
+              <Skeleton className="flex-1 h-4" />
+              <Skeleton className="w-16 h-4" />
+              <Skeleton className="w-20 h-4" />
+            </div>
+          ))}
+        </SkeletonCard>
+      </div>
+    )
+  }
   if (error) return <div className="flex items-center justify-center min-h-[400px]"><div className="text-center"><p className="text-rose-500 mb-2">Error: {error}</p><button onClick={fetchAnalyticsData} className="px-4 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)]">Reintentar</button></div></div>
 
   return (

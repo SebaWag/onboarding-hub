@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Search, Grid3X3, List, Loader2, X, Eye, ChevronRight, Play, Film, FolderOpen, PlusCircle, Trash2, Link as LinkIcon } from 'lucide-react'
 import { cn, mediaProxyUrl } from '../lib/utils'
+import { Skeleton, SkeletonCard } from '../components/Skeleton'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../lib/toast'
 import { api } from '../lib/api'
@@ -126,7 +127,29 @@ export default function Programs() {
   const filteredPrograms = programs.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()))
   const formatDuration = (secs: number) => secs ? `${Math.floor(secs / 60)}:${(secs % 60).toString().padStart(2, '0')}` : '0:00'
 
-  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 text-teal-500 animate-spin" /></div>
+  if (loading) {
+    return (
+      <div className="animate-fade-in" aria-busy="true" aria-label="Cargando programas">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[0, 1, 2, 3, 4, 5].map(i => (
+            <SkeletonCard key={i} className="overflow-hidden">
+              <Skeleton className="w-full h-32 rounded-none" />
+              <div className="p-5">
+                <Skeleton className="w-2/3 h-5" />
+                <Skeleton className="w-full h-3.5 mt-3" />
+                <Skeleton className="w-5/6 h-3.5 mt-2" />
+                <div className="flex gap-6 mt-4 pt-4 border-t border-[var(--border)]">
+                  <Skeleton className="w-12 h-8" />
+                  <Skeleton className="w-12 h-8" />
+                </div>
+                <Skeleton className="w-full h-9 mt-4 rounded-xl" />
+              </div>
+            </SkeletonCard>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">

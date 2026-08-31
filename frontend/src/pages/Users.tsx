@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Users as UsersIcon, Search, Mail, UserPlus, X, Video, MessageSquare, Loader2 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { Skeleton, SkeletonCard } from '../components/Skeleton'
 import { useToast } from '../lib/toast'
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
@@ -55,7 +56,37 @@ export default function Users() {
     setSaving(false)
   }
 
-  if (loading) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 text-teal-500 animate-spin" /></div>
+  if (loading) {
+    return (
+      <div className="animate-fade-in space-y-6" aria-busy="true" aria-label="Cargando usuarios">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map(i => (
+            <SkeletonCard key={i} className="p-4">
+              <Skeleton className="w-16 h-7" />
+              <Skeleton className="w-24 h-4 mt-2" />
+            </SkeletonCard>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[0, 1, 2, 3, 4, 5].map(i => (
+            <SkeletonCard key={i} className="p-5">
+              <div className="flex items-start gap-4">
+                <Skeleton className="w-12 h-12 rounded-xl shrink-0" />
+                <div className="flex-1">
+                  <Skeleton className="w-3/4 h-4" />
+                  <Skeleton className="w-1/2 h-3.5 mt-2" />
+                  <div className="flex gap-2 mt-3">
+                    <Skeleton className="w-14 h-5 rounded-full" />
+                    <Skeleton className="w-14 h-5 rounded-full" />
+                  </div>
+                </div>
+              </div>
+            </SkeletonCard>
+          ))}
+        </div>
+      </div>
+    )
+  }
   if (error) return <div className="flex items-center justify-center min-h-[400px]"><div className="text-center"><p className="text-rose-500 mb-2">Error: {error}</p><button onClick={fetchUsers} className="px-4 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)]">Reintentar</button></div></div>
 
   return (

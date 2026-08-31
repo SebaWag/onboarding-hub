@@ -6,6 +6,7 @@ import {
   X, ArrowRight, BarChart3, Target, Layers
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { Skeleton, SkeletonCard } from '../components/Skeleton'
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
 
@@ -257,8 +258,29 @@ export default function Flows() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+      <div className="animate-fade-in space-y-6" aria-busy="true" aria-label="Cargando flujos">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map(i => (
+            <SkeletonCard key={i} className="p-4">
+              <Skeleton className="w-14 h-6" />
+              <Skeleton className="w-20 h-4 mt-2" />
+            </SkeletonCard>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[0, 1, 2, 3].map(i => (
+            <SkeletonCard key={i} className="p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-10 h-10 rounded-lg" />
+                <div className="flex-1">
+                  <Skeleton className="w-1/2 h-4" />
+                  <Skeleton className="w-1/3 h-3.5 mt-2" />
+                </div>
+              </div>
+              <Skeleton className="w-full h-2 mt-4 rounded-full" />
+            </SkeletonCard>
+          ))}
+        </div>
       </div>
     )
   }
