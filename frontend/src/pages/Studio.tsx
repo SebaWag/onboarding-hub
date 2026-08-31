@@ -257,9 +257,9 @@ if (key) return mediaProxyUrl(key)
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-[var(--text)]">Studio</h1>
-          <p className="text-sm text-[var(--text-secondary)] mt-0.5">Graba y comparte conocimiento</p>
+        <div className="page-header">
+          <h1>Studio</h1>
+          <p>Graba y comparte conocimiento</p>
         </div>
         <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)]">
           <button onClick={() => setActiveTab('record')} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-all', activeTab === 'record' ? 'bg-white text-gray-900 shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)]')}>
@@ -275,7 +275,7 @@ if (key) return mediaProxyUrl(key)
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             {/* Video Preview */}
-            <div className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-color)] shadow-sm">
+            <div className="card overflow-hidden p-0">
               <div className="relative aspect-video bg-[var(--bg-secondary)] flex items-center justify-center">
                 <ScreenPreview stream={screenStream} enabled={screenEnabled} className="absolute inset-0" />
                 {cameraEnabled && (
@@ -291,7 +291,7 @@ if (key) return mediaProxyUrl(key)
                       <Circle className="w-3 h-3 text-rose-600 dark:text-rose-400 fill-rose-600 dark:fill-rose-400 animate-pulse" />
                       <span className="text-sm font-mono text-rose-700 dark:text-rose-400">{formatTime(recordingTime)}</span>
                     </div>
-                    {isPaused && <span className="px-2 py-1 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-medium">Pausado</span>}
+                    {isPaused && <span className="badge badge-amber">Pausado</span>}
                   </div>
                 )}
                 <div className="absolute top-4 right-4 z-20">
@@ -351,7 +351,7 @@ if (key) return mediaProxyUrl(key)
                     )}
                   </div>
 
-                  <button className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-color)]">
+                  <button className="btn-secondary gap-2 py-3">
                     <Upload className="w-5 h-5" />
                     <span className="text-sm">Subir video</span>
                   </button>
@@ -360,7 +360,7 @@ if (key) return mediaProxyUrl(key)
             </div>
 
             {/* AI Features Card */}
-            <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-teal-200 dark:border-teal-500/20 shadow-sm">
+            <div className="card p-6 border-teal-500/20">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shrink-0 shadow-lg">
                   <Wand2 className="w-6 h-6 text-white" />
@@ -369,9 +369,9 @@ if (key) return mediaProxyUrl(key)
                   <h3 className="font-semibold text-[var(--text-primary)]">IA Integrada con MiMo</h3>
                   <p className="text-sm text-[var(--text-muted)] mt-1">Mientras grabas, MiMo analiza tu pantalla en tiempo real.</p>
                   <div className="flex flex-wrap gap-2 mt-3">
-                    <span className="px-2 py-1 rounded bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-500 text-xs font-medium">Transcripcion automatica</span>
-                    <span className="px-2 py-1 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-medium">Capitulos inteligentes</span>
-                    <span className="px-2 py-1 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-medium">Q&A conversacional</span>
+                    <span className="badge badge-teal">Transcripcion automatica</span>
+                    <span className="badge badge-emerald">Capitulos inteligentes</span>
+                    <span className="badge badge-amber">Q&A conversacional</span>
                   </div>
                 </div>
               </div>
@@ -380,7 +380,7 @@ if (key) return mediaProxyUrl(key)
 
           {/* Tips Sidebar */}
           <div className="space-y-4">
-            <div className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-color)] shadow-sm">
+            <div className="card">
               <h3 className="font-medium text-[var(--text-primary)] mb-4 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-teal-500" />
                 Tips para buenos tutoriales
@@ -402,17 +402,17 @@ if (key) return mediaProxyUrl(key)
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-[var(--text-primary)]">Mis Videos</h2>
-            <button onClick={fetchVideos} className="p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text)]">
+            <button onClick={fetchVideos} className="btn-ghost btn-icon">
               <RefreshCw className={cn('w-5 h-5', loadingVideos && 'animate-spin')} />
             </button>
           </div>
 
           {videos.length === 0 ? (
-            <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center border border-[var(--border-color)] shadow-sm">
+            <div className="empty-state">
               <Film className="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">No hay videos todavia</h3>
               <p className="text-[var(--text-muted)] mb-6">Graba tu primer tutorial para comenzar</p>
-              <button onClick={() => setActiveTab('record')} className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md hover:shadow-lg">
+              <button onClick={() => setActiveTab('record')} className="btn-primary px-6 py-3">
                 <span className="flex items-center gap-2">
                   <Circle className="w-5 h-5" />
                   Grabar Video
@@ -422,7 +422,7 @@ if (key) return mediaProxyUrl(key)
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {videos.map((video) => (
-                <div key={video.id} onClick={() => navigate(`/video/${video.id}`)} className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-color)] hover:border-teal-400/50 hover:shadow-lg transition-all cursor-pointer group shadow-sm">
+                <div key={video.id} onClick={() => navigate(`/video/${video.id}`)} className="card card-hover p-0 overflow-hidden cursor-pointer group">
                   <div className="h-40 bg-[var(--bg-card)] flex items-center justify-center relative overflow-hidden">
                     <img
                       src={video.thumbnail_url || '/logo-poster.png'}
@@ -439,7 +439,7 @@ if (key) return mediaProxyUrl(key)
                     <h3 className="font-medium text-[var(--text-primary)] truncate group-hover:text-teal-600 dark:group-hover:text-teal-500 transition-colors">{video.title}</h3>
                     <div className="flex items-center gap-4 mt-2 text-sm text-[var(--text-muted)]">
                       <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{formatDuration(video.duration_seconds)}</span>
-                      <span className={cn('px-2 py-0.5 rounded text-xs font-medium', video.status === 'ready' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' : video.status === 'processing' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' : 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400')}>
+                      <span className={cn('badge', video.status === 'ready' ? 'badge-emerald' : video.status === 'processing' ? 'badge-amber' : 'badge-rose')}>
                         {video.status === 'ready' ? 'Listo' : video.status === 'processing' ? 'Procesando' : video.status}
                       </span>
                     </div>

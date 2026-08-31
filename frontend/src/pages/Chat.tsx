@@ -197,7 +197,7 @@ export default function Chat() {
             <div className="p-3 border-b border-[var(--border)]">
               <button
                 onClick={startNewConversation}
-                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl bg-teal-50 text-teal-500 text-sm font-medium hover:bg-teal-500/30 transition-colors"
+                className="btn-primary w-full"
               >
                 <Plus className="w-4 h-4" />
                 Nueva conversación

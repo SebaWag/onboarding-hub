@@ -88,7 +88,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <p className="text-rose-500 mb-2">Error: {error}</p>
-          <button onClick={fetchDashboardData} className="px-4 py-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm hover:bg-[var(--bg-hover)] transition-colors">
+          <button onClick={fetchDashboardData} className="btn-secondary">
             Reintentar
           </button>
         </div>
@@ -109,9 +109,9 @@ export default function Dashboard() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Dashboard</h1>
-          <p className="text-[var(--text-muted)] mt-1">
+        <div className="page-header">
+          <h1>Dashboard</h1>
+          <p>
             Bienvenido de vuelta, {currentUser?.name || 'Usuario'}
           </p>
         </div>
@@ -123,7 +123,7 @@ export default function Dashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statsData.map((stat) => (
-          <div key={stat.name} className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-color)] shadow-sm hover:shadow-md transition-shadow">
+          <div key={stat.name} className="card card-hover">
             <div className="flex items-start justify-between">
               <div className={cn('p-2.5 rounded-xl', 
                 stat.color === 'teal' && 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-500',
@@ -149,7 +149,7 @@ export default function Dashboard() {
       {/* Activity Chart + AI Assistant */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Weekly Activity */}
-        <div className="lg:col-span-2 bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-color)] shadow-sm">
+        <div className="card p-6 lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-teal-500" />
@@ -192,7 +192,7 @@ export default function Dashboard() {
         </div>
 
         {/* AI Assistant Card */}
-        <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-teal-500/20 shadow-sm">
+        <div className="card p-6 border-teal-500/20">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-lg">
               <Sparkles className="w-5 h-5 text-white" />
@@ -207,7 +207,7 @@ export default function Dashboard() {
           </p>
           <button 
             onClick={() => window.location.href = '/chat'}
-            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md hover:shadow-lg transition-shadow flex items-center justify-center gap-2"
+            className="btn-primary w-full gap-2"
           >
             <PlayCircle className="w-4 h-4" />
             Iniciar Chat con IA
@@ -217,7 +217,7 @@ export default function Dashboard() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-color)] shadow-sm">
+        <div className="card">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 rounded-lg bg-teal-50 dark:bg-teal-500/10">
               <PlayCircle className="w-5 h-5 text-teal-600 dark:text-teal-500" />
@@ -226,7 +226,7 @@ export default function Dashboard() {
           </div>
           <p className="text-3xl font-bold text-[var(--text-primary)]">{stats?.total_views?.toLocaleString() || '0'}</p>
         </div>
-        <div className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-color)] shadow-sm">
+        <div className="card">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/20">
               <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
@@ -239,7 +239,7 @@ export default function Dashboard() {
               : '0'}%
           </p>
         </div>
-        <div className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-color)] shadow-sm">
+        <div className="card">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-500/20">
               <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />

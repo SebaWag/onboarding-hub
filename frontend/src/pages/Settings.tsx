@@ -33,8 +33,8 @@ export default function Settings() {
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
+        <div className="page-header">
+          <h1 className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
               <SettingsIcon className="w-5 h-5 text-white" />
             </div>
@@ -42,7 +42,7 @@ export default function Settings() {
           </h1>
           <p className="text-[var(--text-muted)] mt-1">Administra las preferencias de tu cuenta</p>
         </div>
-        <button onClick={handleSave} className={cn('flex items-center gap-2 px-4 py-2 rounded-xl font-medium shadow-md transition-all', saved ? 'bg-emerald-500 text-white' : 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:shadow-lg')}>
+        <button onClick={handleSave} className={cn('btn-primary gap-2', saved && '!bg-emerald-500 hover:!bg-emerald-600')}>
           {saved ? <><Check className="w-4 h-4" /> Guardado</> : <><Save className="w-4 h-4" /> Guardar Cambios</>}
         </button>
       </div>
@@ -67,24 +67,24 @@ export default function Settings() {
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">Perfil de Usuario</h2>
               <div className="flex items-center gap-6">
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-white text-2xl font-bold">SW</div>
-                <button className="px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm hover:bg-[var(--bg-hover)]">Cambiar Avatar</button>
+                <button className="btn-secondary">Cambiar Avatar</button>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Nombre</label>
-                  <input type="text" defaultValue="Sebastian Wagner" className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500" />
+                  <input type="text" defaultValue="Sebastian Wagner" className="input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Email</label>
-                  <input type="email" defaultValue="sebastian@konektor.com" className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--input-border)] text-[var(--text-muted)]" disabled />
+                  <input type="email" defaultValue="sebastian@konektor.com" className="input" disabled />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Departamento</label>
-                  <input type="text" defaultValue="Tecnología" className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500" />
+                  <input type="text" defaultValue="Tecnología" className="input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Cargo</label>
-                  <input type="text" defaultValue="Key Account Manager" className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500" />
+                  <input type="text" defaultValue="Key Account Manager" className="input" />
                 </div>
               </div>
             </div>
@@ -96,11 +96,11 @@ export default function Settings() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Nombre de la empresa</label>
-                  <input type="text" defaultValue="Konektor Group" className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500" />
+                  <input type="text" defaultValue="Konektor Group" className="input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Slug</label>
-                  <input type="text" defaultValue="konektor" className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--input-border)] text-[var(--text-muted)]" disabled />
+                  <input type="text" defaultValue="konektor" className="input" disabled />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Plan</label>
@@ -177,7 +177,7 @@ export default function Settings() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Calidad de video</label>
-                  <select className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500">
+                  <select className="input">
                     <option>1080p (Recomendado)</option>
                     <option>720p</option>
                     <option>480p</option>
@@ -185,7 +185,7 @@ export default function Settings() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Fuente de audio</label>
-                  <select className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500">
+                  <select className="input">
                     <option>Micrófono del sistema</option>
                     <option>Micrófono externo</option>
                   </select>

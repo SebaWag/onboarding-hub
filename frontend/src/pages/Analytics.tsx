@@ -107,14 +107,14 @@ const generateInsights = (overviewData: OverviewStats | null, videosData: Videos
       </div>
     )
   }
-  if (error) return <div className="flex items-center justify-center min-h-[400px]"><div className="text-center"><p className="text-rose-500 mb-2">Error: {error}</p><button onClick={fetchAnalyticsData} className="px-4 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)]">Reintentar</button></div></div>
+  if (error) return <div className="flex items-center justify-center min-h-[400px]"><div className="text-center"><p className="text-rose-500 mb-2">Error: {error}</p><button onClick={fetchAnalyticsData} className="btn-secondary">Reintentar</button></div></div>
 
   return (
     <div className="animate-fade-in space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
+        <div className="page-header">
+          <h1 className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
               <BarChart3 className="w-5 h-5 text-white" />
             </div>
@@ -130,7 +130,7 @@ const generateInsights = (overviewData: OverviewStats | null, videosData: Videos
               </button>
             ))}
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm hover:bg-[var(--bg-hover)]">
+          <button className="btn-secondary gap-2">
             <Download className="w-4 h-4" /> Exportar
           </button>
         </div>
@@ -139,7 +139,7 @@ const generateInsights = (overviewData: OverviewStats | null, videosData: Videos
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <div key={stat.name} className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-color)] shadow-sm hover:shadow-md transition-shadow">
+          <div key={stat.name} className="card card-hover">
             <div className="flex items-start justify-between">
               <div className={cn('p-2.5 rounded-xl', stat.color === 'teal' && 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-500', stat.color === 'emerald' && 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400', stat.color === 'amber' && 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400', stat.color === 'rose' && 'bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400')}>
                 <stat.icon className="w-5 h-5" />
@@ -158,7 +158,7 @@ const generateInsights = (overviewData: OverviewStats | null, videosData: Videos
 
       {/* Activity Chart + Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-color)] shadow-sm">
+        <div className="card p-6 lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Actividad Semanal</h2>
             <div className="flex items-center gap-4 text-sm">
@@ -182,7 +182,7 @@ const generateInsights = (overviewData: OverviewStats | null, videosData: Videos
         </div>
 
         {/* Insights Card */}
-        <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-teal-200 dark:border-teal-500/20 shadow-sm">
+        <div className="card p-6 border-teal-500/20">
           <div className="flex items-center gap-3 mb-4">
             <Sparkles className="w-5 h-5 text-teal-500" />
             <h3 className="font-semibold text-[var(--text-primary)]">Insights de MiMo</h3>
@@ -199,7 +199,7 @@ const generateInsights = (overviewData: OverviewStats | null, videosData: Videos
       </div>
 
       {/* Top Videos Table */}
-      <div className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-color)] shadow-sm">
+      <div className="card overflow-hidden p-0">
         <div className="p-6 border-b border-[var(--border-color)]">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Top Tutoriales</h2>
         </div>

@@ -8,10 +8,10 @@ interface Column { id: string; name: string; color: string; cards: Card[] }
 interface Comment { id: string; content: string; user_name: string; created_at: string }
 
 const priorityConfig = {
-  low: { bg: 'bg-gray-100 dark:bg-gray-500/20', text: 'text-gray-600 dark:text-gray-400', label: 'Baja' },
-  medium: { bg: 'bg-blue-100 dark:bg-blue-500/20', text: 'text-blue-600 dark:text-blue-400', label: 'Media' },
-  high: { bg: 'bg-amber-100 dark:bg-amber-500/20', text: 'text-amber-600 dark:text-amber-400', label: 'Alta' },
-  urgent: { bg: 'bg-rose-100 dark:bg-rose-500/20', text: 'text-rose-600 dark:text-rose-400', label: 'Urgente' }
+  low: { badge: 'badge-gray', label: 'Baja' },
+  medium: { badge: 'badge-blue', label: 'Media' },
+  high: { badge: 'badge-amber', label: 'Alta' },
+  urgent: { badge: 'badge-rose', label: 'Urgente' }
 }
 
 export default function Kanban() {
@@ -38,8 +38,8 @@ export default function Kanban() {
     <div className="animate-fade-in space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
+        <div className="page-header">
+          <h1 className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
               <Columns3 className="w-5 h-5 text-white" />
             </div>
@@ -47,7 +47,7 @@ export default function Kanban() {
           </h1>
           <p className="text-[var(--text-muted)] mt-1">Gestiona tareas con tableros visuales</p>
         </div>
-        <button onClick={() => { setSelectedColumn(columns[0].id); setShowModal(true) }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md hover:shadow-lg">
+        <button onClick={() => { setSelectedColumn(columns[0].id); setShowModal(true) }} className="btn-primary gap-2">
           <Plus className="w-4 h-4" /> Nueva Tarea
         </button>
       </div>
@@ -62,7 +62,7 @@ export default function Kanban() {
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: column.color }} />
                     <h3 className="font-semibold text-[var(--text-primary)]">{column.name}</h3>
-                    <span className="px-2 py-0.5 rounded-full bg-[var(--bg-secondary)] text-xs text-[var(--text-muted)]">{column.cards.length}</span>
+                    <span className="badge badge-gray">{column.cards.length}</span>
                   </div>
                 </div>
               </div>
@@ -71,7 +71,7 @@ export default function Kanban() {
                   <div key={card.id} className="bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--border-color)] hover:shadow-md transition-shadow cursor-pointer">
                     <div className="flex items-start justify-between gap-2">
                       <h4 className="font-medium text-[var(--text-primary)] text-sm">{card.title}</h4>
-                      <span className={cn('px-2 py-0.5 rounded text-[10px] font-medium', priorityConfig[card.priority].bg, priorityConfig[card.priority].text)}>
+                      <span className={cn('badge', priorityConfig[card.priority].badge)}>
                         {priorityConfig[card.priority].label}
                       </span>
                     </div>
@@ -109,16 +109,16 @@ export default function Kanban() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Título *</label>
-                <input type="text" value={newCard.title} onChange={e => setNewCard({...newCard, title: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500" placeholder="Nombre de la tarea" />
+                <input type="text" value={newCard.title} onChange={e => setNewCard({...newCard, title: e.target.value})} className="input" placeholder="Nombre de la tarea" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Descripción</label>
-                <textarea value={newCard.description} onChange={e => setNewCard({...newCard, description: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] h-24 resize-none focus:outline-none focus:border-teal-500" placeholder="Describe la tarea..." />
+                <textarea value={newCard.description} onChange={e => setNewCard({...newCard, description: e.target.value})} className="input h-24 resize-none" placeholder="Describe la tarea..." />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Prioridad</label>
-                  <select value={newCard.priority} onChange={e => setNewCard({...newCard, priority: e.target.value as Card['priority']})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500">
+                  <select value={newCard.priority} onChange={e => setNewCard({...newCard, priority: e.target.value as Card['priority']})} className="input">
                     <option value="low">Baja</option>
                     <option value="medium">Media</option>
                     <option value="high">Alta</option>
@@ -127,16 +127,16 @@ export default function Kanban() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Fecha límite</label>
-                  <input type="date" value={newCard.due_date} onChange={e => setNewCard({...newCard, due_date: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500" />
+                  <input type="date" value={newCard.due_date} onChange={e => setNewCard({...newCard, due_date: e.target.value})} className="input" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Asignar a</label>
-                <input type="text" value={newCard.assigned_name} onChange={e => setNewCard({...newCard, assigned_name: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500" placeholder="Nombre del asignado" />
+                <input type="text" value={newCard.assigned_name} onChange={e => setNewCard({...newCard, assigned_name: e.target.value})} className="input" placeholder="Nombre del asignado" />
               </div>
               <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium hover:bg-[var(--bg-hover)]">Cancelar</button>
-                <button onClick={addCard} disabled={!newCard.title} className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md disabled:opacity-50">Crear Tarea</button>
+                <button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                <button onClick={addCard} disabled={!newCard.title} className="btn-primary flex-1 disabled:opacity-50">Crear Tarea</button>
               </div>
             </div>
           </div>

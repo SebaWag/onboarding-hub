@@ -95,8 +95,8 @@ export default function Users() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
+        <div className="page-header">
+          <h1 className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
               <UsersIcon className="w-5 h-5 text-white" />
             </div>
@@ -104,7 +104,7 @@ export default function Users() {
           </h1>
           <p className="text-[var(--text-muted)] mt-1">Gestiona los usuarios de tu organización</p>
         </div>
-        <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md hover:shadow-lg">
+        <button onClick={() => setShowInviteModal(true)} className="btn-primary gap-2">
           <UserPlus className="w-4 h-4" /> Invitar Usuario
         </button>
       </div>
@@ -135,15 +135,15 @@ export default function Users() {
       <div className="flex items-center gap-4">
         <div className="flex-1 relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-          <input type="text" placeholder="Buscar usuarios..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500" />
+          <input type="text" placeholder="Buscar usuarios..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="input pl-10 pr-4" />
         </div>
-        <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} className="px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-teal-500">
+        <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} className="input">
           <option value="all">Todos los roles</option>
           <option value="admin">Administrador</option>
           <option value="editor">Editor</option>
           <option value="viewer">Viewer</option>
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-teal-500">
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input">
           <option value="all">Todos</option>
           <option value="active">Activos</option>
           <option value="inactive">Inactivos</option>
@@ -153,7 +153,7 @@ export default function Users() {
       {/* Users Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {users.map((user) => (
-          <div key={user.id} className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-color)] hover:shadow-lg transition-shadow">
+          <div key={user.id} className="card card-hover">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-white font-semibold text-lg shrink-0">
                 {user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
@@ -162,10 +162,10 @@ export default function Users() {
                 <h3 className="font-semibold text-[var(--text-primary)] truncate">{user.name}</h3>
                 <p className="text-sm text-[var(--text-muted)] truncate">{user.email}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', user.org_role === 'admin' ? 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-500' : user.org_role === 'editor' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-500/20 text-gray-600 dark:text-gray-400')}>
+                  <span className={cn('badge', user.org_role === 'admin' ? 'badge-teal' : user.org_role === 'editor' ? 'badge-emerald' : 'badge-gray')}>
                     {user.org_role}
                   </span>
-                  <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', user.is_active ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-500/20 text-gray-600 dark:text-gray-400')}>
+                  <span className={cn('badge', user.is_active ? 'badge-emerald' : 'badge-gray')}>
                     {user.is_active ? 'Activo' : 'Inactivo'}
                   </span>
                 </div>
@@ -191,27 +191,27 @@ export default function Users() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm text-[var(--text-muted)] mb-2">Email *</label>
-                <input type="email" value={inviteForm.email} onChange={(e) => setInviteForm({...inviteForm, email: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500" placeholder="email@ejemplo.com" />
+                <input type="email" value={inviteForm.email} onChange={(e) => setInviteForm({...inviteForm, email: e.target.value})} className="input" placeholder="email@ejemplo.com" />
               </div>
               <div>
                 <label className="block text-sm text-[var(--text-muted)] mb-2">Nombre *</label>
-                <input type="text" value={inviteForm.name} onChange={(e) => setInviteForm({...inviteForm, name: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500" placeholder="Nombre completo" />
+                <input type="text" value={inviteForm.name} onChange={(e) => setInviteForm({...inviteForm, name: e.target.value})} className="input" placeholder="Nombre completo" />
               </div>
               <div>
                 <label className="block text-sm text-[var(--text-muted)] mb-2">Departamento</label>
-                <input type="text" value={inviteForm.department} onChange={(e) => setInviteForm({...inviteForm, department: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500" placeholder="Ej: Ventas" />
+                <input type="text" value={inviteForm.department} onChange={(e) => setInviteForm({...inviteForm, department: e.target.value})} className="input" placeholder="Ej: Ventas" />
               </div>
               <div>
                 <label className="block text-sm text-[var(--text-muted)] mb-2">Rol</label>
-                <select value={inviteForm.org_role} onChange={(e) => setInviteForm({...inviteForm, org_role: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-teal-500">
+                <select value={inviteForm.org_role} onChange={(e) => setInviteForm({...inviteForm, org_role: e.target.value})} className="input">
                   <option value="viewer">Viewer</option>
                   <option value="editor">Editor</option>
                   <option value="admin">Administrador</option>
                 </select>
               </div>
               <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowInviteModal(false)} className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium hover:bg-[var(--bg-hover)]">Cancelar</button>
-                <button onClick={handleInvite} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md disabled:opacity-50">
+                <button onClick={() => setShowInviteModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                <button onClick={handleInvite} disabled={saving} className="btn-primary flex-1 disabled:opacity-50">
                   {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <><Mail className="w-4 h-4 inline mr-2" />Enviar Invitación</>}
                 </button>
               </div>

@@ -86,21 +86,19 @@ html.dark {
 }
 
 @layer components {
-  .page-header {
-    @apply mb-6;
-  }
   .page-header h1 {
-    @apply text-xl font-semibold text-[var(--text,#09090b)];
+    @apply text-2xl font-bold tracking-tight text-[var(--text,#09090b)];
   }
   .page-header p {
-    @apply text-sm text-[var(--text-secondary,#52525b)] mt-0.5;
+    @apply text-sm text-[var(--text-muted,#a1a1aa)] mt-1;
   }
 
   .card {
     background: var(--bg-card, #ffffff);
     border: 1px solid var(--border, rgba(0,0,0,0.06));
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 1.25rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     transition: all 0.15s ease;
   }
   .card-hover:hover {
@@ -109,15 +107,16 @@ html.dark {
   }
 
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg font-medium text-sm transition-all duration-150;
+    @apply inline-flex items-center justify-center rounded-xl font-medium text-sm transition-all duration-150;
     padding: 0.5rem 1rem;
   }
   .btn-primary {
     @apply btn text-white;
-    background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
+    background: linear-gradient(to right, #0d9488, #0891b2);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   }
   .btn-primary:hover {
-    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
   }
   .btn-secondary {
     @apply btn;
@@ -147,27 +146,34 @@ html.dark {
   .btn-icon { @apply p-2; }
 
   .input {
-    @apply w-full rounded-lg text-sm transition-colors;
-    background: var(--bg-card, #ffffff);
-    border: 1px solid var(--border, rgba(0,0,0,0.06));
+    @apply w-full rounded-xl text-sm transition-colors;
+    background: var(--input-bg, #ffffff);
+    border: 1px solid var(--input-border, #e2e8f0);
     color: var(--text, #09090b);
-    padding: 0.5rem 0.75rem;
+    padding: 0.625rem 1rem;
   }
   .input:focus {
     outline: none;
-    border-color: #0d9488;
-    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.1);
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
   }
   .input::placeholder { color: var(--text-muted, #a1a1aa); }
+  .input:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .badge {
     @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium;
   }
-  .badge-teal { background: rgba(13, 148, 136, 0.08); color: #0d9488; }
-  .badge-emerald { background: rgba(16, 185, 129, 0.08); color: #059669; }
-  .badge-amber { background: rgba(245, 158, 11, 0.08); color: #d97706; }
-  .badge-rose { background: rgba(244, 63, 94, 0.08); color: #e11d48; }
-  .badge-gray { background: rgba(0,0,0,0.04); color: #52525b; }
+  .badge-teal { background: rgba(13, 148, 136, 0.1); color: #0d9488; }
+  .badge-emerald { background: rgba(16, 185, 129, 0.1); color: #059669; }
+  .badge-amber { background: rgba(245, 158, 11, 0.1); color: #d97706; }
+  .badge-rose { background: rgba(244, 63, 94, 0.1); color: #e11d48; }
+  .badge-blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
+  .badge-gray { background: var(--bg-hover, rgba(0,0,0,0.04)); color: var(--text-secondary, #52525b); }
+  html.dark .badge-teal, .dark-surface .badge-teal { color: #2dd4bf; }
+  html.dark .badge-emerald, .dark-surface .badge-emerald { color: #34d399; }
+  html.dark .badge-amber, .dark-surface .badge-amber { color: #fbbf24; }
+  html.dark .badge-rose, .dark-surface .badge-rose { color: #fb7185; }
+  html.dark .badge-blue, .dark-surface .badge-blue { color: #60a5fa; }
 
   .stat-card {
     @apply card;
@@ -194,8 +200,8 @@ html.dark {
   }
   .tab-item:hover { color: var(--text, #09090b); }
   .tab-item.active {
-    background: #ffffff;
-    color: #09090b;
+    background: var(--bg-card, #ffffff);
+    color: var(--text, #09090b);
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   }
 

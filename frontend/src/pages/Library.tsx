@@ -97,8 +97,8 @@ export default function Library() {
     <div className="animate-fade-in space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
+        <div className="page-header">
+          <h1 className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
               <Film className="w-5 h-5 text-white" />
             </div>
@@ -108,7 +108,7 @@ export default function Library() {
         </div>
         <button 
           onClick={fetchVideos} 
-          className="p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+          className="btn-ghost btn-icon"
         >
           <RefreshCw className={cn('w-5 h-5', loading && 'animate-spin')} />
         </button>
@@ -123,7 +123,7 @@ export default function Library() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar videos..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            className="input pl-10 pr-4"
           />
         </div>
         
@@ -186,7 +186,7 @@ export default function Library() {
           ))}
         </div>
       ) : filteredVideos.length === 0 ? (
-        <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center border border-[var(--border-color)] shadow-sm">
+        <div className="empty-state">
           <Film className="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4 opacity-50" />
           <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
             {searchQuery ? 'Sin resultados' : 'No hay videos todavía'}
@@ -197,7 +197,7 @@ export default function Library() {
           {!searchQuery && (
             <button 
               onClick={() => navigate('/studio')} 
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md hover:shadow-lg transition-shadow"
+              className="btn-primary px-6 py-3"
             >
               Ir al Studio
             </button>
@@ -209,7 +209,7 @@ export default function Library() {
             <div
               key={video.id}
               onClick={() => navigate(`/video/${video.id}`)}
-              className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-color)] hover:border-teal-400/50 hover:shadow-lg transition-all cursor-pointer group shadow-sm"
+              className="card card-hover p-0 overflow-hidden cursor-pointer group"
             >
               {/* Thumbnail: portada real o logo WS */}
               <div className="h-40 bg-[var(--bg-card)] flex items-center justify-center relative overflow-hidden">
@@ -224,9 +224,7 @@ export default function Library() {
                   </div>
                 </div>
                 {video.transcript && (
-                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-300 dark:border-emerald-500/30">
-                    <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">Transcrito</span>
-                  </div>
+                  <div className="absolute top-2 right-2 badge badge-emerald">Transcrito</div>
                 )}
               </div>
               
@@ -254,12 +252,11 @@ export default function Library() {
                     <Clock className="w-4 h-4" />
                     {formatDuration(video.duration_seconds)}
                   </span>
-                  <span className={cn(
-                    'px-2 py-0.5 rounded text-xs font-medium',
-                    video.status === 'ready' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' :
-                    video.status === 'transcribing' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' :
-                    video.status === 'failed' ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400' :
-                    'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400'
+                  <span className={cn('badge',
+                    video.status === 'ready' ? 'badge-emerald' :
+                    video.status === 'transcribing' ? 'badge-amber' :
+                    video.status === 'failed' ? 'badge-rose' :
+                    'badge-gray'
                   )}>
                     {video.status === 'ready' ? 'Listo' : video.status === 'transcribing' ? 'Transcribiendo' : video.status === 'failed' ? 'Error' : video.status}
                   </span>
@@ -295,7 +292,7 @@ export default function Library() {
                     {formatDuration(video.duration_seconds)}
                   </span>
                   {video.transcript && (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-medium">Transcrito</span>
+                    <span className="badge badge-emerald">Transcrito</span>
                   )}
                 </div>
               </div>
@@ -312,13 +309,13 @@ export default function Library() {
           <div className="relative w-full max-w-md bg-[var(--bg-card)] rounded-2xl border border-[var(--border)] shadow-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Renombrar Video</h3>
             <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text)] text-sm mb-4 focus:border-teal-500 focus:outline-none"
+              className="input mb-4"
               placeholder="Nuevo nombre..." autoFocus />
             <div className="flex gap-3 justify-end">
               <button onClick={() => setRenameTarget(null)}
-                className="px-4 py-2 rounded-lg bg-[var(--bg-hover)] border border-[var(--border)] text-[var(--text)] hover:bg-[var(--bg-secondary)] transition-colors text-sm">Cancelar</button>
+                className="btn-secondary">Cancelar</button>
               <button onClick={handleRename}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-teal-600 to-cyan-600 text-white text-sm font-medium hover:shadow-lg transition-all">Guardar</button>
+                className="btn-primary">Guardar</button>
             </div>
           </div>
         </div>

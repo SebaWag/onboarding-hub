@@ -161,11 +161,11 @@ export default function Programs() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Programas de Onboarding</h1>
-          <p className="text-[var(--text-muted)] mt-1">Gestiona programas, módulos y contenido</p>
+        <div className="page-header">
+          <h1>Programas de Onboarding</h1>
+          <p>Gestiona programas, módulos y contenido</p>
         </div>
-        <button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md hover:shadow-lg">
+        <button onClick={() => setShowCreateModal(true)} className="btn-primary gap-2">
           <Plus className="w-4 h-4" /> Nuevo Programa
         </button>
       </div>
@@ -174,7 +174,7 @@ export default function Programs() {
       <div className="flex items-center gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-          <input type="text" placeholder="Buscar programas..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500" />
+          <input type="text" placeholder="Buscar programas..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="input pl-10 pr-4" />
         </div>
         <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)]">
           <button onClick={() => setViewMode('grid')} className={cn('p-2 rounded-lg transition-colors', viewMode === 'grid' ? 'bg-teal-50 text-teal-600 dark:text-teal-500' : 'text-[var(--text-muted)]')}><Grid3X3 className="w-4 h-4" /></button>
@@ -185,10 +185,10 @@ export default function Programs() {
       {/* Programs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredPrograms.map((program) => (
-          <div key={program.id} className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-color)] hover:shadow-lg transition-all group shadow-sm">
+          <div key={program.id} className="card card-hover group overflow-hidden p-0">
             <div className="h-32 bg-gradient-to-br from-teal-500 to-cyan-500 relative overflow-hidden">
               <div className="absolute inset-0 bg-black/10" />
-              <div className="absolute top-4 left-4"><span className={cn('px-2 py-1 rounded-full text-xs font-medium', program.is_active ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400')}>{program.is_active ? 'Activo' : 'Inactivo'}</span></div>
+              <div className="absolute top-4 left-4"><span className={cn('badge', program.is_active ? 'badge-emerald' : 'badge-amber')}>{program.is_active ? 'Activo' : 'Inactivo'}</span></div>
               <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100"><button onClick={() => openProgramDetail(program)} className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white"><Eye className="w-4 h-4" /></button></div>
             </div>
             <div className="p-5">
@@ -198,7 +198,7 @@ export default function Programs() {
                 <div className="flex-1"><p className="text-lg font-bold text-[var(--text-primary)]">{program.module_count || 0}</p><p className="text-[10px] text-[var(--text-muted)]">MÓDULOS</p></div>
                 <div className="flex-1"><p className="text-lg font-bold text-[var(--text-primary)]">{program.enrolled_users || 0}</p><p className="text-[10px] text-[var(--text-muted)]">INSCRITOS</p></div>
               </div>
-              <button onClick={() => openProgramDetail(program)} className="w-full mt-4 px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-medium hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center gap-2">
+              <button onClick={() => openProgramDetail(program)} className="btn-secondary w-full mt-4 gap-2">
                 Administrar <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -222,15 +222,15 @@ export default function Programs() {
             <form onSubmit={(e) => { e.preventDefault(); createProgram(); }} className="space-y-4">
               <div>
                 <label className="block text-sm text-[var(--text-muted)] mb-2">Título *</label>
-                <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500" placeholder="Ej: Onboarding Odoo" />
+                <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="input" placeholder="Ej: Onboarding Odoo" />
               </div>
               <div>
                 <label className="block text-sm text-[var(--text-muted)] mb-2">Descripción</label>
-                <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] h-24 resize-none placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500" placeholder="Describe el programa..." />
+                <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="input h-24 resize-none" placeholder="Describe el programa..." />
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium hover:bg-[var(--bg-hover)]">Cancelar</button>
-                <button type="submit" disabled={saving || !formData.title} className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md disabled:opacity-50">
+                <button type="button" onClick={() => setShowCreateModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                <button type="submit" disabled={saving || !formData.title} className="btn-primary flex-1 disabled:opacity-50">
                   {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Crear'}
                 </button>
               </div>
@@ -256,7 +256,7 @@ export default function Programs() {
                 <FolderOpen className="w-5 h-5 text-teal-500" />
                 Módulos ({modules.length})
               </h3>
-              <button onClick={() => setShowModuleModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-medium hover:bg-[var(--bg-hover)]">
+              <button onClick={() => setShowModuleModal(true)} className="btn-secondary gap-2">
                 <PlusCircle className="w-4 h-4" /> Agregar Módulo
               </button>
             </div>
@@ -265,7 +265,7 @@ export default function Programs() {
               <div className="bg-[var(--bg-secondary)] rounded-xl p-8 text-center border border-[var(--border-color)]">
                 <FolderOpen className="w-12 h-12 text-[var(--text-muted)] mx-auto mb-4 opacity-50" />
                 <p className="text-[var(--text-muted)]">No hay módulos todavía</p>
-                <button onClick={() => setShowModuleModal(true)} className="mt-4 px-6 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md">Crear Primer Módulo</button>
+                <button onClick={() => setShowModuleModal(true)} className="btn-primary mt-4 px-6">Crear Primer Módulo</button>
               </div>
             ) : (
               <div className="space-y-4">
@@ -280,10 +280,10 @@ export default function Programs() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => openContentSelector(mod)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm hover:bg-[var(--bg-hover)]">
+                        <button onClick={() => openContentSelector(mod)} className="btn-secondary gap-1 px-3 py-1.5">
                           <Film className="w-4 h-4 text-teal-500" /> Video
                         </button>
-                        <button onClick={() => openLinkForm(mod)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm hover:bg-[var(--bg-hover)]">
+                        <button onClick={() => openLinkForm(mod)} className="btn-secondary gap-1 px-3 py-1.5">
                           <LinkIcon className="w-4 h-4 text-emerald-500" /> Enlace
                         </button>
                       </div>
@@ -349,15 +349,15 @@ export default function Programs() {
             <form onSubmit={(e) => { e.preventDefault(); createModule(); }} className="space-y-4">
               <div>
                 <label className="block text-sm text-[var(--text-muted)] mb-2">Título *</label>
-                <input type="text" required value={moduleForm.title} onChange={(e) => setModuleForm({...moduleForm, title: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500" placeholder="Ej: 1. Introducción" />
+                <input type="text" required value={moduleForm.title} onChange={(e) => setModuleForm({...moduleForm, title: e.target.value})} className="input" placeholder="Ej: 1. Introducción" />
               </div>
               <div>
                 <label className="block text-sm text-[var(--text-muted)] mb-2">Descripción</label>
-                <textarea value={moduleForm.description} onChange={(e) => setModuleForm({...moduleForm, description: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] h-20 resize-none placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500" />
+                <textarea value={moduleForm.description} onChange={(e) => setModuleForm({...moduleForm, description: e.target.value})} className="input h-20 resize-none" />
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModuleModal(false)} className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium hover:bg-[var(--bg-hover)]">Cancelar</button>
-                <button type="submit" disabled={saving || !moduleForm.title} className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md disabled:opacity-50">
+                <button type="button" onClick={() => setShowModuleModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                <button type="submit" disabled={saving || !moduleForm.title} className="btn-primary flex-1 disabled:opacity-50">
                   {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Crear'}
                 </button>
               </div>
@@ -389,7 +389,7 @@ export default function Programs() {
                 <div className="text-center py-8">
                   <Film className="w-12 h-12 text-[var(--text-muted)] mx-auto mb-4 opacity-50" />
                   <p className="text-[var(--text-muted)]">No hay videos disponibles</p>
-                  <button onClick={() => navigate('/studio')} className="mt-4 px-6 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md">Ir al Studio para Grabar</button>
+                  <button onClick={() => navigate('/studio')} className="btn-primary mt-4 px-6">Ir al Studio para Grabar</button>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -402,7 +402,7 @@ export default function Programs() {
                           <p className="text-xs text-[var(--text-muted)]">{formatDuration(video.duration_seconds)}</p>
                         </div>
                       </div>
-                      <button onClick={() => addVideoToModule(selectedModule.id, video)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white text-sm font-medium shadow-md hover:shadow-lg">
+                      <button onClick={() => addVideoToModule(selectedModule.id, video)} className="btn-primary gap-2 text-sm">
                         <Plus className="w-4 h-4" /> Agregar
                       </button>
                     </div>
@@ -415,17 +415,17 @@ export default function Programs() {
               <form onSubmit={(e) => { e.preventDefault(); addLinkToModule(selectedModule.id); }} className="space-y-4">
                 <div>
                   <label className="block text-sm text-[var(--text-muted)] mb-2">Título *</label>
-                  <input type="text" required value={contentForm.title} onChange={(e) => setContentForm({...contentForm, title: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500" placeholder="Nombre del recurso" />
+                  <input type="text" required value={contentForm.title} onChange={(e) => setContentForm({...contentForm, title: e.target.value})} className="input" placeholder="Nombre del recurso" />
                 </div>
                 <div>
                   <label className="block text-sm text-[var(--text-muted)] mb-2">URL *</label>
-                  <input type="url" required value={contentForm.link_url} onChange={(e) => setContentForm({...contentForm, link_url: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500" placeholder="https://..." />
+                  <input type="url" required value={contentForm.link_url} onChange={(e) => setContentForm({...contentForm, link_url: e.target.value})} className="input" placeholder="https://..." />
                 </div>
                 <div>
                   <label className="block text-sm text-[var(--text-muted)] mb-2">Descripción</label>
-                  <textarea value={contentForm.description} onChange={(e) => setContentForm({...contentForm, description: e.target.value})} className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] h-20 resize-none placeholder-[var(--text-muted)] focus:outline-none focus:border-teal-500" />
+                  <textarea value={contentForm.description} onChange={(e) => setContentForm({...contentForm, description: e.target.value})} className="input h-20 resize-none" />
                 </div>
-                <button type="submit" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium shadow-md hover:shadow-lg">
+                <button type="submit" className="btn-primary w-full gap-2">
                   <Plus className="w-4 h-4" /> Agregar Enlace
                 </button>
               </form>
