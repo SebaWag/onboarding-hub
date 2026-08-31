@@ -18,17 +18,17 @@ export default function ScreenPreview({ stream, enabled, className = '' }: Scree
 
   if (!enabled || !stream) {
     return (
-      <div className={`relative flex items-center justify-center overflow-hidden ${className}`}>
+      <div className={`relative overflow-hidden ${className}`}>
         <img
           src="/studio-preview-cyberpunk.png"
           alt="Vista previa de pantalla"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="relative z-10 text-center px-4">
-          <Monitor className="w-12 h-12 text-white/80 mx-auto mb-3 drop-shadow-lg" />
-          <p className="text-white/95 font-medium text-sm">Vista previa de pantalla</p>
-          <p className="text-white/60 text-xs mt-1">Haz clic en Iniciar Grabación para comenzar</p>
+        <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center pb-4">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-sm">
+            <Monitor className="w-4 h-4 text-teal-300" />
+            <p className="text-white/90 text-xs font-medium">Vista previa de pantalla</p>
+          </div>
         </div>
       </div>
     )

@@ -60,7 +60,7 @@ export default function CameraPreview({
         <img
           src="/logo-ws.png"
           alt="Wagner Solutions"
-          className="w-3/5 h-3/5 object-contain opacity-80"
+          className="w-[85%] h-[85%] object-contain"
         />
       </div>
     )
