@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Mic, MicOff, Monitor, Camera, Circle, Square, Pause, Play, Sparkles, Upload, ChevronRight, Wand2, Film, Clock, RefreshCw, X, PictureInPicture2 } from 'lucide-react'
+import { Mic, MicOff, Monitor, Camera, Circle, Square, Pause, Play, Sparkles, Upload, Film, Clock, RefreshCw, X, PictureInPicture2 } from 'lucide-react'
 import { cn, mediaProxyUrl } from '../lib/utils'
 import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useMediaRecorder } from '../hooks/useMediaRecorder'
@@ -272,14 +272,14 @@ if (key) return mediaProxyUrl(key)
       </div>
 
       {activeTab === 'record' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3 space-y-4">
             {/* Video Preview */}
             <div className="card overflow-hidden p-0">
               <div className="relative aspect-video bg-[var(--bg-secondary)] flex items-center justify-center">
                 <ScreenPreview stream={screenStream} enabled={screenEnabled} className="absolute inset-0" />
                 {cameraEnabled && (
-                  <div className="absolute bottom-4 right-4 w-28 h-28 z-10">
+                  <div className="absolute bottom-5 right-5 w-44 h-44 z-10">
                     <div className="w-full h-full rounded-full overflow-hidden border-[3px] border-white/30 shadow-2xl">
                       <CameraPreview stream={cameraPreviewStream || cameraStream} enabled={cameraEnabled} processedStream={processedStream} background={background} className="w-full h-full" onActiveVideo={(el) => { activeCameraVideoRef.current = el }} />
                     </div>
@@ -294,12 +294,6 @@ if (key) return mediaProxyUrl(key)
                     {isPaused && <span className="badge badge-amber">Pausado</span>}
                   </div>
                 )}
-                <div className="absolute top-4 right-4 z-20">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 dark:bg-teal-500/10 border border-teal-200 dark:border-teal-500/20 text-teal-700 dark:text-teal-500">
-                    <Sparkles className="w-4 h-4" />
-                    <span className="text-xs font-medium">MiMo asistiendo</span>
-                  </div>
-                </div>
               </div>
 
               {/* Controls */}
@@ -359,37 +353,34 @@ if (key) return mediaProxyUrl(key)
               </div>
             </div>
 
-            {/* AI Features Card */}
-            <div className="card p-6 border-teal-500/20">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shrink-0 shadow-lg">
-                  <Wand2 className="w-6 h-6 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-[var(--text-primary)]">IA Integrada con MiMo</h3>
-                  <p className="text-sm text-[var(--text-muted)] mt-1">Mientras grabas, MiMo analiza tu pantalla en tiempo real.</p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <span className="badge badge-teal">Transcripcion automatica</span>
-                    <span className="badge badge-emerald">Capitulos inteligentes</span>
-                    <span className="badge badge-amber">Q&A conversacional</span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Tips Sidebar */}
           <div className="space-y-4">
-            <div className="card">
-              <h3 className="font-medium text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-teal-500" />
-                Tips para buenos tutoriales
-              </h3>
-              <ul className="space-y-3">
-                {['Explica el por que ademas del como', 'Usa nombres descriptivos', 'Graba en ambiente silencioso', 'Muestra el cursor y destaca clics', 'Agrega pausas naturales'].map((tip, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-[var(--text-muted)]">
-                    <ChevronRight className="w-4 h-4 text-teal-500 shrink-0 mt-0.5" />
-                    {tip}
+            <div className="card p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5 text-teal-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[var(--text-primary)] leading-tight">Consejos para<br/>tutoriales pro</h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">Haz que tu equipo aprenda mejor</p>
+                </div>
+              </div>
+              <ul className="space-y-3.5">
+                {[
+                  { t: 'Explica el por que ademas del como', d: 'Contexto primero, detalle despues' },
+                  { t: 'Usa nombres descriptivos', d: 'Facilita buscar y recordar' },
+                  { t: 'Graba en ambiente silencioso', d: 'La calidad del audio importa' },
+                  { t: 'Muestra el cursor y destaca clics', d: 'Guia visual en cada paso' },
+                  { t: 'Agrega pausas naturales', d: 'Da tiempo para procesar' }
+                ].map((tip, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="w-5 h-5 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{i + 1}</span>
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{tip.t}</p>
+                      <p className="text-xs text-[var(--text-muted)] mt-0.5">{tip.d}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
