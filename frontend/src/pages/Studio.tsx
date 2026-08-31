@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Mic, MicOff, Monitor, Camera, Circle, Square, Pause, Play, Sparkles, Upload, Film, Clock, RefreshCw, X, PictureInPicture2 } from 'lucide-react'
+import { Mic, MicOff, Monitor, Camera, Circle, Square, Pause, Play, Upload, Film, Clock, RefreshCw, X, PictureInPicture2 } from 'lucide-react'
 import { cn, mediaProxyUrl } from '../lib/utils'
 import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useMediaRecorder } from '../hooks/useMediaRecorder'
@@ -360,7 +360,7 @@ if (key) return mediaProxyUrl(key)
             <div className="card p-6">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-5 h-5 text-teal-500" />
+                  <Film className="w-5 h-5 text-teal-500" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-[var(--text-primary)] leading-tight">Consejos para<br/>tutoriales pro</h3>

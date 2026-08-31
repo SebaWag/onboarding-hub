@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Camera, VideoOff, Sparkles, Loader2, AlertTriangle } from 'lucide-react'
+import { VideoOff, Sparkles, Loader2, AlertTriangle } from 'lucide-react'
 import { cn } from '../lib/utils'
 
 interface CameraPreviewProps {
@@ -56,8 +56,12 @@ export default function CameraPreview({
 
   if (!stream) {
     return (
-      <div className={cn('bg-slate-800 rounded-xl flex items-center justify-center', className)}>
-        <Camera className="w-8 h-8 text-slate-600" />
+      <div className={cn('bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden', className)}>
+        <img
+          src="/logo-ws.png"
+          alt="Wagner Solutions"
+          className="w-3/5 h-3/5 object-contain opacity-80"
+        />
       </div>
     )
   }
