@@ -75,6 +75,14 @@ html.dark {
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 10px; }
+
+  /* B14: foco visible para navegacion por teclado.
+     Sin border-radius forzado: el outline ya sigue el radio de cada
+     elemento; forzar 4px recortaria los rounded-xl al enfocar. */
+  :focus-visible {
+    outline: 2px solid #14b8a6;
+    outline-offset: 2px;
+  }
 }
 
 @layer components {
