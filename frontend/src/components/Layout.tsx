@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom'
 import {
   Video, BookOpen, BarChart3, Columns3, Users, Settings,
-  Search, Sun, Moon, Menu, LogOut, ChevronDown, Folder
+  Search, Sun, Moon, Menu, LogOut, ChevronDown, Folder,
+  GraduationCap, LineChart
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { NotificationBell } from './Notifications'
@@ -10,10 +11,11 @@ import { NotificationBell } from './Notifications'
 const navigation = [
   { name: 'Studio', href: '/studio', icon: Video },
   { name: 'Biblioteca', href: '/biblioteca', icon: BookOpen },
-  { name: 'Programas', href: '/programs', icon: BookOpen },
+  { name: 'Programas', href: '/programs', icon: GraduationCap },
   { name: 'Kanban', href: '/kanban', icon: Columns3 },
   { name: 'Templates', href: '/templates', icon: Folder },
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
+  { name: 'Analytics', href: '/analytics', icon: LineChart },
   { name: 'Usuarios', href: '/users', icon: Users },
   { name: 'Ajustes', href: '/settings', icon: Settings },
 ]
