@@ -289,7 +289,7 @@ export default function Flows() {
   }
 
   return (
-    <div className="dark-surface space-y-6 bg-[var(--bg)] rounded-2xl">
+    <div className="dark-surface animate-fade-in space-y-6 bg-[var(--bg)] rounded-2xl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
