@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Film, Clock, Play, RefreshCw, Search, Grid, List as ListIcon, Pencil, Trash2, ImagePlus } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useToast } from '../lib/toast'
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
 
@@ -20,6 +21,7 @@ interface VideoItem {
 
 export default function Library() {
   const navigate = useNavigate()
+  const toast = useToast()
   const [videos, setVideos] = useState<VideoItem[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -50,11 +52,21 @@ export default function Library() {
 
   
   const handleDelete = async (videoId: string) => {
-    if (!confirm("Seguro de eliminar este video?")) return
+    const ok = await toast.confirm({
+      title: '¿Eliminar este video?',
+      description: 'Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      variant: 'danger',
+    })
+    if (!ok) return
     try {
       await api.del('/videos/' + videoId)
+      toast.success('Video eliminado correctamente')
       fetchVideos()
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      console.error(e)
+      toast.error('No se pudo eliminar el video')
+    }
   }
 
   const handleGenerateThumbnail = async (videoId: string) => {

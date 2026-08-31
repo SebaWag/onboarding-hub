@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Plus, Search, Grid3X3, List, Loader2, X, Eye, ChevronRight, Play, Film, FolderOpen, PlusCircle, Trash2, Link as LinkIcon } from 'lucide-react'
 import { cn, mediaProxyUrl } from '../lib/utils'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '../lib/toast'
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
 
@@ -13,6 +14,7 @@ interface Video { id: string; title: string; status: string; duration_seconds: n
 
 export default function Programs() {
   const navigate = useNavigate()
+  const toast = useToast()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
@@ -83,28 +85,38 @@ export default function Programs() {
     try {
       await api.post('/contents', { module_id: moduleId, type: 'video', title: video.title, video_id: video.id, duration_seconds: video.duration_seconds })
       await fetchModules(selectedProgram!.id); setShowContentModal(false)
-    } catch (err) { console.error('Error:', err); alert(err instanceof Error ? err.message : 'Error al agregar video') }
+    } catch (err) { console.error('Error:', err); toast.error(err instanceof Error ? err.message : 'Error al agregar video') }
   }
 
   const addLinkToModule = async (moduleId: string) => {
-    if (!contentForm.title || !contentForm.link_url) { alert('Completa el título y la URL'); return }
+    if (!contentForm.title || !contentForm.link_url) { toast.warning('Completa el título y la URL'); return }
     try {
       await api.post('/contents', { module_id: moduleId, type: 'link', title: contentForm.title, description: contentForm.description, content_url: contentForm.link_url })
       await fetchModules(selectedProgram!.id); setShowContentModal(false); setContentForm({ title: '', description: '', link_url: '' })
-    } catch (err) { console.error('Error:', err); alert(err instanceof Error ? err.message : 'Error al agregar enlace') }
+    } catch (err) { console.error('Error:', err); toast.error(err instanceof Error ? err.message : 'Error al agregar enlace') }
   }
 
   const deleteContent = async (contentId: string) => {
-    if (!confirm('¿Eliminar este contenido?')) return
+    const ok = await toast.confirm({
+      title: '¿Eliminar este contenido?',
+      description: 'Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      variant: 'danger',
+    })
+    if (!ok) return
     try {
       await api.del(`/contents/${contentId}`)
+      toast.success('Contenido eliminado correctamente')
       await fetchModules(selectedProgram!.id)
-    } catch (err) { console.error('Error:', err) }
+    } catch (err) {
+      console.error('Error:', err)
+      toast.error('No se pudo eliminar el contenido')
+    }
   }
 
   const playVideo = (content: Content) => {
     const storageKey = content.content_url || content.storage_key
-    if (!storageKey) { alert('Video no disponible'); return }
+    if (!storageKey) { toast.warning('El video aún no está disponible'); return }
     setPlayingVideo({ title: content.title, storageKey })
   }
 

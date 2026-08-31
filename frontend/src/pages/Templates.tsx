@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useToast } from '../lib/toast'
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
 
@@ -81,6 +82,7 @@ interface Stats {
 }
 
 export default function Templates() {
+  const toast = useToast()
   const [view, setView] = useState<'categories' | 'files'>('categories')
   const [categories, setCategories] = useState<Category[]>([])
   const [resources, setResources] = useState<Resource[]>([])
@@ -215,7 +217,7 @@ export default function Templates() {
   // Upload
   const handleUpload = async () => {
     if (!selectedFile || !uploadForm.category_id || !uploadForm.name) {
-      alert('Por favor completa todos los campos obligatorios')
+      toast.warning('Completa todos los campos obligatorios')
       return
     }
 
@@ -241,12 +243,13 @@ export default function Templates() {
           fetchCategories()
         }
         fetchStats()
+        toast.success('Recurso subido correctamente')
       } else {
-        alert(data.error || 'Error al subir recurso')
+        toast.error(data.error || 'Error al subir el recurso')
       }
     } catch (error) {
       console.error('Error uploading:', error)
-      alert('Error al subir el archivo')
+      toast.error('Error al subir el archivo')
     } finally {
       setUploading(false)
     }
@@ -277,11 +280,11 @@ export default function Templates() {
         setPreviewData(data.data)
         setShowPreviewModal(true)
       } else {
-        alert(data.error || 'Error al obtener preview')
+        toast.error(data.error || 'Error al obtener la vista previa')
       }
     } catch (error) {
       console.error('Error preview:', error)
-      alert('Error al visualizar el archivo')
+      toast.error('Error al visualizar el archivo')
     }
   }
 
@@ -299,16 +302,23 @@ export default function Templates() {
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Error downloading:', error)
-      alert('Error al descargar el archivo')
+      toast.error('Error al descargar el archivo')
     }
   }
 
   // Eliminar
   const handleDelete = async (resource: Resource) => {
-    if (!confirm(`¿Eliminar "${resource.name}"?`)) return
+    const ok = await toast.confirm({
+      title: `¿Eliminar "${resource.name}"?`,
+      description: 'Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      variant: 'danger',
+    })
+    if (!ok) return
     
     try {
       await api.del(`/resources/${resource.id}`)
+      toast.success('Recurso eliminado correctamente')
       if (selectedCategory) {
         fetchResources(selectedCategory.id)
       }

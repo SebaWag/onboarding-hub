@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {Play, Sparkles, Send, Share2, ChevronRight, Bot, User, Loader2, FileText, List, MessageSquare, ArrowLeft, AlertCircle } from 'lucide-react'
 import { cn, mediaProxyUrl } from '../lib/utils'
 import { apiRequest, api, type RequestOptions } from '../lib/api'
+import { useToast } from '../lib/toast'
 import VideoPlayer from '../components/video/VideoPlayer'
 import VideoMeta from '../components/video/VideoMeta'
 import CommentsSection from '../components/video/CommentsSection'
@@ -40,6 +41,7 @@ const apiFetch = async (url: string, options: RequestInit = {}) => {
 // ============ MAIN COMPONENT ============
 export default function VideoDetail() {
   const { id } = useParams<{ id: string }>()
+  const toast = useToast()
   const navigate = useNavigate()
 
   // Video state
@@ -510,9 +512,10 @@ export default function VideoDetail() {
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
+      toast.success('Video descargado')
     } catch (err) {
       console.error('Error downloading video:', err)
-      alert('Error al descargar el video. Intenta de nuevo.')
+      toast.error('Error al descargar el video. Intenta de nuevo.')
     } finally {
       setIsDownloading(false)
     }

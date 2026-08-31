@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Users as UsersIcon, Search, Mail, UserPlus, X, Video, MessageSquare, Loader2 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useToast } from '../lib/toast'
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
 
@@ -10,6 +11,7 @@ interface UserStats { total: number; active: number; admins: number; editors: nu
 interface InviteFormData { email: string; name: string; department: string; position: string; org_role: string }
 
 export default function Users() {
+  const toast = useToast()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRole, setSelectedRole] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -44,12 +46,12 @@ export default function Users() {
   }
 
   const handleInvite = async () => {
-    if (!inviteForm.email || !inviteForm.name) { alert('Email y nombre son requeridos'); return }
+    if (!inviteForm.email || !inviteForm.name) { toast.warning('Email y nombre son requeridos'); return }
     try {
       setSaving(true)
       await api.post('/users/invite', inviteForm)
-      alert('Invitación enviada'); setShowInviteModal(false); setInviteForm({ email: '', name: '', department: '', position: '', org_role: 'viewer' })
-    } catch (err) { console.error('Invite error:', err) }
+      toast.success('Invitación enviada correctamente'); setShowInviteModal(false); setInviteForm({ email: '', name: '', department: '', position: '', org_role: 'viewer' })
+    } catch (err) { console.error('Invite error:', err); toast.error('No se pudo enviar la invitación') }
     setSaving(false)
   }
 
