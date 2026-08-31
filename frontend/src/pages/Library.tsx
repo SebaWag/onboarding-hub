@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Film, Clock, Play, RefreshCw, Search, Grid, List as ListIcon, Pencil, Trash2 } from 'lucide-react'
+import { Film, Clock, Play, RefreshCw, Search, Grid, List as ListIcon, Pencil, Trash2, ImagePlus } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
@@ -227,11 +227,11 @@ export default function Library() {
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); handleGenerateThumbnail(video.id); }}
                       className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-emerald-400 transition-colors" title="Generar portada">
+                      <ImagePlus className="w-3.5 h-3.5" />
+                    </button>
                     <button onClick={(e) => { e.stopPropagation(); handleDelete(video.id); }}
                       className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-rose-400 transition-colors" title="Eliminar">
                       <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                      <span className="text-[10px] font-bold">4:3</span>
                     </button>
                   </div>
                 </div>
