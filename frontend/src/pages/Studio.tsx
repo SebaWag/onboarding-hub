@@ -233,7 +233,7 @@ if (key) return mediaProxyUrl(key)
       )}
 
       {uploadStatus === 'uploading' && (
-        <div className="bg-[var(--bg-card)] rounded-xl p-4 border border-teal-200 dark:border-teal-200">
+        <div className="bg-[var(--bg-card)] rounded-xl p-4 border border-teal-200 dark:border-teal-500/20">
           <div className="flex items-center gap-3">
             <div className="animate-spin w-5 h-5 border-2 border-violet-600 dark:border-violet-400 border-t-transparent rounded-full" />
             <span className="text-teal-600 dark:text-teal-500">Subiendo video...</span>
@@ -293,7 +293,7 @@ if (key) return mediaProxyUrl(key)
                   </div>
                 )}
                 <div className="absolute top-4 right-4 z-20">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 dark:bg-teal-50 border border-teal-200 dark:border-teal-200 text-teal-700 dark:text-teal-500">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 dark:bg-teal-500/10 border border-teal-200 dark:border-teal-500/20 text-teal-700 dark:text-teal-500">
                     <Sparkles className="w-4 h-4" />
                     <span className="text-xs font-medium">MiMo asistiendo</span>
                   </div>
@@ -304,7 +304,7 @@ if (key) return mediaProxyUrl(key)
               <div className="p-4 border-t border-[var(--border-color)]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => !isRecording && setScreenEnabled(!screenEnabled)} disabled={isRecording} className={cn('p-3 rounded-xl transition-all', screenEnabled ? 'bg-teal-50 dark:bg-white text-gray-900 shadow-sm border border-teal-200 dark:border-teal-200' : 'bg-[var(--bg-hover)] text-[var(--text-muted)] border border-[var(--border-color)]', isRecording && 'opacity-50 cursor-not-allowed')}>
+                    <button onClick={() => !isRecording && setScreenEnabled(!screenEnabled)} disabled={isRecording} className={cn('p-3 rounded-xl transition-all', screenEnabled ? 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 shadow-sm border border-teal-200 dark:border-teal-500/30' : 'bg-[var(--bg-hover)] text-[var(--text-muted)] border border-[var(--border-color)]', isRecording && 'opacity-50 cursor-not-allowed')}>
                       <Monitor className="w-5 h-5" />
                     </button>
                     <button onClick={() => !isRecording && setCameraEnabled(!cameraEnabled)} disabled={isRecording} className={cn('p-3 rounded-xl transition-all', cameraEnabled ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30' : 'bg-[var(--bg-hover)] text-[var(--text-muted)] border border-[var(--border-color)]', isRecording && 'opacity-50 cursor-not-allowed')}>
@@ -367,7 +367,7 @@ if (key) return mediaProxyUrl(key)
                   <h3 className="font-semibold text-[var(--text-primary)]">IA Integrada con MiMo</h3>
                   <p className="text-sm text-[var(--text-muted)] mt-1">Mientras grabas, MiMo analiza tu pantalla en tiempo real.</p>
                   <div className="flex flex-wrap gap-2 mt-3">
-                    <span className="px-2 py-1 rounded bg-teal-50 dark:bg-teal-50 text-teal-700 dark:text-teal-500 text-xs font-medium">Transcripcion automatica</span>
+                    <span className="px-2 py-1 rounded bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-500 text-xs font-medium">Transcripcion automatica</span>
                     <span className="px-2 py-1 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-medium">Capitulos inteligentes</span>
                     <span className="px-2 py-1 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-medium">Q&A conversacional</span>
                   </div>

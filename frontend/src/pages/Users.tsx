@@ -127,7 +127,7 @@ export default function Users() {
                 <h3 className="font-semibold text-[var(--text-primary)] truncate">{user.name}</h3>
                 <p className="text-sm text-[var(--text-muted)] truncate">{user.email}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', user.org_role === 'admin' ? 'bg-teal-50 dark:bg-teal-50 text-teal-600 dark:text-teal-500' : user.org_role === 'editor' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-500/20 text-gray-600 dark:text-gray-400')}>
+                  <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', user.org_role === 'admin' ? 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-500' : user.org_role === 'editor' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-500/20 text-gray-600 dark:text-gray-400')}>
                     {user.org_role}
                   </span>
                   <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', user.is_active ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-500/20 text-gray-600 dark:text-gray-400')}>

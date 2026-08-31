@@ -126,7 +126,7 @@ export default function Dashboard() {
           <div key={stat.name} className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-color)] shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
               <div className={cn('p-2.5 rounded-xl', 
-                stat.color === 'violet' && 'bg-teal-50 dark:bg-teal-50 text-teal-600 dark:text-teal-500',
+                stat.color === 'violet' && 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-500',
                 stat.color === 'emerald' && 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
                 stat.color === 'amber' && 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400',
                 stat.color === 'rose' && 'bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400')}>
@@ -219,7 +219,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-color)] shadow-sm">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-teal-50 dark:bg-teal-50">
+            <div className="p-2 rounded-lg bg-teal-50 dark:bg-teal-500/10">
               <PlayCircle className="w-5 h-5 text-teal-600 dark:text-teal-500" />
             </div>
             <span className="text-[var(--text-muted)] text-sm">Total Visualizaciones</span>

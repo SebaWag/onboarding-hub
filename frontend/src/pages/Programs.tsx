@@ -232,7 +232,7 @@ export default function Programs() {
                   <div key={mod.id} className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-color)]">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-50 flex items-center justify-center text-teal-600 dark:text-teal-500 font-bold">{idx + 1}</div>
+                        <div className="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-500/10 flex items-center justify-center text-teal-600 dark:text-teal-500 font-bold">{idx + 1}</div>
                         <div>
                           <h4 className="font-semibold text-[var(--text-primary)]">{mod.title}</h4>
                           <p className="text-sm text-[var(--text-muted)]">{mod.description || 'Sin descripción'}</p>
@@ -254,7 +254,7 @@ export default function Programs() {
                           <div key={content.id} className="flex items-center justify-between p-3 rounded-lg bg-[var(--bg-card)]">
                             <div className="flex items-center gap-3">
                               {content.content_type === 'video' ? (
-                                <button onClick={() => playVideo(content)} className="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-50 flex items-center justify-center text-teal-600 dark:text-teal-500 hover:bg-violet-200 dark:hover:bg-violet-500/30 transition-colors">
+                                <button onClick={() => playVideo(content)} className="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-500/10 flex items-center justify-center text-teal-600 dark:text-teal-500 hover:bg-violet-200 dark:hover:bg-violet-500/30 transition-colors">
                                   <Play className="w-5 h-5" />
                                 </button>
                               ) : (
@@ -335,7 +335,7 @@ export default function Programs() {
             </div>
 
             <div className="flex gap-2 mb-4">
-              <button onClick={() => setContentType('video')} className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium', contentType === 'video' ? 'bg-teal-50 dark:bg-teal-50 text-teal-600 dark:text-teal-500' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)]')}>
+              <button onClick={() => setContentType('video')} className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium', contentType === 'video' ? 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-500' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)]')}>
                 <Film className="w-4 h-4" /> Videos
               </button>
               <button onClick={() => setContentType('link')} className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium', contentType === 'link' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)]')}>
@@ -355,7 +355,7 @@ export default function Programs() {
                   {videos.map((video) => (
                     <div key={video.id} className="flex items-center justify-between p-3 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--bg-hover)]">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-50 flex items-center justify-center text-teal-600 dark:text-teal-500"><Play className="w-4 h-4" /></div>
+                        <div className="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-500/10 flex items-center justify-center text-teal-600 dark:text-teal-500"><Play className="w-4 h-4" /></div>
                         <div>
                           <p className="font-medium text-[var(--text-primary)]">{video.title}</p>
                           <p className="text-xs text-[var(--text-muted)]">{formatDuration(video.duration_seconds)}</p>
