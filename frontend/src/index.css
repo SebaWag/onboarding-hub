@@ -2,6 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==== Tokens de diseño (red de seguridad; Layout.tsx applyTheme() los fija inline) ==== */
+:root {
+  --bg: #fafafa;
+  --bg-primary: #fafafa;
+  --bg-card: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-secondary: #f1f5f9;
+  --text: #09090b;
+  --text-primary: #09090b;
+  --text-secondary: #52525b;
+  --text-muted: #a1a1aa;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --accent: #0d9488;
+  --accent-bg: rgba(13, 148, 136, 0.08);
+  --input-bg: #ffffff;
+  --input-border: rgba(0, 0, 0, 0.10);
+}
+
+html.dark {
+  --bg: #0a0a0b;
+  --bg-primary: #0a0a0b;
+  --bg-card: #141415;
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-secondary: #18181b;
+  --text: #fafafa;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #52525b;
+  --border: rgba(255, 255, 255, 0.10);
+  --border-color: rgba(255, 255, 255, 0.10);
+  --accent: #0d9488;
+  --accent-bg: rgba(13, 148, 136, 0.10);
+  --input-bg: #18181b;
+  --input-border: #3f3f46;
+}
+
+/* Isla dark auto-contenida (P0-3): re-define los tokens en oscuro dentro del
+   subárbol. Para páginas media/chat diseñadas en dark (VideoDetail, Chat,
+   Share, Flows) que deben verse correctas en ambos modos del shell. */
+.dark-surface {
+  --bg: #0a0a0b;
+  --bg-primary: #0a0a0b;
+  --bg-card: #141415;
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-secondary: #18181b;
+  --text: #ffffff;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-color: rgba(255, 255, 255, 0.10);
+  --input-bg: #18181b;
+  --input-border: #3f3f46;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
 @layer base {
   * { margin: 0; padding: 0; box-sizing: border-box; }
   
@@ -157,6 +215,38 @@
   .empty-state p {
     @apply text-sm text-[var(--text-muted,#a1a1aa)];
   }
+  /* ==== P0-2: clases que se usaban pero no existían ==== */
+  .glass {
+    background: rgba(15, 15, 20, 0.55);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .noise-overlay { position: relative; }
+  .noise-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Input unificado (Login/Share lo usaban sin definición) */
+  .input-field {
+    @apply w-full rounded-xl text-sm transition-colors;
+    background: var(--input-bg, #ffffff);
+    border: 1px solid var(--input-border, rgba(0, 0, 0, 0.10));
+    color: var(--text, #09090b);
+    padding: 0.625rem 0.875rem;
+  }
+  .input-field:focus {
+    outline: none;
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+  }
+  .input-field::placeholder { color: var(--text-muted, #a1a1aa); }
+  .input-field:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
 @layer utilities {
