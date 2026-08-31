@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom'
 import {
   Video, BookOpen, BarChart3, Columns3, Users, Settings,
-  Search, Sun, Moon, Menu, Bell, LogOut, ChevronDown, Folder
+  Search, Sun, Moon, Menu, LogOut, ChevronDown, Folder
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { NotificationBell } from './Notifications'
 
 const navigation = [
   { name: 'Studio', href: '/studio', icon: Video },
@@ -21,7 +22,6 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isDark, setIsDark] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const [notifCount] = useState(0)
   const location = useLocation()
   const navigate = useNavigate()
   const searchRef = useRef<HTMLInputElement>(null)
@@ -226,14 +226,7 @@ export default function Layout() {
               title={isDark ? 'Modo claro' : 'Modo oscuro'}>
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <button className="p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors relative">
-              <Bell className="w-4 h-4" />
-              {notifCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-teal-500 text-[9px] font-bold text-white flex items-center justify-center">
-                  {notifCount}
-                </span>
-              )}
-            </button>
+            <NotificationBell />
             <button onClick={() => navigate('/studio')}
               className="ml-2 py-1.5 px-3 text-sm rounded-lg font-medium bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-500 hover:to-cyan-500 transition-all shadow-sm">
               + Nuevo

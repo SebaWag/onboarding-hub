@@ -259,3 +259,6 @@ html.dark {
 
 .animate-pulse-slow { animation: pulseSlow 3s ease-in-out infinite; }
 @keyframes pulseSlow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.05); } }
+
+.animate-slide-down { animation: slideDown 0.2s ease-out; }
+@keyframes slideDown { 0% { opacity: 0; transform: translateY(-6px); } 100% { opacity: 1; transform: translateY(0); } }

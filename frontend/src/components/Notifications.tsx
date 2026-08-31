@@ -137,9 +137,17 @@ export function NotificationBell() {
 
   return (
     <div className="relative">
-      <button onClick={() => setIsOpen(!isOpen)} className="relative p-2 rounded-xl text-surface-400 hover:text-white hover:bg-white/5 transition-colors">
-        <Bell className="w-5 h-5" />
-        {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Notificaciones"
+        className="relative p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors"
+      >
+        <Bell className="w-4 h-4" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-[10px] font-bold text-white flex items-center justify-center">
+            {unreadCount}
+          </span>
+        )}
       </button>
       <NotificationsPanel isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>
