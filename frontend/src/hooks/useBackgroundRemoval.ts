@@ -61,18 +61,10 @@ export function useBackgroundRemoval() {
   const segmenterRef = useRef<any>(null)
   const bodypixNetRef = useRef<any>(null)
   const matrixDropsRef = useRef<{ x: number; y: number; speed: number }[]>([])
-  // --- Refs para control de fluidez de grabación (fix cortes cámara) ---
-  const intervalRef = useRef<number | null>(null)          // fallback setInterval cuando pestaña oculta
-  const visibilityHandlerRef = useRef<(() => void) | null>(null)
-  const lastFrameTimeRef = useRef<number>(0)               // throttle de procesamiento
-  const MIN_FRAME_MS = 66                                   // ~15fps máx para segmentación pesada
   const [processedStream, setProcessedStream] = useState<MediaStream | null>(null)
   const [isModelReady, setIsModelReady] = useState(false)
   const [background, setBackground] = useState<BackgroundOption>({ mode: 'none', label: 'Sin fondo' })
   const [modelLoading, setModelLoading] = useState(false)
-  // Ref espejo de isModelReady para usar dentro de handlers no-React (visibility)
-  const isModelReadyRef = useRef(false)
-  const isRendererActiveRef = useRef(true)
 
   // Initialize MediaPipe Selfie Segmenter
   useEffect(() => {
@@ -101,7 +93,6 @@ export function useBackgroundRemoval() {
 
         if (!cancelled) {
           setIsModelReady(true)
-          isModelReadyRef.current = true
           setModelLoading(false)
           console.log('[BgRemoval] ✅ MediaPipe SelfieSegmenter listo')
         }
@@ -120,7 +111,6 @@ export function useBackgroundRemoval() {
           })
           if (!cancelled) {
             setIsModelReady(true)
-            isModelReadyRef.current = true
             setModelLoading(false)
             console.log('[BgRemoval] ✅ BodyPix listo (persona completa)')
             return
@@ -263,60 +253,39 @@ export function useBackgroundRemoval() {
     h: number,
     currentBg: BackgroundOption
   ) => {
-    // ── FIX rendimiento: procesar a escala reducida ──
-    // A resolución nativa (1280x720 = 921.600 px) recorrer píxel a píxel en JS
-    // bloquea el main thread y causa cortes en la grabación. Trabajamos sobre
-    // un canvas temporal de ~360p de alto y escalamos con drawImage (GPU), que
-    // es prácticamente gratis. El resultado visual es casi idéntico.
-    const MAX_WORK_H = 360
-    const scale = Math.min(1, MAX_WORK_H / h)
-    const ww = Math.max(1, Math.round(w * scale))
-    const wh = Math.max(1, Math.round(h * scale))
-
-    const work = document.createElement('canvas')
-    work.width = ww
-    work.height = wh
-    const wctx = work.getContext('2d', { willReadFrequently: true })
-    if (!wctx) {
-      // Fallback extremo: dibujar video directo (fluido > efecto)
-      ctx.drawImage(video, 0, 0, w, h)
-      return
-    }
-
-    // 1. Dibujar fondo PRIMERO (a escala reducida)
-    drawBackground(wctx, ww, wh, currentBg)
-
-    // 2. Guardar píxeles del fondo
-    const bgPixelsData = wctx.getImageData(0, 0, ww, wh)
-    const bgData = bgPixelsData.data
-
-    // 3. Dibujar video encima (a escala reducida)
-    wctx.drawImage(video, 0, 0, ww, wh)
-
-    // 4. Obtener píxeles combinados
-    const combined = wctx.getImageData(0, 0, ww, wh)
+    // 1. Dibujar fondo PRIMERO
+    drawBackground(ctx, w, h, currentBg)
+    
+    // 2. Guardar píxeles del fondo (antes de dibujar el video encima)
+    const bgPixelsData = ctx.getImageData(0, 0, w, h)
+    const bgData = bgPixelsData.data  // ← ANTES se llamaba 'bg' y sombreaba bgRef.current
+    
+    // 3. Dibujar video encima
+    ctx.drawImage(video, 0, 0, w, h)
+    
+    // 4. Obtener píxeles combinados (video sobre fondo)
+    const combined = ctx.getImageData(0, 0, w, h)
     const pixels = combined.data
-
+    
     // 5. Detectar piel y reemplazar no-piel con fondo
     for (let i = 0; i < pixels.length; i += 4) {
       const r = pixels[i]
       const g = pixels[i + 1]
       const b = pixels[i + 2]
-
+      
       if (isSkinPixel(r, g, b)) {
-        continue // Conservar píxel de la persona
+        // Conservar píxel de la persona (ya está en 'pixels' desde el video)
+        continue
       } else {
+        // Reemplazar con fondo
         pixels[i]     = bgData[i]
         pixels[i + 1] = bgData[i + 1]
         pixels[i + 2] = bgData[i + 2]
         pixels[i + 3] = 255
       }
     }
-
-    wctx.putImageData(combined, 0, 0)
-
-    // 6. Escalar el resultado al canvas principal (GPU, rápido)
-    ctx.drawImage(work, 0, 0, ww, wh, 0, 0, w, h)
+    
+    ctx.putImageData(combined, 0, 0)
   }
 
   /** Segmentación con BodyPix (TensorFlow.js) — persona completa */
@@ -369,17 +338,8 @@ export function useBackgroundRemoval() {
   // BodyPix frame counter (process every 3rd frame for performance)
   let bodypixFrameCount = 0
 
-  // Main frame processing loop (con throttle a ~15fps para no saturar el main thread)
+  // Main frame processing loop
   const processFrame = useCallback(() => {
-    // Throttle: si el frame anterior tardó demasiado, saltamos frames para
-    // que captureStream(30) reciba frames regulares y el video no tenga cortes.
-    const now = performance.now()
-    if (now - lastFrameTimeRef.current < MIN_FRAME_MS) {
-      animRef.current = requestAnimationFrame(processFrame)
-      return
-    }
-    lastFrameTimeRef.current = now
-
     const video = videoRef.current
     const canvas = canvasRef.current
     if (!video || !canvas || video.videoWidth === 0) {
@@ -406,8 +366,6 @@ export function useBackgroundRemoval() {
       ctx.drawImage(video, 0, 0, w, h)
     } else if (isModelReady && segmenterRef.current) {
       // === SEGMENTACIÓN CON MEDIAPIPE ML (GPU) ===
-      // Envolver en try/catch con timeout implícito: si un frame tarda demasiado,
-      // no bloqueamos el siguiente (el throttle ya limita a ~15fps).
       const segmented = segmentWithMediaPipe(ctx, video, w, h, activeBg)
       if (!segmented) {
         segmentWithColorFallback(ctx, video, w, h, activeBg)
@@ -415,8 +373,8 @@ export function useBackgroundRemoval() {
     } else if (isModelReady && bodypixNetRef.current) {
       // === SEGMENTACIÓN CON BODYPIX (TensorFlow.js, persona completa) ===
       bodypixFrameCount++
-      // Procesar cada 3 frames para rendimiento (antes cada 2)
-      if (bodypixFrameCount % 3 === 0) {
+      // Procesar cada 2 frames para rendimiento
+      if (bodypixFrameCount % 2 === 0) {
         segmentWithBodyPix(ctx, video, w, h, activeBg).then(success => {
           if (!success) ctx.drawImage(video, 0, 0, w, h)
         })
@@ -427,9 +385,7 @@ export function useBackgroundRemoval() {
       }
     } else {
       // === FALLBACK POR COLOR (último recurso) ===
-      // Si el modelo aún no está listo, dibujar el video directo es PREFERIBLE
-      // a bloquear el hilo con el fallback por píxeles (causa cortes).
-      ctx.drawImage(video, 0, 0, w, h)
+      segmentWithColorFallback(ctx, video, w, h, activeBg)
     }
 
     animRef.current = requestAnimationFrame(processFrame)
@@ -438,17 +394,8 @@ export function useBackgroundRemoval() {
   const startBackgroundRemoval = async (cameraStream: MediaStream): Promise<MediaStream | null> => {
     if (!cameraStream) return null
 
-    // Limpiar estado previo (incluye interval de visibility + handler)
+    // Limpiar estado previo
     if (animRef.current) cancelAnimationFrame(animRef.current)
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
-    if (visibilityHandlerRef.current) {
-      visibilityHandlerRef.current()
-      visibilityHandlerRef.current = null
-    }
-    isRendererActiveRef.current = true
     if (canvasRef.current?.parentNode) {
       canvasRef.current.parentNode.removeChild(canvasRef.current)
     }
@@ -461,13 +408,9 @@ export function useBackgroundRemoval() {
     video.autoplay = true
     videoRef.current = video
 
-    // Usar la resolución NATIVA del stream de cámara (ahora 1280x720 ideal desde Studio)
-    // en vez de forzar 640x480, para no degradar la calidad de la grabación.
-    const vw = video.videoWidth || cameraStream.getVideoTracks()[0]?.getSettings()?.width || 1280
-    const vh = video.videoHeight || cameraStream.getVideoTracks()[0]?.getSettings()?.height || 720
     const canvas = document.createElement('canvas')
-    canvas.width = vw
-    canvas.height = vh
+    canvas.width = 640
+    canvas.height = 480
     canvas.style.position = 'fixed'
     canvas.style.top = '-9999px'
     canvas.style.left = '-9999px'
@@ -479,59 +422,6 @@ export function useBackgroundRemoval() {
 
     const stream = canvas.captureStream(30)
     setProcessedStream(stream)
-
-    // ── FIX cortes cámara: cuando la pestaña se oculta (ej. PiP del tutorial),
-    // rAF se pausa por completo → el canvas se congela → captureStream re-emite
-    // el último frame → video congelado que avanza a saltos (cortes).
-    // Solución: fallback con setInterval (como hace el compositor screen-camera
-    // en useMediaRecorder.ts) para seguir dibujando frames mientras está oculta.
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (animRef.current) {
-          cancelAnimationFrame(animRef.current)
-          animRef.current = 0
-        }
-        if (!intervalRef.current) {
-          intervalRef.current = window.setInterval(() => {
-            const v = videoRef.current
-            const c = canvasRef.current
-            if (!v || !c || v.videoWidth === 0) return
-            const ctx = c.getContext('2d')
-            if (!ctx) return
-            // Dibujo ligero directo (sin segmentación pesada) para mantener el
-            // stream vivo y fluido mientras la pestaña está en segundo plano.
-            const bg = bgRef.current
-            if (bg.mode === 'none' || bg.mode === 'matrix') {
-              ctx.drawImage(v, 0, 0, c.width, c.height)
-            } else {
-              // Con efecto: usar el último frame de segmentación si el modelo está
-              // listo; si no, video directo (mejor fluido sin efecto que congelado).
-              try {
-                if (isModelReadyRef.current && segmenterRef.current) {
-                  segmentWithMediaPipe(ctx, v, c.width, c.height, bg)
-                } else {
-                  ctx.drawImage(v, 0, 0, c.width, c.height)
-                }
-              } catch {
-                ctx.drawImage(v, 0, 0, c.width, c.height)
-              }
-            }
-          }, 100) // ~10fps mientras oculta: suficiente para no congelar
-        }
-      } else {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current)
-          intervalRef.current = null
-        }
-        isRendererActiveRef.current = true
-        animRef.current = requestAnimationFrame(processFrame)
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    visibilityHandlerRef.current = () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
 
     animRef.current = requestAnimationFrame(processFrame)
 
@@ -545,15 +435,6 @@ export function useBackgroundRemoval() {
 
   const cleanup = () => {
     if (animRef.current) cancelAnimationFrame(animRef.current)
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
-    if (visibilityHandlerRef.current) {
-      visibilityHandlerRef.current()
-      visibilityHandlerRef.current = null
-    }
-    isRendererActiveRef.current = false
     if (canvasRef.current?.parentNode) {
       canvasRef.current.parentNode.removeChild(canvasRef.current)
     }

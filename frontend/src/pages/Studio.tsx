@@ -126,10 +126,9 @@ if (key) return mediaProxyUrl(key)
         if (processedStream) {
           cameraStreamForRecording = processedStream
         } else {
-          // Obtener cámara fresh e iniciar background processing.
-          // Subimos a 1280x720 (ideal) en vez de 640x480 para mejor calidad.
+          // Obtener cámara fresh e iniciar background processing
           const cam = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+            video: { width: 640, height: 480, facingMode: 'user' },
             audio: false
           })
           // startBackgroundRemoval retorna el stream procesado DIRECTAMENTE

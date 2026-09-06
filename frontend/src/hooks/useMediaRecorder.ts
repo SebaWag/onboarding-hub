@@ -114,7 +114,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
             console.log('[RECORDER] ✅ Usando cámara con background procesado')
           } else {
             cameraStream = await navigator.mediaDevices.getUserMedia({
-              video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+              video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
               audio: false
             })
             console.log('[RECORDER] ✅ Cámara capturada')
