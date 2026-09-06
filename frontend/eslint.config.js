@@ -31,4 +31,13 @@ export default defineConfig([
       'react-hooks/preserve-manual-memoization': 'warn',
     },
   },
+  {
+    // toast.tsx agrupa el contexto + ToastProvider + hook useToast en un solo
+    // modulo (patron valido en React). allowExportNames exime al hook de la
+    // regla react-refresh/only-export-components sin afectar otros archivos.
+    files: ['src/lib/toast.tsx'],
+    rules: {
+      'react-refresh/only-export-components': ['error', { allowExportNames: ['useToast'] }],
+    },
+  },
 ])
