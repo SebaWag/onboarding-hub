@@ -32,6 +32,12 @@ export const BACKGROUNDS: BackgroundOption[] = [
 // Matrix effect characters
 const MATRIX_CHARS = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン'
 
+// === FIX CÁMARA v3: constantes de rendimiento (NO tocar resoluciones) ===
+// Intervalo de refresco mientras la pestaña está oculta (auto-PiP pausa el rAF).
+const HIDDEN_FRAME_INTERVAL_MS = 120
+// Tope del procesamiento pesado (segmentación): ~18 fps máx. para no saturar el main thread.
+const HEAVY_FRAME_MIN_MS = 1000 / 18
+
 /**
  * Detección de piel mejorada para fallback cuando MediaPipe no está disponible.
  * Usa un espacio de color YCrCb para mejor precisión en distintos tonos de piel.
@@ -61,6 +67,12 @@ export function useBackgroundRemoval() {
   const segmenterRef = useRef<any>(null)
   const bodypixNetRef = useRef<any>(null)
   const matrixDropsRef = useRef<{ x: number; y: number; speed: number }[]>([])
+  // === FIX CÁMARA v3: refs de control del loop ===
+  const isModelReadyRef = useRef<boolean>(false)
+  const isRunningRef = useRef<boolean>(false)
+  const hiddenIntervalRef = useRef<number>(0)
+  const lastHeavyFrameRef = useRef<number>(0)
+  const lastCompositeRef = useRef<HTMLCanvasElement | null>(null)
   const [processedStream, setProcessedStream] = useState<MediaStream | null>(null)
   const [isModelReady, setIsModelReady] = useState(false)
   const [background, setBackground] = useState<BackgroundOption>({ mode: 'none', label: 'Sin fondo' })
@@ -335,6 +347,38 @@ export function useBackgroundRemoval() {
     }
   }
 
+  /**
+   * Frame LIGERO: solo ctx.drawImage(video) — sin segmentación ni getImageData.
+   * Se usa cuando la pestaña está oculta (rAF pausado por el navegador) para que
+   * canvas.captureStream() siga recibiendo frames y la grabación no se congele.
+   */
+  const drawLightFrame = useCallback(() => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas || video.videoWidth === 0) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+  }, [])
+
+  /**
+   * Guarda una copia del último frame compuesto (fondo + persona).
+   * Los frames saltados por el throttle la redibujan (barato) en vez de
+   * volver a segmentar, así el canvas nunca queda estático.
+   */
+  const cacheComposite = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+    let cached = lastCompositeRef.current
+    if (!cached) {
+      cached = document.createElement('canvas')
+      lastCompositeRef.current = cached
+    }
+    if (cached.width !== w || cached.height !== h) {
+      cached.width = w
+      cached.height = h
+    }
+    cached.getContext('2d')?.drawImage(ctx.canvas, 0, 0)
+  }
+
   // BodyPix frame counter (process every 3rd frame for performance)
   let bodypixFrameCount = 0
 
@@ -356,6 +400,26 @@ export function useBackgroundRemoval() {
     const activeBg = bgRef.current
     const w = canvas.width
     const h = canvas.height
+    // Se lee desde el ref (no del state) para que el loop nunca use un closure viejo
+    const modelReady = isModelReadyRef.current
+
+    // === THROTTLE (FIX CÁMARA v3) ===
+    // La segmentación ML es costosa. Si el último frame pesado fue hace menos de
+    // HEAVY_FRAME_MIN_MS (~18 fps), saltamos el procesamiento y redibujamos la última
+    // composición. Así el main thread no se satura y el video no se corta.
+    const isHeavyPath = activeBg.mode !== 'none' && activeBg.mode !== 'matrix'
+    const now = performance.now()
+    if (isHeavyPath && now - lastHeavyFrameRef.current < HEAVY_FRAME_MIN_MS) {
+      const cached = lastCompositeRef.current
+      if (cached && cached.width === w && cached.height === h) {
+        ctx.drawImage(cached, 0, 0, w, h)
+      } else {
+        ctx.drawImage(video, 0, 0, w, h)
+      }
+      animRef.current = requestAnimationFrame(processFrame)
+      return
+    }
+    if (isHeavyPath) lastHeavyFrameRef.current = now
 
     if (activeBg.mode === 'none') {
       // Sin efecto — mostrar video directamente
@@ -364,19 +428,24 @@ export function useBackgroundRemoval() {
       // Efecto Matrix — dibujar matrix + video encima
       drawMatrix(ctx, w, h)
       ctx.drawImage(video, 0, 0, w, h)
-    } else if (isModelReady && segmenterRef.current) {
+    } else if (modelReady && segmenterRef.current) {
       // === SEGMENTACIÓN CON MEDIAPIPE ML (GPU) ===
       const segmented = segmentWithMediaPipe(ctx, video, w, h, activeBg)
       if (!segmented) {
         segmentWithColorFallback(ctx, video, w, h, activeBg)
       }
-    } else if (isModelReady && bodypixNetRef.current) {
+      cacheComposite(ctx, w, h)
+    } else if (modelReady && bodypixNetRef.current) {
       // === SEGMENTACIÓN CON BODYPIX (TensorFlow.js, persona completa) ===
       bodypixFrameCount++
       // Procesar cada 2 frames para rendimiento
       if (bodypixFrameCount % 2 === 0) {
         segmentWithBodyPix(ctx, video, w, h, activeBg).then(success => {
-          if (!success) ctx.drawImage(video, 0, 0, w, h)
+          if (success) {
+            cacheComposite(ctx, w, h)
+          } else {
+            ctx.drawImage(video, 0, 0, w, h)
+          }
         })
         // Mostrar frame anterior mientras BodyPix procesa
       } else {
@@ -384,12 +453,65 @@ export function useBackgroundRemoval() {
         // (ya está en el canvas del frame anterior)
       }
     } else {
-      // === FALLBACK POR COLOR (último recurso) ===
-      segmentWithColorFallback(ctx, video, w, h, activeBg)
+      // === MODELO NO LISTO (FIX CÁMARA v3): dibujar el video directo ===
+      // El fallback píxel a píxel (getImageData/putImageData sobre el frame completo) bloquea
+      // el main thread y congela el canvas → la grabación queda con cortes.
+      ctx.drawImage(video, 0, 0, w, h)
     }
 
     animRef.current = requestAnimationFrame(processFrame)
+  }, [])
+
+  // Sincronizar el ref con el state del modelo
+  useEffect(() => {
+    isModelReadyRef.current = isModelReady
   }, [isModelReady])
+
+  // === FIX CÁMARA v3: pestaña oculta (auto-PiP) pausa requestAnimationFrame ===
+  // Con la pestaña oculta el rAF deja de correr, el canvas no se actualiza y
+  // captureStream() se congela: el video grabado queda cortado (solo avanza el audio).
+  // Solución: mientras esté oculto, dibujar frames ligeros con un setInterval.
+  const stopHiddenLoop = useCallback(() => {
+    if (hiddenIntervalRef.current) {
+      clearInterval(hiddenIntervalRef.current)
+      hiddenIntervalRef.current = 0
+    }
+  }, [])
+
+  const startHiddenLoop = useCallback(() => {
+    stopHiddenLoop()
+    drawLightFrame()
+    hiddenIntervalRef.current = window.setInterval(drawLightFrame, HIDDEN_FRAME_INTERVAL_MS)
+  }, [drawLightFrame, stopHiddenLoop])
+
+  const startVisibleLoop = useCallback(() => {
+    stopHiddenLoop()
+    if (animRef.current) cancelAnimationFrame(animRef.current)
+    lastHeavyFrameRef.current = 0
+    animRef.current = requestAnimationFrame(processFrame)
+  }, [processFrame, stopHiddenLoop])
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (!isRunningRef.current) return
+      if (document.hidden) {
+        console.log('[BgRemoval] 🙈 Pestaña oculta (PiP): rAF → setInterval de frames ligeros')
+        if (animRef.current) {
+          cancelAnimationFrame(animRef.current)
+          animRef.current = 0
+        }
+        startHiddenLoop()
+      } else {
+        console.log('[BgRemoval] 👁 Pestaña visible: restaurando requestAnimationFrame')
+        startVisibleLoop()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      stopHiddenLoop()
+    }
+  }, [startHiddenLoop, startVisibleLoop, stopHiddenLoop])
 
   const startBackgroundRemoval = async (cameraStream: MediaStream): Promise<MediaStream | null> => {
     if (!cameraStream) return null
@@ -423,7 +545,16 @@ export function useBackgroundRemoval() {
     const stream = canvas.captureStream(30)
     setProcessedStream(stream)
 
-    animRef.current = requestAnimationFrame(processFrame)
+    // === FIX CÁMARA v3: arrancar el loop correcto según visibilidad ===
+    isRunningRef.current = true
+    lastHeavyFrameRef.current = 0
+    lastCompositeRef.current = null
+    if (document.hidden) {
+      // Ya estamos ocultos (PiP): el rAF no corre, usar el interval ligero
+      startHiddenLoop()
+    } else {
+      animRef.current = requestAnimationFrame(processFrame)
+    }
 
     return stream
   }
@@ -434,7 +565,11 @@ export function useBackgroundRemoval() {
   }
 
   const cleanup = () => {
+    console.log('[BgRemoval] 🧹 cleanup: deteniendo rAF + interval de pestaña oculta')
+    isRunningRef.current = false
+    stopHiddenLoop()
     if (animRef.current) cancelAnimationFrame(animRef.current)
+    animRef.current = 0
     if (canvasRef.current?.parentNode) {
       canvasRef.current.parentNode.removeChild(canvasRef.current)
     }
@@ -444,6 +579,7 @@ export function useBackgroundRemoval() {
     }
     canvasRef.current = null
     videoRef.current = null
+    lastCompositeRef.current = null
     setProcessedStream(null)
   }
 
