@@ -7,7 +7,7 @@ import { execSync } from 'child_process';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import { query } from '../db';
-import { uploadStream, getPublicUrl } from '../services/storage';
+import { uploadStream } from '../services/storage';
 import { internalError } from '../utils/http';
 
 const router = Router();
