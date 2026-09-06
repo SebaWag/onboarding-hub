@@ -13,6 +13,12 @@ import BackgroundSelector from "../components/BackgroundSelector"
 import { ImagePlus } from "lucide-react"
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
+import {
+  createStreamingUploader,
+  uploadBlobInChunks,
+  describeUploadError,
+} from '../lib/chunkedUpload'
+import type { StreamingUploader, ChunkUploadProgress } from '../lib/chunkedUpload'
 
 interface VideoItem {
   id: string
@@ -37,6 +43,15 @@ export default function Studio() {
   const activeCameraVideoRef = useRef<HTMLVideoElement | null>(null)
   const { processedStream, isModelReady, background, changeBackground, startBackgroundRemoval } = useBackgroundRemoval()
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
+  // Progreso real del chunked upload (chunks y bytes confirmados por el backend)
+  const [uploadProgress, setUploadProgress] = useState<ChunkUploadProgress | null>(null)
+  // Mensaje de error REAL (antes el catch lo tragaba y solo decía "Error al subir")
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  // Uploader en streaming: vive mientras dura la grabación
+  const uploaderRef = useRef<StreamingUploader | null>(null)
+  // Blob del último upload fallido (modo fallback) para poder reintentar
+  const retryBlobRef = useRef<Blob | null>(null)
+  const retryMetaRef = useRef<{ title: string; mimeType: string; filename: string } | null>(null)
   const [videos, setVideos] = useState<VideoItem[]>([])
   const [loadingVideos, setLoadingVideos] = useState(false)
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null)
@@ -46,9 +61,21 @@ export default function Studio() {
   const { isRecording, isPaused, recordingTime, permissionError, screenStream, cameraStream, startRecording, stopRecording, togglePause } = useMediaRecorder({
     audioEnabled: micEnabled,
     cameraEnabled: cameraEnabled,
+    // Fallback legacy (solo se invoca si no hay onChunk): blob completo en RAM
     onDataAvailable: (blob) => { handleUploadRecording(blob) },
-    onError: (error) => { console.error('Recording error:', error) }
+    // Flujo principal: chunked upload en streaming mientras se graba
+    onChunk: (chunk) => { handleRecordingChunk(chunk) },
+    onRecordingStopped: () => { void finishStreamingUpload() },
+    onError: (error) => {
+      console.error('Recording error:', error)
+      setUploadError(error.message)
+      setUploadStatus('error')
+    }
   })
+
+  // recordingTime en un ref: los callbacks del recorder capturan closures viejos
+  const recordingTimeRef = useRef(0)
+  useEffect(() => { recordingTimeRef.current = recordingTime }, [recordingTime])
 
   // --- Camara flotante (Picture-in-Picture nativo del navegador) ---
   // Prioridad del stream: preview -> camara del recorder -> stream procesado (con background)
@@ -113,6 +140,13 @@ if (key) return mediaProxyUrl(key)
 
   const handleStartRecording = async () => {
     setUploadStatus('idle')
+    setUploadError(null)
+    setUploadProgress(null)
+    retryBlobRef.current = null
+    retryMetaRef.current = null
+    // Descartar cualquier uploader previo (grabación abortada antes de tiempo)
+    uploaderRef.current?.abort()
+    uploaderRef.current = null
     let mode: RecordingMode = 'screen-camera'
     if (screenEnabled && !cameraEnabled) mode = 'screen'
     else if (!screenEnabled && cameraEnabled) mode = 'camera'
@@ -168,26 +202,153 @@ if (key) return mediaProxyUrl(key)
     })
   }
 
+  // ---------------------------------------------------------------------------
+  // CHUNKED UPLOAD — flujo principal (streaming mientras se graba)
+  // ---------------------------------------------------------------------------
+
+  /** Crea (una sola vez) el uploader de la sesión, usando el MIME real del chunk. */
+  const ensureUploader = (firstChunk: Blob): StreamingUploader => {
+    if (uploaderRef.current) return uploaderRef.current
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const meta = {
+      filename: 'recording-' + timestamp + '.webm',
+      mimeType: firstChunk.type || 'video/webm',
+      title: 'Grabacion ' + new Date().toLocaleString(),
+    }
+    retryMetaRef.current = meta
+
+    uploaderRef.current = createStreamingUploader({
+      filename: meta.filename,
+      mimeType: meta.mimeType,
+      title: meta.title,
+      onProgress: (p) => setUploadProgress(p),
+    })
+    setUploadStatus('uploading')
+    setUploadError(null)
+    console.log('[UPLOAD] 🚀 Sesion chunked:', uploaderRef.current.uploadId)
+    return uploaderRef.current
+  }
+
+  /** Cada chunk del MediaRecorder (timeslice 5s) se encola y sube al vuelo. */
+  const handleRecordingChunk = (chunk: Blob): void => {
+    try {
+      ensureUploader(chunk).push(chunk)
+    } catch (err) {
+      console.error('[UPLOAD] ❌ No se pudo encolar el chunk:', err)
+      setUploadError(describeUploadError(err))
+      setUploadStatus('error')
+    }
+  }
+
+  /** Al detener la grabación: espera la cola y envía upload-complete. */
+  const finishStreamingUpload = async (): Promise<void> => {
+    const uploader = uploaderRef.current
+    uploaderRef.current = null
+    if (!uploader) {
+      console.warn('[UPLOAD] ⚠️ Sin uploader activo al detener la grabación')
+      return
+    }
+
+    // Duración real: en streaming no hay blob para medir, usamos el timer del
+    // recorder (el backend recalcula con ffprobe; duration_seconds es fallback).
+    const duration = recordingTimeRef.current
+    setUploadStatus('uploading')
+    try {
+      console.log('[UPLOAD] 🏁 Cerrando subida chunked, duración:', duration, 's')
+      const data = await uploader.finish(duration)
+      console.log('[UPLOAD] ✅ Video creado:', data.video?.id, data.video?.status)
+      setUploadStatus('success')
+      setUploadError(null)
+      setUploadProgress((p) => (p ? { ...p, percent: 100, done: true } : p))
+      fetchVideos()
+      setTimeout(() => { setUploadStatus('idle'); setUploadProgress(null) }, 4000)
+    } catch (err) {
+      const message = describeUploadError(err)
+      console.error('[UPLOAD] ❌ Chunked upload falló:', message)
+      setUploadError(message)
+      setUploadStatus('error')
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // FALLBACK — blob completo (modo legacy del hook): se parte en chunks de 8MB
+  // y, si el backend no soporta chunked, cae al upload de archivo único.
+  // ---------------------------------------------------------------------------
+
   const handleUploadRecording = async (blob: Blob) => {
     setUploadStatus('uploading')
+    setUploadError(null)
+    setUploadProgress(null)
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const meta = {
+      filename: 'recording-' + timestamp + '.webm',
+      mimeType: blob.type || 'video/webm',
+      title: 'Grabacion ' + new Date().toLocaleString(),
+    }
+    retryBlobRef.current = blob
+    retryMetaRef.current = meta
+
     try {
       // Calcular duracion REAL desde el blob (el timer de React se desincroniza en background)
       const actualDuration = await getVideoDuration(blob)
       console.log('[UPLOAD] Duracion real:', actualDuration, 's | Timer decia:', recordingTime, 's')
 
+      // 1) Intento: chunked upload (no manda 1 request gigante)
+      try {
+        const data = await uploadBlobInChunks(blob, {
+          filename: meta.filename,
+          mimeType: meta.mimeType,
+          title: meta.title,
+          durationSeconds: actualDuration,
+          onProgress: (p) => setUploadProgress(p),
+        })
+        console.log('[UPLOAD] ✅ Chunked (blob) ok:', data.video?.id)
+        setUploadStatus('success')
+        fetchVideos()
+        setTimeout(() => { setUploadStatus('idle'); setUploadProgress(null) }, 4000)
+        return
+      } catch (chunkErr) {
+        console.warn('[UPLOAD] ⚠️ Chunked falló, probando upload único:', describeUploadError(chunkErr))
+      }
+
+      // 2) Fallback: endpoint legacy de archivo único (debe seguir funcionando)
       const formData = new FormData()
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
       formData.append("duration_seconds", String(actualDuration))
-      formData.append("video", blob, 'recording-' + timestamp + '.webm');
-      formData.append('title', 'Grabacion ' + new Date().toLocaleString())
+      formData.append("video", blob, meta.filename)
+      formData.append('title', meta.title)
       // Upload sin timeout: los videos pueden pesar GBs
       await api.upload('/videos/upload', formData)
       setUploadStatus('success')
+      setUploadProgress(null)
       fetchVideos()
       setTimeout(() => setUploadStatus('idle'), 3000)
-    } catch {
+    } catch (err) {
+      const message = describeUploadError(err)
+      console.error('[UPLOAD] ❌ Falló la subida:', message)
+      setUploadError(message)
       setUploadStatus('error')
     }
+  }
+
+  /** Reintenta la subida fallida (solo posible cuando conservamos el blob). */
+  const handleRetryUpload = async (): Promise<void> => {
+    const blob = retryBlobRef.current
+    if (!blob) {
+      setUploadError('No se puede reintentar: la grabación se subió en streaming y los chunks ya no están en memoria. Vuelve a grabar.')
+      return
+    }
+    console.log('[UPLOAD] ↻ Reintentando subida...')
+    await handleUploadRecording(blob)
+  }
+
+  /** Descarta el error y vuelve al estado inicial. */
+  const handleDismissUploadError = (): void => {
+    setUploadStatus('idle')
+    setUploadError(null)
+    setUploadProgress(null)
+    retryBlobRef.current = null
   }
 
   const fetchVideos = async () => {
@@ -235,11 +396,28 @@ if (key) return mediaProxyUrl(key)
       )}
 
       {uploadStatus === 'uploading' && (
-        <div className="bg-[var(--bg-card)] rounded-xl p-4 border border-teal-200 dark:border-teal-500/20">
+        <div className="bg-[var(--bg-card)] rounded-xl p-4 border border-teal-200 dark:border-teal-500/20" role="status" aria-live="polite">
           <div className="flex items-center gap-3">
-            <div className="animate-spin w-5 h-5 border-2 border-teal-600 dark:border-teal-400 border-t-transparent rounded-full" />
-            <span className="text-teal-600 dark:text-teal-500">Subiendo video...</span>
+            <div className="animate-spin w-5 h-5 border-2 border-teal-600 dark:border-teal-400 border-t-transparent rounded-full" aria-hidden="true" />
+            <span className="text-teal-600 dark:text-teal-500">
+              {uploadProgress && uploadProgress.totalChunks > 0
+                ? `Subiendo chunk ${uploadProgress.uploadedChunks}/${uploadProgress.totalChunks} (${uploadProgress.percent}%)`
+                : 'Subiendo video...'}
+            </span>
+            {uploadProgress && uploadProgress.uploadedBytes > 0 && (
+              <span className="text-xs text-[var(--text-muted)] ml-auto tabular-nums">
+                {(uploadProgress.uploadedBytes / (1024 * 1024)).toFixed(1)} MB
+              </span>
+            )}
           </div>
+          {uploadProgress && uploadProgress.percent > 0 && (
+            <div className="mt-3 h-1.5 rounded-full bg-[var(--bg-hover)] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 transition-all duration-300"
+                style={{ width: `${uploadProgress.percent}%` }}
+              />
+            </div>
+          )}
         </div>
       )}
       
@@ -250,8 +428,30 @@ if (key) return mediaProxyUrl(key)
       )}
 
       {uploadStatus === 'error' && (
-        <div className="bg-[var(--bg-card)] rounded-xl p-4 border border-rose-300 dark:border-rose-500/30">
-          <span className="text-rose-600 dark:text-rose-400">Error al subir el video</span>
+        <div className="bg-[var(--bg-card)] rounded-xl p-4 border border-rose-300 dark:border-rose-500/30" role="alert">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex-1 min-w-0">
+              <p className="text-rose-600 dark:text-rose-400 font-medium">Error al subir el video</p>
+              {uploadError && (
+                <p className="text-sm text-rose-600/80 dark:text-rose-400/80 mt-1 break-words">{uploadError}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => { void handleRetryUpload() }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-600 text-white text-sm font-medium hover:bg-rose-700 transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" /> Reintentar
+              </button>
+              <button
+                onClick={handleDismissUploadError}
+                className="p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] transition-colors"
+                aria-label="Cerrar mensaje de error"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
