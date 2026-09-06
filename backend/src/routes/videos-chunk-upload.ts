@@ -160,13 +160,25 @@ router.post('/upload-complete', authenticate, async (req: AuthRequest, res: Resp
   let totalBytes = 0;
   let ffprobeDuration = 0;
   try {
-    // Concatenar chunks en orden (streaming, sin cargar todo en RAM)
     const out = fs.createWriteStream(concatPath);
+    // Concatenar chunks en orden con STREAMING REAL: cada parte se encadena con
+    // pipe() y se espera su evento 'end' (el backpressure de pipe garantiza que
+    // los datos ya fluyeron al write stream). Nunca se lee un chunk completo a
+    // RAM: un video de 2GB en ~25MB/chunk no satura la memoria del proceso.
+    const pipeChunk = (chunkPath: string) =>
+      new Promise<void>((resolve, reject) => {
+        const rs = fs.createReadStream(chunkPath);
+        rs.on('error', reject);
+        // 'end' de rs se emite tras drenar todos sus datos al write stream (pipe
+        // respeta backpressure), así que es seguro pasar al siguiente chunk.
+        rs.on('end', resolve);
+        rs.pipe(out, { end: false });
+      });
     for (let i = 0; i < totalChunks; i++) {
       const chunkPath = path.join(chunkDir, `${i}.part`);
-      const data = fs.readFileSync(chunkPath);
-      out.write(data);
-      totalBytes += data.length;
+      const stat = fs.statSync(chunkPath);
+      totalBytes += stat.size;
+      await pipeChunk(chunkPath);
     }
     await new Promise<void>((resolve, reject) => {
       out.end((err?: Error | null) => (err ? reject(err) : resolve()));
