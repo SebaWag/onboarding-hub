@@ -138,7 +138,7 @@ async function sendChunk(params: {
   )
 }
 
-/** Envía upload-complete (multipart, sin timeout) y devuelve el registro creado. */
+/** Envía upload-complete (JSON, sin timeout) y devuelve el registro creado. */
 async function sendComplete(params: {
   uploadId: string
   totalChunks: number
@@ -148,17 +148,22 @@ async function sendComplete(params: {
 }): Promise<UploadCompleteData> {
   const { uploadId, totalChunks, title, description, durationSeconds } = params
 
-  const fd = new FormData()
-  fd.append('uploadId', uploadId)
-  fd.append('totalChunks', String(totalChunks))
-  fd.append('title', title)
-  if (description) fd.append('description', description)
-  if (durationSeconds !== undefined && Number.isFinite(durationSeconds)) {
-    fd.append('duration_seconds', String(Math.round(durationSeconds)))
-  }
-
   console.log(`[UPLOAD] 🏁 upload-complete: ${totalChunks} chunks, título "${title}"`)
-  const res = await api.upload<{ success: boolean; data: UploadCompleteData }>('/videos/upload-complete', fd)
+  // IMPORTANTE: upload-complete NO lleva archivo (solo metadatos). Se envía como
+  // JSON porque el endpoint backend NO usa multer — express.json() no parsea
+  // multipart, así que un FormData aquí llegaría con req.body vacío (400).
+  const res = await api.post<{ success: boolean; data: UploadCompleteData }>(
+    '/videos/upload-complete',
+    {
+      uploadId,
+      totalChunks,
+      title,
+      description: description ?? undefined,
+      duration_seconds: durationSeconds !== undefined && Number.isFinite(durationSeconds)
+        ? String(Math.round(durationSeconds))
+        : undefined,
+    }
+  )
   if (!res?.success || !res.data) {
     throw new Error('El servidor no confirmó el ensamblado del video (respuesta inválida en upload-complete)')
   }
