@@ -16,8 +16,20 @@ export interface RecordingState {
 export interface UseMediaRecorderOptions {
   audioEnabled?: boolean
   cameraEnabled?: boolean
+  /** Flujo legacy: se llama al detener con el Blob completo (acumulado en RAM). */
   onDataAvailable?: (blob: Blob) => void
   onError?: (error: Error) => void
+  /**
+   * Flujo STREAMING (chunked upload): se llama por cada chunk que emite el
+   * timeslice del MediaRecorder. Si está presente, los chunks NO se acumulan
+   * en memoria (un video de 1h+ no revienta la RAM del navegador).
+   */
+  onChunk?: (chunk: Blob, chunkIndex: number) => void
+  /**
+   * Flujo STREAMING: avisa que la grabación terminó y todos los chunks ya
+   * fueron emitidos por onChunk (momento de enviar upload-complete).
+   */
+  onRecordingStopped?: (info: { mimeType: string; chunkCount: number }) => void
 }
 
 export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
@@ -25,7 +37,9 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
     audioEnabled = true,
     cameraEnabled = true,
     onDataAvailable,
-    onError
+    onError,
+    onChunk,
+    onRecordingStopped
   } = options
 
   const [state, setState] = useState<RecordingState>({
@@ -41,6 +55,14 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  // Contador de chunks emitidos en modo streaming (no retenemos los blobs).
+  const streamChunkCountRef = useRef(0)
+  // Refs de los callbacks de streaming: evitan re-crear startRecording en cada
+  // render (el consumidor puede pasar funciones inline).
+  const onChunkRef = useRef(onChunk)
+  const onRecordingStoppedRef = useRef(onRecordingStopped)
+  useEffect(() => { onChunkRef.current = onChunk }, [onChunk])
+  useEffect(() => { onRecordingStoppedRef.current = onRecordingStopped }, [onRecordingStopped])
   const timerRef = useRef<number | null>(null)
   const combinedStreamRef = useRef<MediaStream | null>(null)
   const streamsRef = useRef<{ screen: MediaStream | null, camera: MediaStream | null, audio: MediaStream | null }>({ screen: null, camera: null, audio: null })
@@ -72,6 +94,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
     combinedStreamRef.current = null
     mediaRecorderRef.current = null
     chunksRef.current = []
+    streamChunkCountRef.current = 0
     streamsRef.current = { screen: null, camera: null, audio: null }
     canvasRef.current = null
     screenVideoRef.current = null
@@ -335,17 +358,44 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
       })
 
       chunksRef.current = []
+      streamChunkCountRef.current = 0
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data)
-          console.log('[RECORDER] 📦 Chunk:', e.data.size, 'bytes, total:', chunksRef.current.length)
+        if (e.data.size <= 0) return
+
+        // MODO STREAMING (chunked upload): entregamos el chunk al consumidor
+        // apenas se genera y NO lo acumulamos en memoria. Es lo que permite
+        // grabar 1h+ sin llegar a ~1.3GB de RAM.
+        if (onChunkRef.current) {
+          const chunkIndex = streamChunkCountRef.current++
+          console.log('[RECORDER] 📦 Chunk streaming #' + chunkIndex + ':', e.data.size, 'bytes')
+          onChunkRef.current(e.data, chunkIndex)
+          return
         }
+
+        // MODO LEGACY: acumular para armar un único Blob al detener.
+        chunksRef.current.push(e.data)
+        console.log('[RECORDER] 📦 Chunk:', e.data.size, 'bytes, total:', chunksRef.current.length)
       }
 
       recorder.onstop = () => {
         console.log('[RECORDER] ⏹️ Grabación detenida, chunks:', chunksRef.current.length)
         if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+
+        // MODO STREAMING: no existe un Blob final (nunca lo acumulamos).
+        // Avisamos al consumidor para que cierre la subida (upload-complete).
+        if (onChunkRef.current) {
+          const chunkCount = streamChunkCountRef.current
+          console.log('[RECORDER] 🎬 Streaming finalizado, chunks emitidos:', chunkCount)
+          if (chunkCount > 0) {
+            onRecordingStoppedRef.current?.({ mimeType, chunkCount })
+          } else {
+            console.error('[RECORDER] ❌ Sin datos (streaming)!')
+            onError?.(new Error('La grabación no generó datos'))
+          }
+          return
+        }
+
         if (chunksRef.current.length > 0) {
           const blob = new Blob(chunksRef.current, { type: mimeType })
           console.log('[RECORDER] 🎬 Blob final:', blob.size, 'bytes')
@@ -361,7 +411,9 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
       }
 
       // 6. Iniciar grabación
-      recorder.start(1000) // Chunks de 1 segundo
+      // timeslice de 5s: en modo streaming genera ~1.9MB/chunk (3Mbps) que se
+      // sube al vuelo; en modo legacy reduce el overhead de eventos.
+      recorder.start(5000)
       mediaRecorderRef.current = recorder
 
       timerRef.current = window.setInterval(() => {
