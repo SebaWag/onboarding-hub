@@ -25,6 +25,10 @@ export const BACKGROUNDS: BackgroundOption[] = [
   { mode: 'image', image: '/backgrounds/office-harvey.jpg', label: 'Harvey Specter', thumbnail: '/backgrounds/office-harvey.jpg' },
   { mode: 'image', image: '/backgrounds/office-futuristic.jpg', label: 'Oficina Futurista', thumbnail: '/backgrounds/office-futuristic.jpg' },
   { mode: 'image', image: '/backgrounds/office-library.jpg', label: 'Biblioteca', thumbnail: '/backgrounds/office-library.jpg' },
+  // Fondos del Lab — Fuera del Lab (canal YouTube)
+  { mode: 'image', image: '/backgrounds/lab-servidores.jpg', label: 'Lab: Servidores', thumbnail: '/backgrounds/lab-servidores.jpg' },
+  { mode: 'image', image: '/backgrounds/lab-terminal.jpg', label: 'Lab: Terminal', thumbnail: '/backgrounds/lab-terminal.jpg' },
+  { mode: 'image', image: '/backgrounds/lab-taller.jpg', label: 'Lab: Taller', thumbnail: '/backgrounds/lab-taller.jpg' },
   // Efecto Matrix
   { mode: 'matrix', label: 'Matrix Rain' },
 ]
