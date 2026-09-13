@@ -29,6 +29,7 @@ import videoProxyRoutes from './routes/video-proxy';
 import analyticsRoutes from './routes/analytics';
 import usersRoutes from './routes/users';
 import videoInteractionsRoutes from './routes/video-interactions';
+import videoZoomRoutes from './routes/video-zoom';
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -63,6 +64,7 @@ app.use('/api/programs', programsRoutes);
 app.use('/api/modules', modulesRoutes);
 app.use('/api/contents', contentsRoutes);
 app.use('/api/videos', videoInteractionsRoutes);
+app.use('/api/videos', videoZoomRoutes);
 app.use('/api/videos', videosUploadRoutes);
 app.use('/api/videos', videosChunkUploadRoutes);
 app.use('/api/videos', videosProcessRoutes);
