@@ -31,6 +31,8 @@ describe('buildZoomFilter', () => {
   it('construye un zoompan con z/x/y y el tamaño pedido', () => {
     const f = buildZoomFilter([{ startMs: 1000, endMs: 3000, depth: 3, focus: { cx: 0.5, cy: 0.5 } }], 1920, 1080);
     expect(f).toContain('zoompan=');
+    // El prefijo fps=30 es obligatorio (evita la compresión de tiempo de zoompan)
+    expect(f!.startsWith('fps=30,zoompan=')).toBe(true);
     expect(f).toContain('s=1920x1080');
     expect(f).toContain("z='");
     expect(f).toContain('in_time');
