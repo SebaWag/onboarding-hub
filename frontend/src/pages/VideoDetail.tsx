@@ -9,6 +9,7 @@ import VideoPlayer from '../components/video/VideoPlayer'
 import VideoMeta from '../components/video/VideoMeta'
 import CommentsSection from '../components/video/CommentsSection'
 import type { VideoData, ChatMessage, VideoComment, Chapter, TranscriptSegment } from '../components/video/video-types'
+import type { ZoomRegion } from '../lib/zoom'
 
 // ============ TYPES ============
 
@@ -60,6 +61,9 @@ export default function VideoDetail() {
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(1)
   const videoContainerRef = useRef<HTMLDivElement>(null)
+  // Zoom automático (preview en reproducción)
+  const [zoomRegions, setZoomRegions] = useState<ZoomRegion[]>([])
+  const [zoomEnabled, setZoomEnabled] = useState(true)
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -111,6 +115,14 @@ export default function VideoDetail() {
           if (videoData.duration_seconds) {
             setDuration(videoData.duration_seconds)
           }
+        }
+
+        // Regiones de zoom (auto-zoom) del video
+        try {
+          const zoomRes = await api.get<{ success: boolean; data?: ZoomRegion[] }>(`/videos/${id}/zoom-regions`)
+          if (zoomRes.success && Array.isArray(zoomRes.data)) setZoomRegions(zoomRes.data)
+        } catch (zoomErr) {
+          console.warn('[ZOOM] No se pudieron cargar las regiones:', zoomErr)
         }
 
         setStreamUrl(videoRes.data.stream_url)
@@ -578,6 +590,8 @@ export default function VideoDetail() {
             chapters={chapters} togglePlay={togglePlay} skip={skip}
             toggleMute={toggleMute} handleVolumeChange={handleVolumeChange}
             toggleFullscreen={toggleFullscreen} handleProgressClick={handleProgressClick}
+            zoomRegions={zoomRegions} zoomEnabled={zoomEnabled}
+            onToggleZoom={() => setZoomEnabled(v => !v)}
           />
           {/* Video Info */}
           <VideoMeta
