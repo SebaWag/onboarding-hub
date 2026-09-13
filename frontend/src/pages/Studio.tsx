@@ -13,6 +13,8 @@ import BackgroundSelector from "../components/BackgroundSelector"
 import { ImagePlus } from "lucide-react"
 import { api } from '../lib/api'
 import type { ApiResponse } from '../lib/api'
+import { compressTelemetry, suggestZoomRegions } from '../lib/zoom'
+import type { CursorTelemetryPoint } from '../lib/zoom'
 import {
   createStreamingUploader,
   uploadBlobInChunks,
@@ -54,6 +56,8 @@ export default function Studio() {
   // Blob del último upload fallido (modo fallback) para poder reintentar
   const retryBlobRef = useRef<Blob | null>(null)
   const retryMetaRef = useRef<{ title: string; mimeType: string; filename: string } | null>(null)
+  // Telemetría de cursor de la última grabación (para sugerir/guardar zooms)
+  const telemetrySamplesRef = useRef<CursorTelemetryPoint[]>([])
   const [videos, setVideos] = useState<VideoItem[]>([])
   const [loadingVideos, setLoadingVideos] = useState(false)
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null)
@@ -70,6 +74,7 @@ export default function Studio() {
     // Flujo principal: chunked upload en streaming mientras se graba
     onChunk: (chunk) => { handleRecordingChunk(chunk) },
     onRecordingStopped: () => { void finishStreamingUpload() },
+    onTelemetryCaptured: (samples) => { telemetrySamplesRef.current = samples },
     onError: (error) => {
       console.error('Recording error:', error)
       setUploadError(error.message)
@@ -148,6 +153,7 @@ if (key) return mediaProxyUrl(key)
     setUploadProgress(null)
     retryBlobRef.current = null
     retryMetaRef.current = null
+    telemetrySamplesRef.current = []
     // Descartar cualquier uploader previo (grabación abortada antes de tiempo)
     uploaderRef.current?.abort()
     uploaderRef.current = null
@@ -245,6 +251,26 @@ if (key) return mediaProxyUrl(key)
     }
   }
 
+  /** Guarda telemetría de cursor + regiones de zoom sugeridas para un video. */
+  const saveZoomData = async (videoId: string): Promise<void> => {
+    const samples = telemetrySamplesRef.current
+    if (!samples || samples.length === 0) return
+    try {
+      const compressed = compressTelemetry(samples)
+      const totalMs = Math.max(0, recordingTimeRef.current * 1000)
+      const regions = suggestZoomRegions(compressed, totalMs)
+      await api.put(`/videos/${videoId}/cursor-telemetry`, { samples: compressed }, { timeoutMs: 60000 })
+      if (regions.length > 0) {
+        await api.put(`/videos/${videoId}/zoom-regions`, { regions }, { timeoutMs: 30000 })
+      }
+      console.log('[ZOOM] ✅ Guardado:', compressed.length, 'samples ·', regions.length, 'regiones')
+    } catch (err) {
+      console.warn('[ZOOM] ⚠️ No se pudo guardar telemetría/regiones:', err)
+    } finally {
+      telemetrySamplesRef.current = []
+    }
+  }
+
   /** Al detener la grabación: espera la cola y envía upload-complete. */
   const finishStreamingUpload = async (): Promise<void> => {
     const uploader = uploaderRef.current
@@ -262,6 +288,7 @@ if (key) return mediaProxyUrl(key)
       console.log('[UPLOAD] 🏁 Cerrando subida chunked, duración:', duration, 's')
       const data = await uploader.finish(duration)
       console.log('[UPLOAD] ✅ Video creado:', data.video?.id, data.video?.status)
+      if (data.video?.id) void saveZoomData(data.video.id)
       setUploadStatus('success')
       setUploadError(null)
       setUploadProgress((p) => (p ? { ...p, percent: 100, done: true } : p))

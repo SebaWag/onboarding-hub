@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { CursorTelemetryRecorder } from '../lib/zoom/cursorTelemetry'
 import { LiveZoomController } from '../lib/zoom/liveZoomController'
 import { toSourceRect } from '../lib/zoom/zoomTransform'
-import type { ZoomDepth } from '../lib/zoom/types'
+import type { CursorTelemetryPoint, ZoomDepth } from '../lib/zoom/types'
 
 export type RecordingMode = 'screen' | 'camera' | 'screen-camera'
 
@@ -38,6 +38,10 @@ export interface UseMediaRecorderOptions {
   autoZoomEnabled?: boolean
   /** Profundidad del auto-zoom (escala = ZOOM_DEPTH_SCALES[depth]). Default 2 (1.5x). */
   autoZoomDepth?: ZoomDepth
+  /** Captura telemetría de cursor (modos con pantalla) para sugerir zooms. Default true. */
+  captureZoomTelemetry?: boolean
+  /** Se llama al detener con los samples de cursor capturados. */
+  onTelemetryCaptured?: (samples: CursorTelemetryPoint[]) => void
 }
 
 export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
@@ -49,7 +53,9 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
     onChunk,
     onRecordingStopped,
     autoZoomEnabled = false,
-    autoZoomDepth = 2
+    autoZoomDepth = 2,
+    captureZoomTelemetry = true,
+    onTelemetryCaptured
   } = options
 
   const [state, setState] = useState<RecordingState>({
@@ -73,6 +79,8 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
   const onRecordingStoppedRef = useRef(onRecordingStopped)
   useEffect(() => { onChunkRef.current = onChunk }, [onChunk])
   useEffect(() => { onRecordingStoppedRef.current = onRecordingStopped }, [onRecordingStopped])
+  const onTelemetryCapturedRef = useRef(onTelemetryCaptured)
+  useEffect(() => { onTelemetryCapturedRef.current = onTelemetryCaptured }, [onTelemetryCaptured])
   const timerRef = useRef<number | null>(null)
   const combinedStreamRef = useRef<MediaStream | null>(null)
   const streamsRef = useRef<{ screen: MediaStream | null, camera: MediaStream | null, audio: MediaStream | null }>({ screen: null, camera: null, audio: null })
@@ -181,6 +189,14 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
 
       streamsRef.current = { screen: screenStream, camera: cameraStream, audio: audioStream }
 
+      // 3.b) Telemetría de cursor (solo modos con pantalla) → para sugerir zooms
+      if (captureZoomTelemetry && (mode === 'screen' || mode === 'screen-camera')) {
+        const telemetryRecorder = new CursorTelemetryRecorder()
+        telemetryRecorder.start()
+        telemetryRef.current = telemetryRecorder
+        console.log('[RECORDER] 🖱️ Telemetría de cursor activada')
+      }
+
       // 4. Crear stream combinado
       let combinedStream: MediaStream
       const hasScreen = screenStream && screenStream?.getVideoTracks().length > 0
@@ -234,14 +250,12 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
 
         // --- AUTO-ZOOM: captura de cursor + controlador de cámara en vivo ---
         const autoZoom = autoZoomEnabled
-        let telemetry: CursorTelemetryRecorder | null = null
+        // La telemetría ya se captura a nivel de startRecording; aquí la consumimos.
+        const telemetry = telemetryRef.current
         let zoomController: LiveZoomController | null = null
         let telemetryIndex = 0
         let lastTransform = { scale: 1, x: 0, y: 0 }
-        if (autoZoom) {
-          telemetry = new CursorTelemetryRecorder()
-          telemetry.start()
-          telemetryRef.current = telemetry
+        if (autoZoom && telemetry) {
           zoomController = new LiveZoomController({
             depth: autoZoomDepth,
             stageSize: { width: canvas.width, height: canvas.height },
@@ -500,7 +514,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
       cleanup()
       return false
     }
-  }, [audioEnabled, cameraEnabled, autoZoomEnabled, autoZoomDepth, cleanup, onDataAvailable, onError])
+  }, [audioEnabled, cameraEnabled, autoZoomEnabled, autoZoomDepth, captureZoomTelemetry, cleanup, onDataAvailable, onError])
 
   const stopRecording = useCallback(() => {
     console.log('[RECORDER] ⏹️ Deteniendo...')
@@ -509,9 +523,15 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
       mediaRecorderRef.current?.stop()
     }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
-    telemetryRef.current?.stop()
-    telemetryRef.current = null
     pausedRef.current = false
+    // Capturar la telemetría ANTES de soltarla (para sugerir zooms después)
+    const telemetryRecorder = telemetryRef.current
+    if (telemetryRecorder) {
+      const captured = [...telemetryRecorder.getSamples()]
+      telemetryRecorder.stop()
+      telemetryRef.current = null
+      if (captured.length > 0) onTelemetryCapturedRef.current?.(captured)
+    }
     
     streamsRef.current.screen?.getTracks().forEach(t => t.stop())
     streamsRef.current.camera?.getTracks().forEach(t => t.stop())
