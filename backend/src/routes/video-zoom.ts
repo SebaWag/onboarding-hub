@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import pool, { query } from '../db';
 import { internalError } from '../utils/http';
+import { getZoomRenderJob, startZoomRender } from '../services/zoom-render';
 
 const router = Router();
 
@@ -267,6 +268,59 @@ router.put('/:id/cursor-telemetry', authenticate, async (req: AuthRequest, res: 
     );
 
     res.json({ success: true, data: { sampleCount: sanitized.length } });
+  } catch (err: any) {
+    internalError(res, err);
+  }
+});
+
+// =====================================================
+// RENDER (exportar el zoom "horneado" en un MP4)
+// =====================================================
+
+// POST /api/videos/:id/zoom-render — lanza el render en segundo plano
+router.post('/:id/zoom-render', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const videoId = req.params.id;
+    const access = await assertVideoAccess(req.user!.id, videoId);
+    if (access !== 'ok') {
+      deny(res, access);
+      return;
+    }
+    const state = await startZoomRender(videoId);
+    res.json({ success: true, data: state });
+  } catch (err: any) {
+    internalError(res, err);
+  }
+});
+
+// GET /api/videos/:id/zoom-render — estado del render + key del resultado
+router.get('/:id/zoom-render', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const videoId = req.params.id;
+    const access = await assertVideoAccess(req.user!.id, videoId);
+    if (access !== 'ok') {
+      deny(res, access);
+      return;
+    }
+
+    const job = getZoomRenderJob(videoId);
+    if (job.status === 'rendering' || job.status === 'error') {
+      res.json({ success: true, data: job });
+      return;
+    }
+
+    // Sin trabajo activo: devolver el render persistido (si existe).
+    const result = await query('SELECT metadata FROM videos WHERE id = $1', [videoId]);
+    const persisted = result.rows[0]?.metadata?.zoom_render;
+    if (persisted?.key) {
+      res.json({
+        success: true,
+        data: { status: 'done', progress: 100, key: persisted.key, updatedAt: Date.now() },
+      });
+      return;
+    }
+
+    res.json({ success: true, data: job });
   } catch (err: any) {
     internalError(res, err);
   }

@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { ZoomIn, Sparkles, Plus, Trash2, Save, Loader2 } from 'lucide-react'
-import { cn } from '../../lib/utils'
+import { useCallback, useEffect, useState } from 'react'
+import { ZoomIn, Sparkles, Plus, Trash2, Save, Loader2, Film, Download } from 'lucide-react'
+import { cn, mediaProxyUrl } from '../../lib/utils'
+import { api } from '../../lib/api'
 import { useToast } from '../../lib/toast'
 import { ZOOM_DEPTH_SCALES, suggestZoomRegions } from '../../lib/zoom'
 import type { CursorTelemetryPoint, ZoomDepth, ZoomRegion } from '../../lib/zoom'
@@ -10,7 +11,16 @@ const DEFAULT_NEW_DEPTH: ZoomDepth = 3
 /** Duración de una región creada a mano (ms). */
 const MANUAL_REGION_MS = 3000
 
+interface ZoomRenderState {
+  status: 'idle' | 'rendering' | 'done' | 'error'
+  progress: number
+  message?: string
+  key?: string
+}
+
 interface ZoomTimelineProps {
+  /** Id del video (para exportar el render). */
+  videoId: string
   regions: ZoomRegion[]
   /** Cambios inmediatos (el padre persiste con debounce). */
   onChange: (regions: ZoomRegion[]) => void
@@ -33,6 +43,7 @@ function formatSec(ms: number): string {
  * timeline, ajuste de profundidad, borrado, crear a mano y "Sugerir zooms".
  */
 export default function ZoomTimeline({
+  videoId,
   regions,
   onChange,
   duration,
@@ -43,7 +54,51 @@ export default function ZoomTimeline({
 }: ZoomTimelineProps) {
   const toast = useToast()
   const [busy, setBusy] = useState(false)
+  const [render, setRender] = useState<ZoomRenderState>({ status: 'idle', progress: 0 })
   const durationMs = Math.max(1, duration * 1000)
+
+  // Estado inicial del render (por si ya se exportó antes)
+  useEffect(() => {
+    let active = true
+    api
+      .get<{ success: boolean; data?: ZoomRenderState }>(`/videos/${videoId}/zoom-render`)
+      .then((res) => {
+        if (active && res.success && res.data) setRender(res.data)
+      })
+      .catch(() => { /* sin render previo */ })
+    return () => {
+      active = false
+    }
+  }, [videoId])
+
+  // Polling mientras renderiza
+  useEffect(() => {
+    if (render.status !== 'rendering') return
+    const timer = window.setInterval(() => {
+      api
+        .get<{ success: boolean; data?: ZoomRenderState }>(`/videos/${videoId}/zoom-render`)
+        .then((res) => {
+          if (res.success && res.data) setRender(res.data)
+        })
+        .catch(() => { /* reintenta en el próximo tick */ })
+    }, 2000)
+    return () => window.clearInterval(timer)
+  }, [render.status, videoId])
+
+  const handleExport = useCallback(async () => {
+    try {
+      const res = await api.post<{ success: boolean; data?: ZoomRenderState }>(
+        `/videos/${videoId}/zoom-render`,
+      )
+      if (res.success && res.data) {
+        setRender(res.data)
+        toast.info('Renderizando el video con zoom…')
+      }
+    } catch (err) {
+      console.warn('[ZOOM] No se pudo iniciar el render:', err)
+      toast.error('No se pudo iniciar la exportación')
+    }
+  }, [videoId, toast])
 
   const sorted = [...regions].sort((a, b) => a.startMs - b.startMs)
 
@@ -166,6 +221,30 @@ export default function ZoomTimeline({
             style={{ left: `${Math.min(100, (currentTime * 1000 / durationMs) * 100)}%` }}
           />
         </div>
+      </div>
+
+      {/* Exportar con zoom */}
+      <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-[var(--border-color)]">
+        <button
+          onClick={handleExport}
+          disabled={render.status === 'rendering' || sorted.length === 0}
+          className="btn-secondary gap-2 py-2 px-3 text-sm disabled:opacity-50"
+          title="Hornear el zoom en un MP4 para compartir/descargar"
+        >
+          {render.status === 'rendering' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />}
+          {render.status === 'rendering' ? `Renderizando ${render.progress}%` : 'Exportar con zoom'}
+        </button>
+        {render.status === 'done' && render.key && (
+          <a href={mediaProxyUrl(render.key)} download className="btn-primary gap-2 py-2 px-3 text-sm">
+            <Download className="w-4 h-4" />
+            Descargar MP4
+          </a>
+        )}
+        {render.status === 'error' && (
+          <span className="text-xs text-rose-400 max-w-full truncate" title={render.message}>
+            {render.message || 'Error al exportar'}
+          </span>
+        )}
       </div>
 
       {/* Lista de regiones */}

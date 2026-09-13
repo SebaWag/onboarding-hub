@@ -628,6 +628,7 @@ export default function VideoDetail() {
           />
           {/* Zoom Timeline (edición de zonas) */}
           <ZoomTimeline
+            videoId={id!}
             regions={zoomRegions}
             onChange={updateZoomRegions}
             duration={duration}
