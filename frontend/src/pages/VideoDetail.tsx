@@ -6,6 +6,7 @@ import { useEscapeKey } from '../hooks/useEscapeKey'
 import { apiRequest, api, type RequestOptions } from '../lib/api'
 import { useToast } from '../lib/toast'
 import VideoPlayer from '../components/video/VideoPlayer'
+import ZoomTimeline from '../components/video/ZoomTimeline'
 import VideoMeta from '../components/video/VideoMeta'
 import CommentsSection from '../components/video/CommentsSection'
 import type { VideoData, ChatMessage, VideoComment, Chapter, TranscriptSegment } from '../components/video/video-types'
@@ -65,6 +66,8 @@ export default function VideoDetail() {
   const [zoomRegions, setZoomRegions] = useState<ZoomRegion[]>([])
   const [zoomTelemetry, setZoomTelemetry] = useState<CursorTelemetryPoint[] | null>(null)
   const [zoomEnabled, setZoomEnabled] = useState(true)
+  const [zoomSaving, setZoomSaving] = useState(false)
+  const zoomSaveTimerRef = useRef<number | null>(null)
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -97,6 +100,31 @@ export default function VideoDetail() {
   const [isGeneratingShare, setIsGeneratingShare] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   useEscapeKey(isShareModalOpen, () => setIsShareModalOpen(false))
+
+  // Persiste las regiones de zoom con debounce (edición en la UI).
+  const persistZoomRegions = useCallback(async (next: ZoomRegion[]) => {
+    if (!id) return
+    setZoomSaving(true)
+    try {
+      await api.put(`/videos/${id}/zoom-regions`, { regions: next })
+    } catch (err) {
+      console.warn('[ZOOM] No se pudieron guardar las regiones:', err)
+      toast.error('No se pudieron guardar las zonas de zoom')
+    } finally {
+      setZoomSaving(false)
+    }
+  }, [id, toast])
+
+  const updateZoomRegions = useCallback((next: ZoomRegion[]) => {
+    setZoomRegions(next)
+    if (zoomSaveTimerRef.current) window.clearTimeout(zoomSaveTimerRef.current)
+    zoomSaveTimerRef.current = window.setTimeout(() => { void persistZoomRegions(next) }, 600)
+  }, [persistZoomRegions])
+
+  // Limpiar el timer al desmontar
+  useEffect(() => () => {
+    if (zoomSaveTimerRef.current) window.clearTimeout(zoomSaveTimerRef.current)
+  }, [])
 
   // ============ FETCH VIDEO ============
   useEffect(() => {
@@ -597,6 +625,16 @@ export default function VideoDetail() {
             toggleFullscreen={toggleFullscreen} handleProgressClick={handleProgressClick}
             zoomRegions={zoomRegions} zoomTelemetry={zoomTelemetry} zoomEnabled={zoomEnabled}
             onToggleZoom={() => setZoomEnabled(v => !v)}
+          />
+          {/* Zoom Timeline (edición de zonas) */}
+          <ZoomTimeline
+            regions={zoomRegions}
+            onChange={updateZoomRegions}
+            duration={duration}
+            currentTime={currentTime}
+            telemetry={zoomTelemetry}
+            onSeek={seekTo}
+            saving={zoomSaving}
           />
           {/* Video Info */}
           <VideoMeta
