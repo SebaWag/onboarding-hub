@@ -1,8 +1,9 @@
 import type { RefObject } from 'react'
 import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward,
-  Sparkles } from 'lucide-react'
+  Sparkles, ZoomIn } from 'lucide-react'
 import { formatTime, parseTimeToSeconds, type Chapter } from './video-types'
+import { computeZoomFrame, zoomFrameToCss, type ZoomRegion } from '../../lib/zoom'
 
 interface VideoPlayerProps {
   videoRef: RefObject<HTMLVideoElement | null>
@@ -26,6 +27,11 @@ interface VideoPlayerProps {
   handleVolumeChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   toggleFullscreen: () => void
   handleProgressClick: (e: React.MouseEvent<HTMLDivElement>) => void
+  /** Regiones de zoom auto-sugeridas (preview en reproducción). */
+  zoomRegions?: ZoomRegion[]
+  /** Si el preview de zoom está activo. */
+  zoomEnabled?: boolean
+  onToggleZoom?: () => void
 }
 
 /**
@@ -57,7 +63,14 @@ export default function VideoPlayer({
   currentTime, setCurrentTime, duration, setDuration, volume, isMuted,
   isFullscreen, chapters, togglePlay, skip, toggleMute,
   handleVolumeChange, toggleFullscreen, handleProgressClick,
+  zoomRegions = [], zoomEnabled = true, onToggleZoom,
 }: VideoPlayerProps) {
+  // Preview de zoom: aplica el transform de la región activa al <video>.
+  const zoomCss =
+    zoomEnabled && zoomRegions.length > 0
+      ? zoomFrameToCss(computeZoomFrame(zoomRegions, currentTime * 1000))
+      : { transform: 'none', transformOrigin: '0 0', active: false }
+
   return (
     <>
           {/* Video Player */}
@@ -68,6 +81,7 @@ export default function VideoPlayer({
                 src={videoSrc}
                 poster={poster}
                 className="w-full h-full object-contain bg-black"
+                style={{ transform: zoomCss.transform, transformOrigin: zoomCss.transformOrigin }}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
@@ -160,6 +174,15 @@ export default function VideoPlayer({
                       className="w-20 h-1 accent-teal-500 opacity-0 group-hover/vol:opacity-100 transition-opacity"
                     />
                   </div>
+                  {zoomRegions.length > 0 && onToggleZoom && (
+                    <button
+                      onClick={onToggleZoom}
+                      className={`p-2 rounded-lg transition-colors ${zoomEnabled ? 'text-teal-400 bg-teal-500/10' : 'text-surface-400 hover:text-white hover:bg-white/5'}`}
+                      title={zoomEnabled ? 'Desactivar zoom automático' : 'Activar zoom automático'}
+                    >
+                      <ZoomIn className="w-5 h-5" />
+                    </button>
+                  )}
                   <button onClick={toggleFullscreen} className="p-2 rounded-lg text-surface-400 hover:text-white hover:bg-white/5 transition-colors">
                     {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
                   </button>
