@@ -1,4 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { CursorTelemetryRecorder } from '../lib/zoom/cursorTelemetry'
+import { LiveZoomController } from '../lib/zoom/liveZoomController'
+import { toSourceRect } from '../lib/zoom/zoomTransform'
+import type { ZoomDepth } from '../lib/zoom/types'
 
 export type RecordingMode = 'screen' | 'camera' | 'screen-camera'
 
@@ -30,6 +34,10 @@ export interface UseMediaRecorderOptions {
    * fueron emitidos por onChunk (momento de enviar upload-complete).
    */
   onRecordingStopped?: (info: { mimeType: string; chunkCount: number }) => void
+  /** Activa la cámara automática (auto-zoom) sobre la composición de pantalla. */
+  autoZoomEnabled?: boolean
+  /** Profundidad del auto-zoom (escala = ZOOM_DEPTH_SCALES[depth]). Default 2 (1.5x). */
+  autoZoomDepth?: ZoomDepth
 }
 
 export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
@@ -39,7 +47,9 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
     onDataAvailable,
     onError,
     onChunk,
-    onRecordingStopped
+    onRecordingStopped,
+    autoZoomEnabled = false,
+    autoZoomDepth = 2
   } = options
 
   const [state, setState] = useState<RecordingState>({
@@ -71,6 +81,10 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
   const screenVideoRef = useRef<HTMLVideoElement | null>(null)
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null)
   const visibilityHandlerRef = useRef<(() => void) | null>(null)
+  // Auto-zoom: captura de telemetría + controlador de cámara + estado de pausa
+  const telemetryRef = useRef<CursorTelemetryRecorder | null>(null)
+  const zoomControllerRef = useRef<LiveZoomController | null>(null)
+  const pausedRef = useRef(false)
 
   const cleanup = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
@@ -90,6 +104,11 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
     
     // Limpiar event listener de visibility
     if (visibilityHandlerRef.current) { visibilityHandlerRef.current() }
+
+    // Detener captura de telemetría del auto-zoom
+    telemetryRef.current?.stop()
+    telemetryRef.current = null
+    zoomControllerRef.current = null
     
     combinedStreamRef.current = null
     mediaRecorderRef.current = null
@@ -212,6 +231,24 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         ])
         
         console.log('[RECORDER] ✅ Videos listos')
+
+        // --- AUTO-ZOOM: captura de cursor + controlador de cámara en vivo ---
+        const autoZoom = autoZoomEnabled
+        let telemetry: CursorTelemetryRecorder | null = null
+        let zoomController: LiveZoomController | null = null
+        let telemetryIndex = 0
+        let lastTransform = { scale: 1, x: 0, y: 0 }
+        if (autoZoom) {
+          telemetry = new CursorTelemetryRecorder()
+          telemetry.start()
+          telemetryRef.current = telemetry
+          zoomController = new LiveZoomController({
+            depth: autoZoomDepth,
+            stageSize: { width: canvas.width, height: canvas.height },
+          })
+          zoomControllerRef.current = zoomController
+          console.log('[RECORDER] 🎥 Auto-zoom activado (depth', autoZoomDepth, ')')
+        }
         
         const CAM_W = 400
         const CAM_H = 300
@@ -235,7 +272,24 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
           lastFrameTime = timestamp
           
           try {
-            ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
+            if (autoZoom && telemetry && zoomController) {
+              // Alimentar el controlador con la telemetría nueva acumulada
+              const samples = telemetry.getSamples()
+              while (telemetryIndex < samples.length) {
+                zoomController.ingest(samples[telemetryIndex])
+                telemetryIndex++
+              }
+              if (!pausedRef.current) {
+                const cursor = telemetry.isCursorInside() ? telemetry.getCursorFocus() : null
+                lastTransform = zoomController.frame(telemetry.now(), cursor)
+              }
+              const vw = screenVideo.videoWidth || canvas.width
+              const vh = screenVideo.videoHeight || canvas.height
+              const rect = toSourceRect(lastTransform, vw, vh)
+              ctx.drawImage(screenVideo, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, canvas.width, canvas.height)
+            } else {
+              ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
+            }
             
             if (cameraVideoRef.current) {
               ctx.save()
@@ -276,7 +330,10 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
             isRendererActive = false
             intervalRef.current = window.setInterval(() => {
               try {
-                ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
+                const hvVw = screenVideo.videoWidth || canvas.width
+                const hvVh = screenVideo.videoHeight || canvas.height
+                const hvRect = toSourceRect(lastTransform, hvVw, hvVh)
+                ctx.drawImage(screenVideo, hvRect.sx, hvRect.sy, hvRect.sw, hvRect.sh, 0, 0, canvas.width, canvas.height)
                 if (cameraVideoRef.current) {
                   ctx.drawImage(cameraVideoRef.current, CAM_X, CAM_Y, CAM_W, CAM_H)
                 }
@@ -443,7 +500,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
       cleanup()
       return false
     }
-  }, [audioEnabled, cameraEnabled, cleanup, onDataAvailable, onError])
+  }, [audioEnabled, cameraEnabled, autoZoomEnabled, autoZoomDepth, cleanup, onDataAvailable, onError])
 
   const stopRecording = useCallback(() => {
     console.log('[RECORDER] ⏹️ Deteniendo...')
@@ -452,6 +509,9 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
       mediaRecorderRef.current?.stop()
     }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    telemetryRef.current?.stop()
+    telemetryRef.current = null
+    pausedRef.current = false
     
     streamsRef.current.screen?.getTracks().forEach(t => t.stop())
     streamsRef.current.camera?.getTracks().forEach(t => t.stop())
@@ -474,6 +534,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
 
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === 'recording') {
+      pausedRef.current = true
       mediaRecorderRef.current.pause()
       if (intervalRef.current) clearInterval(intervalRef.current)
       if (timerRef.current) clearInterval(timerRef.current)
@@ -483,6 +544,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
 
   const resumeRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === 'paused') {
+      pausedRef.current = false
       mediaRecorderRef.current.resume()
       timerRef.current = window.setInterval(() => {
         setState(prev => ({ ...prev, recordingTime: prev.recordingTime + 1 }))
