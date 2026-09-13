@@ -113,7 +113,11 @@ export function buildZoomFilter(
   const x = `max(0,min(iw-iw/zoom,(${focusX})*iw-iw/zoom/2))`;
   const y = `max(0,min(ih-ih/zoom,(${focusY})*ih-ih/zoom/2))`;
 
-  return `zoompan=z='${z}':x='${x}':y='${y}':d=1:s=${width}x${height}:fps=${fps}`;
+  // OJO: el prefijo `fps=N` es OBLIGATORIO. Si el input viene a otro fps (p.ej.
+  // 60fps de MediaRecorder) y sólo se le pasa `fps` a zoompan, éste DROPEA frames
+  // y comprime el tiempo (~2x): la salida queda con la mitad de los frames y las
+  // regiones posteriores caen fuera de su ventana. Reamuestrear ANTES lo evita.
+  return `fps=${fps},zoompan=z='${z}':x='${x}':y='${y}':d=1:s=${width}x${height}:fps=${fps}`;
 }
 
 // =====================================================
