@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  detectActivityBursts,
   detectDwellCandidates,
   detectInteractionCandidates,
   sanitizeTelemetry,
@@ -135,5 +136,45 @@ describe('suggestZoomRegions', () => {
   it('usa el depth indicado', () => {
     const regions = suggestZoomRegions([mk(1000, 0.5, 0.5, 'click')], 5000, { depth: 4 })
     expect(regions[0].depth).toBe(4)
+  })
+})
+
+describe('detectActivityBursts', () => {
+  it('detecta una ráfaga de movimiento continuo y cubre su span', () => {
+    const samples: CursorTelemetryPoint[] = []
+    for (let i = 0; i < 20; i++) samples.push(mk(i * 40, 0.1 + i * 0.03, 0.2 + i * 0.02, 'move'))
+    const bursts = detectActivityBursts(samples)
+    expect(bursts).toHaveLength(1)
+    expect(bursts[0].kind).toBe('activity')
+    expect(bursts[0].spanStartMs).toBe(0)
+    expect(bursts[0].spanEndMs).toBe(19 * 40)
+  })
+
+  it('ignora un "teletransporte" de 2 muestras (sin movimiento continuo)', () => {
+    const samples: CursorTelemetryPoint[] = [mk(0, 0.1, 0.1, 'move'), mk(500, 0.9, 0.9, 'move')]
+    expect(detectActivityBursts(samples)).toHaveLength(0)
+  })
+
+  it('ignora tramos sin movimiento (cursor quieto)', () => {
+    const samples: CursorTelemetryPoint[] = []
+    for (let i = 0; i < 20; i++) samples.push(mk(i * 40, 0.5, 0.5, 'move'))
+    expect(detectActivityBursts(samples)).toHaveLength(0)
+  })
+
+  it('separa ráfagas con un gap grande', () => {
+    const a: CursorTelemetryPoint[] = []
+    for (let i = 0; i < 10; i++) a.push(mk(i * 40, 0.1 + i * 0.02, 0.1, 'move'))
+    const b: CursorTelemetryPoint[] = []
+    for (let i = 0; i < 10; i++) b.push(mk(5000 + i * 40, 0.5 + i * 0.02, 0.5, 'move'))
+    expect(detectActivityBursts([...a, ...b])).toHaveLength(2)
+  })
+})
+
+describe('suggestZoomRegions con actividad', () => {
+  it('genera una región por ráfaga de actividad (no solo por clicks)', () => {
+    const samples: CursorTelemetryPoint[] = []
+    for (let i = 0; i < 25; i++) samples.push(mk(i * 40, 0.15 + i * 0.03, 0.3, 'move'))
+    const regions = suggestZoomRegions(samples, 3000)
+    expect(regions.length).toBeGreaterThanOrEqual(1)
   })
 })

@@ -7,8 +7,9 @@
 // Ver: ~/shiva/specs/auto-zoom-onboarding-hub.md
 
 import { ZOOM_IN_OVERLAP_MS, ZOOM_IN_TRANSITION_WINDOW_MS, TRANSITION_WINDOW_MS } from './constants'
+import { interpolateCursorAt } from './cursorFollowUtils'
 import { clamp01, easeOutScreenStudio } from './mathUtils'
-import { ZOOM_DEPTH_SCALES, clampFocus, type ZoomRegion } from './types'
+import { ZOOM_DEPTH_SCALES, clampFocus, type CursorTelemetryPoint, type ZoomRegion } from './types'
 
 /**
  * Fuerza (0..1) de una región en un instante dado.
@@ -49,26 +50,42 @@ export interface ZoomFrame {
 
 /**
  * Frame de zoom para un instante: elige la región activa más fuerte.
+ *
+ * Si la región es `auto` y hay telemetría, el foco SIGUE al cursor (la cámara se
+ * centra siempre donde está la acción) en vez de quedarse en un punto fijo.
  * Devuelve null si ninguna región está activa.
  */
-export function computeZoomFrame(regions: ZoomRegion[], timeMs: number): ZoomFrame | null {
-  let best: ZoomFrame | null = null
+export function computeZoomFrame(
+  regions: ZoomRegion[],
+  timeMs: number,
+  telemetry?: CursorTelemetryPoint[] | null,
+): ZoomFrame | null {
+  let bestRegion: ZoomRegion | null = null
+  let bestStrength = 0
 
   for (const region of regions) {
     const strength = computeRegionStrength(region, timeMs)
     if (strength <= 0) continue
-    if (!best || strength > best.strength) {
-      const focus = clampFocus(region.focus)
-      best = {
-        zoomScale: ZOOM_DEPTH_SCALES[region.depth] ?? 1,
-        focusX: focus.cx,
-        focusY: focus.cy,
-        strength,
-      }
+    if (strength > bestStrength) {
+      bestStrength = strength
+      bestRegion = region
     }
   }
 
-  return best
+  if (!bestRegion) return null
+
+  let focus = clampFocus(bestRegion.focus)
+  if (bestRegion.mode === 'auto' && telemetry && telemetry.length > 1) {
+    const cursor = interpolateCursorAt(telemetry, timeMs)
+    if (cursor) focus = clampFocus(cursor)
+  }
+
+  return {
+    zoomScale: ZOOM_DEPTH_SCALES[bestRegion.depth] ?? 1,
+    focusX: focus.cx,
+    focusY: focus.cy,
+    strength: bestStrength,
+  }
 }
 
 export interface CssZoomTransform {

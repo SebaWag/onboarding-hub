@@ -68,7 +68,7 @@ export default function Studio() {
     audioEnabled: micEnabled,
     cameraEnabled: cameraEnabled,
     autoZoomEnabled,
-    autoZoomDepth: 2,
+    autoZoomDepth: 3,
     // Fallback legacy (solo se invoca si no hay onChunk): blob completo en RAM
     onDataAvailable: (blob) => { handleUploadRecording(blob) },
     // Flujo principal: chunked upload en streaming mientras se graba

@@ -27,7 +27,7 @@ export const MAX_ZOOM_SCALE = 5.0
 /** Zoom manual por defecto. */
 export const DEFAULT_ZOOM_DEPTH: ZoomDepth = 3
 /** Zoom automático por defecto (más sutil). */
-export const DEFAULT_AUTO_ZOOM_DEPTH: ZoomDepth = 2
+export const DEFAULT_AUTO_ZOOM_DEPTH: ZoomDepth = 3
 
 export interface ViewportRatio {
   widthRatio: number
