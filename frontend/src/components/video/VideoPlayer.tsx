@@ -3,7 +3,8 @@ import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward,
   Sparkles, ZoomIn } from 'lucide-react'
 import { formatTime, parseTimeToSeconds, type Chapter } from './video-types'
-import { computeZoomFrame, zoomFrameToCss, type ZoomRegion } from '../../lib/zoom'
+import { useZoomPreview } from '../../hooks/useZoomPreview'
+import type { CursorTelemetryPoint, ZoomRegion } from '../../lib/zoom'
 
 interface VideoPlayerProps {
   videoRef: RefObject<HTMLVideoElement | null>
@@ -29,6 +30,8 @@ interface VideoPlayerProps {
   handleProgressClick: (e: React.MouseEvent<HTMLDivElement>) => void
   /** Regiones de zoom auto-sugeridas (preview en reproducción). */
   zoomRegions?: ZoomRegion[]
+  /** Telemetría de cursor: permite que el foco siga la acción dentro de cada región. */
+  zoomTelemetry?: CursorTelemetryPoint[] | null
   /** Si el preview de zoom está activo. */
   zoomEnabled?: boolean
   onToggleZoom?: () => void
@@ -63,13 +66,10 @@ export default function VideoPlayer({
   currentTime, setCurrentTime, duration, setDuration, volume, isMuted,
   isFullscreen, chapters, togglePlay, skip, toggleMute,
   handleVolumeChange, toggleFullscreen, handleProgressClick,
-  zoomRegions = [], zoomEnabled = true, onToggleZoom,
+  zoomRegions = [], zoomTelemetry = null, zoomEnabled = true, onToggleZoom,
 }: VideoPlayerProps) {
-  // Preview de zoom: aplica el transform de la región activa al <video>.
-  const zoomCss =
-    zoomEnabled && zoomRegions.length > 0
-      ? zoomFrameToCss(computeZoomFrame(zoomRegions, currentTime * 1000))
-      : { transform: 'none', transformOrigin: '0 0', active: false }
+  // Preview de zoom: aplica el transform al <video> de forma imperativa (60fps).
+  useZoomPreview({ videoRef, regions: zoomRegions, telemetry: zoomTelemetry, enabled: zoomEnabled })
 
   return (
     <>
@@ -81,7 +81,6 @@ export default function VideoPlayer({
                 src={videoSrc}
                 poster={poster}
                 className="w-full h-full object-contain bg-black"
-                style={{ transform: zoomCss.transform, transformOrigin: zoomCss.transformOrigin }}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}

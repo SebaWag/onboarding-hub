@@ -95,3 +95,32 @@ describe('zoomFrameToCss', () => {
     expect(css.transform.startsWith('translate(30.000%')).toBe(true)
   })
 })
+
+describe('computeZoomFrame — follow focus', () => {
+  const telemetry = [
+    { timeMs: 0, cx: 0.1, cy: 0.1 },
+    { timeMs: 20_000, cx: 0.9, cy: 0.9 },
+  ]
+
+  it('en modo auto sigue al cursor interpolado', () => {
+    const r = region({ focus: { cx: 0.5, cy: 0.5 }, mode: 'auto' })
+    // t=11000 → 55% entre 0 y 20000 → 0.1 + 0.8*0.55 = 0.54
+    const f = computeZoomFrame([r], 11_000, telemetry)
+    expect(f?.focusX).toBeCloseTo(0.54, 2)
+    expect(f?.focusY).toBeCloseTo(0.54, 2)
+  })
+
+  it('en modo manual ignora la telemetría y usa el foco fijo', () => {
+    const r = region({ focus: { cx: 0.5, cy: 0.5 }, mode: 'manual' })
+    const f = computeZoomFrame([r], 11_000, telemetry)
+    expect(f?.focusX).toBe(0.5)
+    expect(f?.focusY).toBe(0.5)
+  })
+
+  it('sin telemetría usa el foco de la región', () => {
+    const r = region({ focus: { cx: 0.3, cy: 0.7 } })
+    const f = computeZoomFrame([r], 11_000, null)
+    expect(f?.focusX).toBe(0.3)
+    expect(f?.focusY).toBe(0.7)
+  })
+})

@@ -9,7 +9,7 @@ import VideoPlayer from '../components/video/VideoPlayer'
 import VideoMeta from '../components/video/VideoMeta'
 import CommentsSection from '../components/video/CommentsSection'
 import type { VideoData, ChatMessage, VideoComment, Chapter, TranscriptSegment } from '../components/video/video-types'
-import type { ZoomRegion } from '../lib/zoom'
+import type { CursorTelemetryPoint, ZoomRegion } from '../lib/zoom'
 
 // ============ TYPES ============
 
@@ -63,6 +63,7 @@ export default function VideoDetail() {
   const videoContainerRef = useRef<HTMLDivElement>(null)
   // Zoom automático (preview en reproducción)
   const [zoomRegions, setZoomRegions] = useState<ZoomRegion[]>([])
+  const [zoomTelemetry, setZoomTelemetry] = useState<CursorTelemetryPoint[] | null>(null)
   const [zoomEnabled, setZoomEnabled] = useState(true)
 
   // Chat state
@@ -117,12 +118,16 @@ export default function VideoDetail() {
           }
         }
 
-        // Regiones de zoom (auto-zoom) del video
+        // Regiones de zoom + telemetría (auto-zoom) del video
         try {
           const zoomRes = await api.get<{ success: boolean; data?: ZoomRegion[] }>(`/videos/${id}/zoom-regions`)
           if (zoomRes.success && Array.isArray(zoomRes.data)) setZoomRegions(zoomRes.data)
+          const telemetryRes = await api.get<{ success: boolean; data?: { samples?: CursorTelemetryPoint[] } }>(`/videos/${id}/cursor-telemetry`)
+          if (telemetryRes.success && Array.isArray(telemetryRes.data?.samples)) {
+            setZoomTelemetry(telemetryRes.data.samples)
+          }
         } catch (zoomErr) {
-          console.warn('[ZOOM] No se pudieron cargar las regiones:', zoomErr)
+          console.warn('[ZOOM] No se pudieron cargar regiones/telemetría:', zoomErr)
         }
 
         setStreamUrl(videoRes.data.stream_url)
@@ -590,7 +595,7 @@ export default function VideoDetail() {
             chapters={chapters} togglePlay={togglePlay} skip={skip}
             toggleMute={toggleMute} handleVolumeChange={handleVolumeChange}
             toggleFullscreen={toggleFullscreen} handleProgressClick={handleProgressClick}
-            zoomRegions={zoomRegions} zoomEnabled={zoomEnabled}
+            zoomRegions={zoomRegions} zoomTelemetry={zoomTelemetry} zoomEnabled={zoomEnabled}
             onToggleZoom={() => setZoomEnabled(v => !v)}
           />
           {/* Video Info */}

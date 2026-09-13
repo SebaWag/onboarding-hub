@@ -28,13 +28,17 @@ export const DEFAULT_MIN_REGION_MS = 700
 /** Máximo de regiones sugeridas (evita "zoom spam"). */
 export const DEFAULT_MAX_REGIONS = 40
 
-export type ZoomCandidateKind = 'dwell' | 'click' | 'double-click' | 'text-focus'
+export type ZoomCandidateKind = 'dwell' | 'click' | 'double-click' | 'text-focus' | 'activity'
 
 export interface ZoomDwellCandidate {
   centerTimeMs: number
   focus: ZoomFocus
-  /** Duración de la quietud (ms). */
+  /** Duración de la quietud (ms) o medida de actividad. */
   strength: number
+  /** Inicio del tramo (ms) — permite que la región cubra toda la ráfaga. */
+  spanStartMs?: number
+  /** Fin del tramo (ms). */
+  spanEndMs?: number
 }
 
 export interface ZoomInteractionCandidate extends ZoomDwellCandidate {
@@ -124,6 +128,67 @@ export function detectDwellCandidates(samples: CursorTelemetryPoint[]): ZoomDwel
   return candidates
 }
 
+/** Gap entre muestras (ms) que separa dos ráfagas de actividad distintas. */
+export const ACTIVITY_GAP_MS = 800
+/** Duración mínima de una ráfaga para ser candidata. */
+export const MIN_BURST_DURATION_MS = 250
+/** Longitud de camino normalizada mínima para considerar la ráfaga actividad real. */
+export const MIN_BURST_PATH = 0.06
+/** Mínimo de muestras de una ráfaga: evita contar "teletransportes" (2 muestras) como actividad. */
+export const MIN_BURST_SAMPLES = 4
+
+/**
+ * Detecta RÁFAGAS DE ACTIVIDAD: tramos con movimiento continuo del cursor.
+ *
+ * Es el complemento que faltaba: clicks/dwells dejan fuera los tramos donde el
+ * usuario simplemente se mueve o navega por la pantalla (lo más común en un
+ * tutorial). Cada ráfaga genera una región que cubre todo su span.
+ */
+export function detectActivityBursts(samples: CursorTelemetryPoint[]): ZoomInteractionCandidate[] {
+  if (samples.length < 2) return []
+
+  const out: ZoomInteractionCandidate[] = []
+  let start = 0
+
+  const pushBurst = (from: number, toExclusive: number) => {
+    if (toExclusive - from < MIN_BURST_SAMPLES) return
+    const run = samples.slice(from, toExclusive)
+    const fromMs = run[0].timeMs
+    const toMs = run[run.length - 1].timeMs
+    const duration = toMs - fromMs
+    if (duration < MIN_BURST_DURATION_MS) return
+
+    let path = 0
+    for (let i = 1; i < run.length; i += 1) {
+      path += Math.hypot(run[i].cx - run[i - 1].cx, run[i].cy - run[i - 1].cy)
+    }
+    if (path < MIN_BURST_PATH) return
+
+    const cx = run.reduce((sum, p) => sum + p.cx, 0) / run.length
+    const cy = run.reduce((sum, p) => sum + p.cy, 0) / run.length
+
+    out.push({
+      centerTimeMs: Math.round((fromMs + toMs) / 2),
+      focus: { cx, cy },
+      strength: path * 1000 + duration,
+      kind: 'activity',
+      source: 'heuristic',
+      spanStartMs: fromMs,
+      spanEndMs: toMs,
+    })
+  }
+
+  for (let i = 1; i < samples.length; i += 1) {
+    if (samples[i].timeMs - samples[i - 1].timeMs > ACTIVITY_GAP_MS) {
+      pushBurst(start, i)
+      start = i
+    }
+  }
+  pushBurst(start, samples.length)
+
+  return out
+}
+
 /** Detecta interacciones relevantes: clicks explícitos + quedadas (dwell). */
 export function detectInteractionCandidates(
   samples: CursorTelemetryPoint[],
@@ -188,21 +253,25 @@ export function suggestZoomRegions(
   const minDurationMs = options.minDurationMs ?? DEFAULT_MIN_REGION_MS
 
   const clean = sanitizeTelemetry(samples, totalMs)
-  const candidates = detectInteractionCandidates(clean).sort(
-    (a, b) => a.centerTimeMs - b.centerTimeMs,
-  )
+  const candidates = [
+    ...detectInteractionCandidates(clean),
+    ...detectActivityBursts(clean),
+  ].sort((a, b) => a.centerTimeMs - b.centerTimeMs)
   if (candidates.length === 0) return []
 
   const clusters: Cluster[] = []
   for (const c of candidates) {
+    const cStart = c.spanStartMs ?? c.centerTimeMs
+    const cEnd = c.spanEndMs ?? c.centerTimeMs
     const last = clusters[clusters.length - 1]
-    const closeInTime = last ? c.centerTimeMs - last.lastMs <= mergeGapMs : false
+    const closeInTime = last ? cStart - last.lastMs <= mergeGapMs : false
     const closeInSpace = last
       ? Math.hypot(c.focus.cx - last.focus.cx, c.focus.cy - last.focus.cy) <= mergeDistance
       : false
 
     if (last && closeInTime && closeInSpace) {
-      last.lastMs = c.centerTimeMs
+      last.firstMs = Math.min(last.firstMs, cStart)
+      last.lastMs = Math.max(last.lastMs, cEnd)
       last.totalStrength += c.strength
       last.weightedX += c.focus.cx * c.strength
       last.weightedY += c.focus.cy * c.strength
@@ -212,8 +281,8 @@ export function suggestZoomRegions(
       }
     } else {
       clusters.push({
-        firstMs: c.centerTimeMs,
-        lastMs: c.centerTimeMs,
+        firstMs: cStart,
+        lastMs: cEnd,
         totalStrength: c.strength,
         weightedX: c.focus.cx * c.strength,
         weightedY: c.focus.cy * c.strength,
