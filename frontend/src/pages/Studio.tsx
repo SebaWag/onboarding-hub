@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Mic, MicOff, Monitor, Camera, Circle, Square, Pause, Play, Upload, Film, Clock, RefreshCw, X, PictureInPicture2 } from 'lucide-react'
+import { Mic, MicOff, Monitor, Camera, Circle, Square, Pause, Play, Upload, Film, Clock, RefreshCw, X, PictureInPicture2, ZoomIn } from 'lucide-react'
 import { cn, mediaProxyUrl } from '../lib/utils'
 import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useMediaRecorder } from '../hooks/useMediaRecorder'
@@ -38,6 +38,8 @@ export default function Studio() {
   const [micEnabled, setMicEnabled] = useState(true)
   const [activeTab, setActiveTab] = useState('record')
   const [bgSelectorOpen, setBgSelectorOpen] = useState(false)
+  // Auto-zoom: cámara automática que sigue clics/dwell del cursor (POC)
+  const [autoZoomEnabled, setAutoZoomEnabled] = useState(true)
   const [cameraPreviewStream, setCameraPreviewStream] = useState<MediaStream | null>(null)
   // Ref al <video> real de la camara (visible en el preview) para PiP
   const activeCameraVideoRef = useRef<HTMLVideoElement | null>(null)
@@ -61,6 +63,8 @@ export default function Studio() {
   const { isRecording, isPaused, recordingTime, permissionError, screenStream, cameraStream, startRecording, stopRecording, togglePause } = useMediaRecorder({
     audioEnabled: micEnabled,
     cameraEnabled: cameraEnabled,
+    autoZoomEnabled,
+    autoZoomDepth: 2,
     // Fallback legacy (solo se invoca si no hay onChunk): blob completo en RAM
     onDataAvailable: (blob) => { handleUploadRecording(blob) },
     // Flujo principal: chunked upload en streaming mientras se graba
@@ -513,6 +517,15 @@ if (key) return mediaProxyUrl(key)
                       className="p-3 rounded-xl transition-all bg-teal-50 text-teal-500 border border-teal-200 hover:bg-teal-100"
                       title="Fondo de camara">
                       <ImagePlus className="w-5 h-5" />
+                    </button>
+                    <button onClick={() => !isRecording && setAutoZoomEnabled(!autoZoomEnabled)} disabled={isRecording}
+                      className={cn('p-3 rounded-xl transition-all border',
+                        autoZoomEnabled
+                          ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30'
+                          : 'bg-[var(--bg-hover)] text-[var(--text-muted)] border-[var(--border-color)]',
+                        isRecording && 'opacity-50 cursor-not-allowed')}
+                      title="Auto-zoom: la cámara sigue tus clics y se acerca automáticamente">
+                      <ZoomIn className="w-5 h-5" />
                     </button>
                     {(isPipSupported || isFirefoxBrowser) && cameraEnabled && (cameraPreviewStream || cameraStream) && (
                       <button onClick={handleTogglePip}
