@@ -1,4 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
+import { CaptureClock } from '../lib/capture/captureClock'
+import { compositePersonOverBackground } from '../lib/capture/compositeMask'
 
 export type BackgroundMode = 'none' | 'color' | 'image' | 'blur' | 'matrix'
 
@@ -8,6 +10,11 @@ export interface BackgroundOption {
   image?: string
   label: string
   thumbnail?: string
+}
+
+/** Track de canvas capaz de forzar un frame explícito (`requestFrame`). */
+interface RequestFrameTrack extends MediaStreamTrack {
+  requestFrame?: () => void
 }
 
 // --- Background Definitions ---
@@ -36,81 +43,88 @@ export const BACKGROUNDS: BackgroundOption[] = [
 // Matrix effect characters
 const MATRIX_CHARS = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン'
 
-// === FIX CÁMARA v3: constantes de rendimiento (NO tocar resoluciones) ===
-// Intervalo de refresco mientras la pestaña está oculta (auto-PiP pausa el rAF).
-const HIDDEN_FRAME_INTERVAL_MS = 120
-// Tope del procesamiento pesado (segmentación): ~18 fps máx. para no saturar el main thread.
+// === CAPTURA v4: constantes de rendimiento ===
+// FPS objetivo del pipeline. El frame se fuerza con captureTrack.requestFrame(),
+// así que se mantiene incluso con la pestaña oculta (donde rAF/setInterval mueren).
+const BG_FPS = 30
+// Tope del procesamiento pesado (segmentación): ~18 fps máx para no saturar el
+// main thread. Entre frames pesados se redibuja la última composición cacheada.
 const HEAVY_FRAME_MIN_MS = 1000 / 18
 
 /**
- * Detección de piel mejorada para fallback cuando MediaPipe no está disponible.
- * Usa un espacio de color YCrCb para mejor precisión en distintos tonos de piel.
+ * Detección de piel mejorada para fallback cuando el modelo de segmentación no
+ * está disponible. Usa un espacio de color YCrCb para mejor precisión en
+ * distintos tonos de piel.
  */
 function isSkinPixel(r: number, g: number, b: number): boolean {
-  // Criterio 1: Rango RGB básico (rápido)
   const basicCheck = r > 60 && g > 30 && b > 15 && r > g && r > b && (r - g) > 10
   if (!basicCheck) return false
 
-  // Criterio 2: Distancia euclidiana a tonos de piel conocidos
-  // Centro del espacio de piel en RGB normalizado
   const dr = r - 180, dg = g - 130, db = b - 100
   const skinDistance = Math.sqrt(dr * dr + dg * dg + db * db)
-  
-  // Criterio 3: Relación R/G (la piel tiene más rojo que verde)
+
   const rgRatio = g > 0 ? r / g : 0
-  
+
   return skinDistance < 120 && rgRatio > 0.9 && rgRatio < 2.2
 }
 
 export function useBackgroundRemoval() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
-  const animRef = useRef<number>(0)
   const bgRef = useRef<BackgroundOption>({ mode: 'none', label: 'Sin fondo' })
   const bgImageRef = useRef<HTMLImageElement | null>(null)
   const segmenterRef = useRef<any>(null)
   const bodypixNetRef = useRef<any>(null)
   const matrixDropsRef = useRef<{ x: number; y: number; speed: number }[]>([])
-  // === FIX CÁMARA v3: refs de control del loop ===
+  // === CAPTURA v4: control del pipeline ===
+  const clockRef = useRef<CaptureClock | null>(null)
+  const captureTrackRef = useRef<RequestFrameTrack | null>(null)
+  // Canvas reutilizable para leer los píxeles del video (evita allocar por frame).
+  const videoCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const isModelReadyRef = useRef<boolean>(false)
   const isRunningRef = useRef<boolean>(false)
-  const hiddenIntervalRef = useRef<number>(0)
   const lastHeavyFrameRef = useRef<number>(0)
+  // Evita apilar varias segmentaciones asíncronas (BodyPix) sin terminar.
+  const busyRef = useRef<boolean>(false)
   const lastCompositeRef = useRef<HTMLCanvasElement | null>(null)
   const [processedStream, setProcessedStream] = useState<MediaStream | null>(null)
   const [isModelReady, setIsModelReady] = useState(false)
   const [background, setBackground] = useState<BackgroundOption>({ mode: 'none', label: 'Sin fondo' })
   const [modelLoading, setModelLoading] = useState(false)
 
-  // Initialize MediaPipe Selfie Segmenter
+  // Initialize MediaPipe ImageSegmenter (selfie segmentation, GPU)
   useEffect(() => {
     let cancelled = false
     const init = async () => {
       setModelLoading(true)
       try {
         const visionModule = await import('@mediapipe/tasks-vision')
-        const SelfieSegmenter = (visionModule as any).SelfieSegmenter
-        const { FilesetResolver } = visionModule
+        // OJO: @mediapipe/tasks-vision NO exporta `SelfieSegmenter` (ese nombre
+        // no existe) → el código anterior siempre fallaba aquí y caía a BodyPix.
+        // La tarea correcta es `ImageSegmenter`.
+        const { ImageSegmenter, FilesetResolver } = visionModule
         if (cancelled) return
 
         const vision = await FilesetResolver.forVisionTasks(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm/'
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm/'
         )
         if (cancelled) return
 
-        segmenterRef.current = await SelfieSegmenter.createFromOptions(vision, {
+        segmenterRef.current = await ImageSegmenter.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath:
               'https://storage.googleapis.com/mediapipe-models/selfie_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite',
             delegate: 'GPU',
           },
           runningMode: 'VIDEO',
+          outputConfidenceMasks: true,
+          outputCategoryMask: false,
         })
 
         if (!cancelled) {
           setIsModelReady(true)
           setModelLoading(false)
-          console.log('[BgRemoval] ✅ MediaPipe SelfieSegmenter listo')
+          console.log('[BgRemoval] ✅ MediaPipe ImageSegmenter listo')
         }
       } catch (err) {
         console.warn('[BgRemoval] MediaPipe no disponible, intentando BodyPix...', err)
@@ -152,7 +166,6 @@ export function useBackgroundRemoval() {
     }))
   }
 
-  // Draw matrix rain on canvas
   const drawMatrix = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'
     ctx.fillRect(0, 0, w, h)
@@ -167,7 +180,6 @@ export function useBackgroundRemoval() {
     })
   }
 
-  // Draw background image with caching
   const drawBgImage = (ctx: CanvasRenderingContext2D, w: number, h: number, src: string) => {
     let img = bgImageRef.current
     if (!img || img.dataset.src !== src) {
@@ -185,7 +197,6 @@ export function useBackgroundRemoval() {
     }
   }
 
-  // Draw background (color or image) into the given context
   const drawBackground = (ctx: CanvasRenderingContext2D, w: number, h: number, bg: BackgroundOption) => {
     if (bg.mode === 'image' && bg.image) {
       drawBgImage(ctx, w, h, bg.image)
@@ -195,9 +206,21 @@ export function useBackgroundRemoval() {
     }
   }
 
+  /** Devuelve (o crea) el canvas reutilizable para leer los píxeles del video. */
+  const getVideoCanvas = (w: number, h: number): HTMLCanvasElement => {
+    let c = videoCanvasRef.current
+    if (!c) {
+      c = document.createElement('canvas')
+      videoCanvasRef.current = c
+    }
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h }
+    return c
+  }
+
   /**
-   * Segmenta persona del fondo usando MediaPipe
-   * Retorna true si se aplicó segmentación, false si falló
+   * Segmenta persona del fondo usando MediaPipe (GPU) y compone el frame.
+   * Se lee la máscara DENTRO del callback (su lifetime es válido solo ahí).
+   * Retorna true si aplicó segmentación.
    */
   const segmentWithMediaPipe = (
     ctx: CanvasRenderingContext2D,
@@ -209,59 +232,50 @@ export function useBackgroundRemoval() {
     const segmenter = segmenterRef.current
     if (!segmenter) return false
 
+    let applied = false
     try {
-      const result = segmenter.segment(video, { timestamp: performance.now() })
-      
-      // En @mediapipe/tasks-vision v0.10.x, categoryMask es un MPMask
-      // con método getAsFloat32Array() que retorna Float32Array de largo w*h
-      const mask = result?.categoryMask
-      if (!mask) return false
+      segmenter.segmentForVideo(video, performance.now(), (result: any) => {
+        const mask = result?.confidenceMasks?.[0] ?? result?.categoryMask
+        if (!mask) return
 
-      // 1. Dibujar fondo primero
-      drawBackground(ctx, w, h, bg)
+        // 1. Dibujar fondo primero (queda como base del canvas)
+        drawBackground(ctx, w, h, bg)
 
-      // 2. Obtener datos de la máscara (confianza 0.0 - 1.0 por píxel)
-      const maskData: Float32Array = mask.getAsFloat32Array()
-      if (!maskData || maskData.length === 0) return false
+        // 2. Capturar el frame del video en un canvas temporal reutilizable
+        const videoCanvas = getVideoCanvas(w, h)
+        const vCtx = videoCanvas.getContext('2d', { willReadFrequently: true })
+        if (!vCtx) return
+        vCtx.drawImage(video, 0, 0, w, h)
+        const vData = vCtx.getImageData(0, 0, w, h)
 
-      // 3. Capturar frame del video en un canvas temporal
-      const videoCanvas = document.createElement('canvas')
-      videoCanvas.width = w
-      videoCanvas.height = h
-      const vCtx = videoCanvas.getContext('2d')!
-      vCtx.drawImage(video, 0, 0, w, h)
-      const videoPixels = vCtx.getImageData(0, 0, w, h)
+        // 3. Obtener píxeles del canvas (fondo ya dibujado)
+        const outputPixels = ctx.getImageData(0, 0, w, h)
 
-      // 4. Obtener píxeles actuales del canvas (fondo ya dibujado)
-      const outputPixels = ctx.getImageData(0, 0, w, h)
-      const out = outputPixels.data
-      const vData = videoPixels.data
+        // 4. Componer: donde la máscara > umbral → píxel del video. La máscara
+        //    suele ser menor que el lienzo → muestreo por vecino más cercano.
+        const maskData = mask.getAsFloat32Array()
+        compositePersonOverBackground(
+          outputPixels.data,
+          vData.data,
+          maskData,
+          w,
+          h,
+          mask.width,
+          mask.height,
+          0.5
+        )
 
-      // 5. Hacer compositing: donde mask > threshold, poner pixel de video
-      const threshold = 0.5
-      for (let i = 0; i < maskData.length; i++) {
-        if (maskData[i] > threshold) {
-          const idx = i * 4
-          out[idx]     = vData[idx]
-          out[idx + 1] = vData[idx + 1]
-          out[idx + 2] = vData[idx + 2]
-          out[idx + 3] = 255
-        }
-        // else → mantener el fondo (ya dibujado)
-      }
-
-      ctx.putImageData(outputPixels, 0, 0)
-      return true
+        ctx.putImageData(outputPixels, 0, 0)
+        applied = true
+      })
     } catch (err) {
-      console.warn('[BgRemoval] Error en segmentación ML, usando fallback:', err)
+      console.warn('[BgRemoval] Error en segmentación MediaPipe, usando fallback:', err)
       return false
     }
+    return applied
   }
 
-  /**
-   * Fallback: detección de piel por color para separar persona del fondo.
-   * Menos precisa que ML pero funcional.
-   */
+  /** Fallback: detección de piel por color. */
   const segmentWithColorFallback = (
     ctx: CanvasRenderingContext2D,
     video: HTMLVideoElement,
@@ -269,42 +283,29 @@ export function useBackgroundRemoval() {
     h: number,
     currentBg: BackgroundOption
   ) => {
-    // 1. Dibujar fondo PRIMERO
     drawBackground(ctx, w, h, currentBg)
-    
-    // 2. Guardar píxeles del fondo (antes de dibujar el video encima)
     const bgPixelsData = ctx.getImageData(0, 0, w, h)
-    const bgData = bgPixelsData.data  // ← ANTES se llamaba 'bg' y sombreaba bgRef.current
-    
-    // 3. Dibujar video encima
+    const bgData = bgPixelsData.data
+
     ctx.drawImage(video, 0, 0, w, h)
-    
-    // 4. Obtener píxeles combinados (video sobre fondo)
     const combined = ctx.getImageData(0, 0, w, h)
     const pixels = combined.data
-    
-    // 5. Detectar piel y reemplazar no-piel con fondo
+
     for (let i = 0; i < pixels.length; i += 4) {
       const r = pixels[i]
       const g = pixels[i + 1]
       const b = pixels[i + 2]
-      
-      if (isSkinPixel(r, g, b)) {
-        // Conservar píxel de la persona (ya está en 'pixels' desde el video)
-        continue
-      } else {
-        // Reemplazar con fondo
-        pixels[i]     = bgData[i]
-        pixels[i + 1] = bgData[i + 1]
-        pixels[i + 2] = bgData[i + 2]
-        pixels[i + 3] = 255
-      }
+      if (isSkinPixel(r, g, b)) continue
+      pixels[i] = bgData[i]
+      pixels[i + 1] = bgData[i + 1]
+      pixels[i + 2] = bgData[i + 2]
+      pixels[i + 3] = 255
     }
-    
+
     ctx.putImageData(combined, 0, 0)
   }
 
-  /** Segmentación con BodyPix (TensorFlow.js) — persona completa */
+  /** Segmentación con BodyPix (TensorFlow.js) — fallback si MediaPipe falla. */
   const segmentWithBodyPix = async (
     ctx: CanvasRenderingContext2D, video: HTMLVideoElement, w: number, h: number, bg: BackgroundOption
   ): Promise<boolean> => {
@@ -316,33 +317,15 @@ export function useBackgroundRemoval() {
         internalResolution: 'medium',
         segmentationThreshold: 0.7,
       })
-
-      // 1. Dibujar fondo
       drawBackground(ctx, w, h, bg)
-
-      // 2. Obtener píxeles del canvas (fondo)
       const outputPixels = ctx.getImageData(0, 0, w, h)
-      const out = outputPixels.data
-
-      // 3. Obtener píxeles del video
-      const videoCanvas = document.createElement('canvas')
-      videoCanvas.width = w; videoCanvas.height = h
-      const vCtx = videoCanvas.getContext('2d')!
+      const videoCanvas = getVideoCanvas(w, h)
+      const vCtx = videoCanvas.getContext('2d', { willReadFrequently: true })
+      if (!vCtx) return false
       vCtx.drawImage(video, 0, 0, w, h)
-      const vData = vCtx.getImageData(0, 0, w, h).data
-
-      // 4. Composición: donde mask=1 (persona) → video, donde mask=0 (fondo) → mantener fondo
-      const maskData = segmentation.data
-      for (let i = 0; i < maskData.length; i++) {
-        if (maskData[i] === 1) {
-          const idx = i * 4
-          out[idx]     = vData[idx]
-          out[idx + 1] = vData[idx + 1]
-          out[idx + 2] = vData[idx + 2]
-          out[idx + 3] = 255
-        }
-        // else → mantener fondo (ya dibujado)
-      }
+      const vData = vCtx.getImageData(0, 0, w, h)
+      // BodyPix entrega una máscara binaria (0/1) por píxel, ya a resolución del frame.
+      compositePersonOverBackground(outputPixels.data, vData.data, segmentation.data, w, h, w, h, 0.5)
       ctx.putImageData(outputPixels, 0, 0)
       return true
     } catch (err) {
@@ -351,25 +334,7 @@ export function useBackgroundRemoval() {
     }
   }
 
-  /**
-   * Frame LIGERO: solo ctx.drawImage(video) — sin segmentación ni getImageData.
-   * Se usa cuando la pestaña está oculta (rAF pausado por el navegador) para que
-   * canvas.captureStream() siga recibiendo frames y la grabación no se congele.
-   */
-  const drawLightFrame = useCallback(() => {
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    if (!video || !canvas || video.videoWidth === 0) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-  }, [])
-
-  /**
-   * Guarda una copia del último frame compuesto (fondo + persona).
-   * Los frames saltados por el throttle la redibujan (barato) en vez de
-   * volver a segmentar, así el canvas nunca queda estático.
-   */
+  /** Guarda una copia del último frame compuesto (para los frames saltados por el throttle). */
   const cacheComposite = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
     let cached = lastCompositeRef.current
     if (!cached) {
@@ -383,34 +348,34 @@ export function useBackgroundRemoval() {
     cached.getContext('2d')?.drawImage(ctx.canvas, 0, 0)
   }
 
-  // BodyPix frame counter (process every 3rd frame for performance)
+  // BodyPix frame counter (process every other frame for performance)
   let bodypixFrameCount = 0
 
-  // Main frame processing loop
-  const processFrame = useCallback(() => {
+  /**
+   * Renderiza UN frame y fuerza su captura en el stream.
+   * Es invocado por el CaptureClock (worker), así que funciona con la pestaña
+   * oculta. SIEMPRE llama a requestFrame() para que el stream nunca se congele.
+   */
+  const renderFrame = useCallback(() => {
     const video = videoRef.current
     const canvas = canvasRef.current
     if (!video || !canvas || video.videoWidth === 0) {
-      animRef.current = requestAnimationFrame(processFrame)
+      captureTrackRef.current?.requestFrame?.()
       return
     }
 
     const ctx = canvas.getContext('2d')
     if (!ctx) {
-      animRef.current = requestAnimationFrame(processFrame)
+      captureTrackRef.current?.requestFrame?.()
       return
     }
 
     const activeBg = bgRef.current
     const w = canvas.width
     const h = canvas.height
-    // Se lee desde el ref (no del state) para que el loop nunca use un closure viejo
     const modelReady = isModelReadyRef.current
 
-    // === THROTTLE (FIX CÁMARA v3) ===
-    // La segmentación ML es costosa. Si el último frame pesado fue hace menos de
-    // HEAVY_FRAME_MIN_MS (~18 fps), saltamos el procesamiento y redibujamos la última
-    // composición. Así el main thread no se satura y el video no se corta.
+    // === THROTTLE del camino pesado (segmentación) ===
     const isHeavyPath = activeBg.mode !== 'none' && activeBg.mode !== 'matrix'
     const now = performance.now()
     if (isHeavyPath && now - lastHeavyFrameRef.current < HEAVY_FRAME_MIN_MS) {
@@ -420,50 +385,36 @@ export function useBackgroundRemoval() {
       } else {
         ctx.drawImage(video, 0, 0, w, h)
       }
-      animRef.current = requestAnimationFrame(processFrame)
+      captureTrackRef.current?.requestFrame?.()
       return
     }
     if (isHeavyPath) lastHeavyFrameRef.current = now
 
     if (activeBg.mode === 'none') {
-      // Sin efecto — mostrar video directamente
       ctx.drawImage(video, 0, 0, w, h)
     } else if (activeBg.mode === 'matrix') {
-      // Efecto Matrix — dibujar matrix + video encima
       drawMatrix(ctx, w, h)
       ctx.drawImage(video, 0, 0, w, h)
     } else if (modelReady && segmenterRef.current) {
-      // === SEGMENTACIÓN CON MEDIAPIPE ML (GPU) ===
       const segmented = segmentWithMediaPipe(ctx, video, w, h, activeBg)
-      if (!segmented) {
-        segmentWithColorFallback(ctx, video, w, h, activeBg)
-      }
+      if (!segmented) segmentWithColorFallback(ctx, video, w, h, activeBg)
       cacheComposite(ctx, w, h)
     } else if (modelReady && bodypixNetRef.current) {
-      // === SEGMENTACIÓN CON BODYPIX (TensorFlow.js, persona completa) ===
       bodypixFrameCount++
-      // Procesar cada 2 frames para rendimiento
-      if (bodypixFrameCount % 2 === 0) {
-        segmentWithBodyPix(ctx, video, w, h, activeBg).then(success => {
-          if (success) {
-            cacheComposite(ctx, w, h)
-          } else {
-            ctx.drawImage(video, 0, 0, w, h)
-          }
-        })
-        // Mostrar frame anterior mientras BodyPix procesa
-      } else {
-        // En frames alternos, dibujar el último resultado de BodyPix
-        // (ya está en el canvas del frame anterior)
+      if (bodypixFrameCount % 2 === 0 && !busyRef.current) {
+        busyRef.current = true
+        segmentWithBodyPix(ctx, video, w, h, activeBg)
+          .then((success) => { if (success) cacheComposite(ctx, w, h) })
+          .catch(() => { /* noop */ })
+          .finally(() => { busyRef.current = false })
       }
     } else {
-      // === MODELO NO LISTO (FIX CÁMARA v3): dibujar el video directo ===
-      // El fallback píxel a píxel (getImageData/putImageData sobre el frame completo) bloquea
-      // el main thread y congela el canvas → la grabación queda con cortes.
+      // Modelo no listo → video directo (nunca bloquear con el fallback píxel a píxel)
       ctx.drawImage(video, 0, 0, w, h)
     }
 
-    animRef.current = requestAnimationFrame(processFrame)
+    // Forzar la captura del frame recién compuesto (clave para pestaña oculta).
+    captureTrackRef.current?.requestFrame?.()
   }, [])
 
   // Sincronizar el ref con el state del modelo
@@ -471,57 +422,11 @@ export function useBackgroundRemoval() {
     isModelReadyRef.current = isModelReady
   }, [isModelReady])
 
-  // === FIX CÁMARA v3: pestaña oculta (auto-PiP) pausa requestAnimationFrame ===
-  // Con la pestaña oculta el rAF deja de correr, el canvas no se actualiza y
-  // captureStream() se congela: el video grabado queda cortado (solo avanza el audio).
-  // Solución: mientras esté oculto, dibujar frames ligeros con un setInterval.
-  const stopHiddenLoop = useCallback(() => {
-    if (hiddenIntervalRef.current) {
-      clearInterval(hiddenIntervalRef.current)
-      hiddenIntervalRef.current = 0
-    }
-  }, [])
-
-  const startHiddenLoop = useCallback(() => {
-    stopHiddenLoop()
-    drawLightFrame()
-    hiddenIntervalRef.current = window.setInterval(drawLightFrame, HIDDEN_FRAME_INTERVAL_MS)
-  }, [drawLightFrame, stopHiddenLoop])
-
-  const startVisibleLoop = useCallback(() => {
-    stopHiddenLoop()
-    if (animRef.current) cancelAnimationFrame(animRef.current)
-    lastHeavyFrameRef.current = 0
-    animRef.current = requestAnimationFrame(processFrame)
-  }, [processFrame, stopHiddenLoop])
-
-  useEffect(() => {
-    const onVisibilityChange = () => {
-      if (!isRunningRef.current) return
-      if (document.hidden) {
-        console.log('[BgRemoval] 🙈 Pestaña oculta (PiP): rAF → setInterval de frames ligeros')
-        if (animRef.current) {
-          cancelAnimationFrame(animRef.current)
-          animRef.current = 0
-        }
-        startHiddenLoop()
-      } else {
-        console.log('[BgRemoval] 👁 Pestaña visible: restaurando requestAnimationFrame')
-        startVisibleLoop()
-      }
-    }
-    document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-      stopHiddenLoop()
-    }
-  }, [startHiddenLoop, startVisibleLoop, stopHiddenLoop])
-
   const startBackgroundRemoval = async (cameraStream: MediaStream): Promise<MediaStream | null> => {
     if (!cameraStream) return null
 
     // Limpiar estado previo
-    if (animRef.current) cancelAnimationFrame(animRef.current)
+    clockRef.current?.stop()
     if (canvasRef.current?.parentNode) {
       canvasRef.current.parentNode.removeChild(canvasRef.current)
     }
@@ -546,19 +451,21 @@ export function useBackgroundRemoval() {
     matrixDropsRef.current = []
     await video.play()
 
-    const stream = canvas.captureStream(30)
+    // captureStream(0): NO captura por compositor; cada frame se fuerza con
+    // requestFrame(). Así la captura no depende de que la pestaña sea visible.
+    const stream = canvas.captureStream(0)
+    const captureTrack = stream.getVideoTracks()[0] as RequestFrameTrack | undefined
+    captureTrackRef.current = captureTrack ?? null
     setProcessedStream(stream)
 
-    // === FIX CÁMARA v3: arrancar el loop correcto según visibilidad ===
+    // Arrancar el reloj (worker → inmune al throttling de pestaña oculta)
     isRunningRef.current = true
     lastHeavyFrameRef.current = 0
     lastCompositeRef.current = null
-    if (document.hidden) {
-      // Ya estamos ocultos (PiP): el rAF no corre, usar el interval ligero
-      startHiddenLoop()
-    } else {
-      animRef.current = requestAnimationFrame(processFrame)
-    }
+    clockRef.current = new CaptureClock()
+    clockRef.current.start(BG_FPS, renderFrame)
+    // Primer frame inmediato
+    renderFrame()
 
     return stream
   }
@@ -569,11 +476,12 @@ export function useBackgroundRemoval() {
   }
 
   const cleanup = () => {
-    console.log('[BgRemoval] 🧹 cleanup: deteniendo rAF + interval de pestaña oculta')
+    console.log('[BgRemoval] 🧹 cleanup: deteniendo reloj de captura')
     isRunningRef.current = false
-    stopHiddenLoop()
-    if (animRef.current) cancelAnimationFrame(animRef.current)
-    animRef.current = 0
+    clockRef.current?.stop()
+    clockRef.current = null
+    captureTrackRef.current = null
+    busyRef.current = false
     if (canvasRef.current?.parentNode) {
       canvasRef.current.parentNode.removeChild(canvasRef.current)
     }
@@ -584,6 +492,7 @@ export function useBackgroundRemoval() {
     canvasRef.current = null
     videoRef.current = null
     lastCompositeRef.current = null
+    videoCanvasRef.current = null
     setProcessedStream(null)
   }
 

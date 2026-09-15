@@ -3,6 +3,15 @@ import { CursorTelemetryRecorder } from '../lib/zoom/cursorTelemetry'
 import { LiveZoomController } from '../lib/zoom/liveZoomController'
 import { toSourceRect } from '../lib/zoom/zoomTransform'
 import type { CursorTelemetryPoint, ZoomDepth } from '../lib/zoom/types'
+import { CaptureClock } from '../lib/capture/captureClock'
+
+/** Track de canvas capaz de forzar un frame explícito (`requestFrame`). */
+interface RequestFrameTrack extends MediaStreamTrack {
+  requestFrame?: () => void
+}
+
+// FPS objetivo del compositor pantalla+cámara.
+const COMPOSITOR_FPS = 30
 
 export type RecordingMode = 'screen' | 'camera' | 'screen-camera'
 
@@ -89,6 +98,9 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
   const screenVideoRef = useRef<HTMLVideoElement | null>(null)
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null)
   const visibilityHandlerRef = useRef<(() => void) | null>(null)
+  // CAPTURA v4: reloj en worker + track de canvas con captura forzada (requestFrame)
+  const clockRef = useRef<CaptureClock | null>(null)
+  const captureTrackRef = useRef<RequestFrameTrack | null>(null)
   // Auto-zoom: captura de telemetría + controlador de cámara + estado de pausa
   const telemetryRef = useRef<CursorTelemetryRecorder | null>(null)
   const zoomControllerRef = useRef<LiveZoomController | null>(null)
@@ -112,6 +124,11 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
     
     // Limpiar event listener de visibility
     if (visibilityHandlerRef.current) { visibilityHandlerRef.current() }
+
+    // Detener el reloj de captura (worker)
+    clockRef.current?.stop()
+    clockRef.current = null
+    captureTrackRef.current = null
 
     // Detener captura de telemetría del auto-zoom
     telemetryRef.current?.stop()
@@ -273,18 +290,11 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         const CAM_CENTER_Y = CAM_Y + CAM_H / 2
         
         let frameCount = 0
-        let lastFrameTime = 0
-        let animationId = 0
-        let isRendererActive = true
-        
-        const drawFrame = (timestamp: number) => {
-          if (!isRendererActive) return
-          if (timestamp - lastFrameTime < 66) {
-            animationId = requestAnimationFrame(drawFrame)
-            return
-          }
-          lastFrameTime = timestamp
-          
+
+        // Renderiza UN frame del compositor (pantalla + cámara + auto-zoom) y
+        // fuerza su captura. Lo invoca el CaptureClock (worker), por lo que
+        // funciona con la pestaña oculta (el caso normal: grabar otra ventana).
+        const renderFrame = () => {
           try {
             if (autoZoom && telemetry && zoomController) {
               // Alimentar el controlador con la telemetría nueva acumulada
@@ -304,7 +314,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
             } else {
               ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
             }
-            
+
             if (cameraVideoRef.current) {
               ctx.save()
               ctx.beginPath()
@@ -314,62 +324,37 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
               ctx.fillRect(CAM_X, CAM_Y, CAM_W, CAM_H)
               ctx.drawImage(cameraVideoRef.current, CAM_X, CAM_Y, CAM_W, CAM_H)
               ctx.restore()
-              
+
               ctx.beginPath()
               ctx.arc(CAM_CENTER_X, CAM_CENTER_Y, CAM_RADIUS + 2, 0, Math.PI * 2)
               ctx.strokeStyle = 'rgba(255,255,255,0.8)'
               ctx.lineWidth = 3
               ctx.stroke()
             }
-            
+
             frameCount++
             if (frameCount % 60 === 0) {
               console.log('[RECORDER] Frame:', frameCount)
             }
           } catch {
-            // Ignorar errores
+            // Ignorar errores de dibujo
           }
-          
-          if (isRendererActive) {
-            animationId = requestAnimationFrame(drawFrame)
-          }
+          // Forzar la captura del frame recién compuesto (clave con pestaña oculta).
+          captureTrackRef.current?.requestFrame?.()
         }
-        
-        const handleVisibilityChange = () => {
-          if (document.hidden) {
-            if (animationId) {
-              cancelAnimationFrame(animationId)
-              animationId = 0
-            }
-            isRendererActive = false
-            intervalRef.current = window.setInterval(() => {
-              try {
-                const hvVw = screenVideo.videoWidth || canvas.width
-                const hvVh = screenVideo.videoHeight || canvas.height
-                const hvRect = toSourceRect(lastTransform, hvVw, hvVh)
-                ctx.drawImage(screenVideo, hvRect.sx, hvRect.sy, hvRect.sw, hvRect.sh, 0, 0, canvas.width, canvas.height)
-                if (cameraVideoRef.current) {
-                  ctx.drawImage(cameraVideoRef.current, CAM_X, CAM_Y, CAM_W, CAM_H)
-                }
-              } catch { /* noop: drawImage puede fallar si el canvas se perdió */ }
-            }, 200)
-          } else {
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current)
-              intervalRef.current = null
-            }
-            isRendererActive = true
-            animationId = requestAnimationFrame(drawFrame)
-          }
-        }
-        document.addEventListener('visibilitychange', handleVisibilityChange)
-        visibilityHandlerRef.current = () => {
-          document.removeEventListener('visibilitychange', handleVisibilityChange)
-        }
-        
-        animationId = requestAnimationFrame(drawFrame)
-        // Capturar stream del canvas
-        const canvasStream = canvas.captureStream(30)
+
+        // Reloj maestro en Worker: rAF se pausa y setInterval se estrangula
+        // cuando la pestaña está oculta. Este es el punto de la solución de raíz.
+        clockRef.current = new CaptureClock()
+        clockRef.current.start(COMPOSITOR_FPS, renderFrame)
+        renderFrame()
+
+        // captureStream(0) + requestFrame(): captura determinista, sin depender
+        // del compositor de la pestaña (que se detiene cuando está oculta).
+        const canvasStream = canvas.captureStream(0)
+        const compositorTrack = canvasStream.getVideoTracks()[0] as RequestFrameTrack | undefined
+        captureTrackRef.current = compositorTrack ?? null
+        captureTrackRef.current?.requestFrame?.()
         console.log('[RECORDER] ✅ Canvas stream capturado:', canvasStream.getVideoTracks().length, 'tracks')
         
         // Construir stream final
@@ -538,6 +523,10 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
     streamsRef.current.audio?.getTracks().forEach(t => t.stop())
     combinedStreamRef.current?.getTracks().forEach(t => t.stop())
     
+    clockRef.current?.stop()
+    clockRef.current = null
+    captureTrackRef.current = null
+
     combinedStreamRef.current = null
     mediaRecorderRef.current = null
     streamsRef.current = { screen: null, camera: null, audio: null }
