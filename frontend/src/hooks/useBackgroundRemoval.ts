@@ -68,6 +68,17 @@ function isSkinPixel(r: number, g: number, b: number): boolean {
   return skinDistance < 120 && rgRatio > 0.9 && rgRatio < 2.2
 }
 
+/**
+ * Carrera contra reloj: si una promesa no resuelve en `ms`, rechaza.
+ * Evita que un modelo que no carga (red/WASM/delegate) deje el fondo colgado.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout de carga del modelo')), ms)),
+  ])
+}
+
 export function useBackgroundRemoval() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -110,7 +121,7 @@ export function useBackgroundRemoval() {
         )
         if (cancelled) return
 
-        segmenterRef.current = await ImageSegmenter.createFromOptions(vision, {
+        const segmenterPromise = ImageSegmenter.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath:
               'https://storage.googleapis.com/mediapipe-models/selfie_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite',
@@ -120,6 +131,7 @@ export function useBackgroundRemoval() {
           outputConfidenceMasks: true,
           outputCategoryMask: false,
         })
+        segmenterRef.current = await withTimeout(segmenterPromise, 12000)
 
         if (!cancelled) {
           setIsModelReady(true)
@@ -453,7 +465,12 @@ export function useBackgroundRemoval() {
 
     // captureStream(0): NO captura por compositor; cada frame se fuerza con
     // requestFrame(). Así la captura no depende de que la pestaña sea visible.
-    const stream = canvas.captureStream(0)
+    // OJO: captureStream(0) NO sirve fuera de Chrome/Safari: con frameRate 0 la
+    // captura ocurre SOLO al llamar requestFrame(), y Firefox NO implementa
+    // CanvasCaptureMediaStreamTrack.requestFrame (0 frames -> cámara congelada).
+    // Usamos captura automática a BG_FPS y ADEMÁS forzamos requestFrame() cuando
+    // el navegador lo soporte (Chrome) para máxima determinismo.
+    const stream = canvas.captureStream(BG_FPS)
     const captureTrack = stream.getVideoTracks()[0] as RequestFrameTrack | undefined
     captureTrackRef.current = captureTrack ?? null
     setProcessedStream(stream)
