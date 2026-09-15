@@ -349,9 +349,10 @@ export function useMediaRecorder(options: UseMediaRecorderOptions = {}) {
         clockRef.current.start(COMPOSITOR_FPS, renderFrame)
         renderFrame()
 
-        // captureStream(0) + requestFrame(): captura determinista, sin depender
-        // del compositor de la pestaña (que se detiene cuando está oculta).
-        const canvasStream = canvas.captureStream(0)
+        // Captura automática a COMPOSITOR_FPS. NO usamos captureStream(0):
+        // con frameRate 0 la captura depende de requestFrame(), que Firefox no
+        // implementa (0 frames). Igual forzamos requestFrame() si existe (Chrome).
+        const canvasStream = canvas.captureStream(COMPOSITOR_FPS)
         const compositorTrack = canvasStream.getVideoTracks()[0] as RequestFrameTrack | undefined
         captureTrackRef.current = compositorTrack ?? null
         captureTrackRef.current?.requestFrame?.()
