@@ -29,7 +29,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api'
+export const API_BASE = import.meta.env.VITE_API_URL || '/api'
 const DEFAULT_TIMEOUT_MS = 30_000
 
 export interface RequestOptions {
@@ -121,7 +121,9 @@ function filenameFromDisposition(disposition: string | null): string | undefined
 
 /** Descarga binaria autenticada (usa auth header, no query params). */
 export async function apiDownload(path: string, opts: RequestOptions = {}): Promise<DownloadResult> {
-  const { timeoutMs = DEFAULT_TIMEOUT_MS, headers = {} } = opts
+  // Sin timeout por defecto: las descargas son grandes y lentas (1 GB+ puede
+  // tardar minutos). Un timeout las cortaría a mitad de camino.
+  const { timeoutMs = 0, headers = {} } = opts
   const controller = new AbortController()
   const timer = timeoutMs > 0 ? setTimeout(() => controller.abort(), timeoutMs) : undefined
   try {

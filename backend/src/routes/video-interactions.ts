@@ -273,14 +273,30 @@ router.get('/:id/download', authenticate, async (req: AuthRequest, res: Response
       .substring(0, 100);
     const filename = `${safeTitle}.${ext}`;
 
-    // Obtener stream del archivo
-    const fileStream = await getFileStream(storageKey);
+    // Range requests: permiten descargas reanudables y compatibilidad con
+    // navegadores que segmentan archivos grandes (mismo patron que video-proxy).
+    const rangeHeader = req.headers.range as string | undefined;
+    const fileStream = await getFileStream(storageKey, rangeHeader);
 
-    // Configurar headers de descarga
-    res.set('Content-Type', contentType);
-    res.set('Content-Disposition', `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
-    res.set('Content-Length', String(fileInfo.size));
-    res.set('Cache-Control', 'no-cache');
+    const baseHeaders: Record<string, string> = {
+      'Content-Type': contentType,
+      'Content-Disposition': `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': 'no-cache',
+    };
+
+    if (rangeHeader && fileStream.ContentRange) {
+      // El cliente pidio un rango: responder 206 Partial Content.
+      res.status(206);
+      res.set({
+        ...baseHeaders,
+        'Content-Range': fileStream.ContentRange,
+        'Content-Length': String(fileStream.ContentLength ?? 0),
+      });
+    } else {
+      res.status(200);
+      res.set({ ...baseHeaders, 'Content-Length': String(fileInfo.size) });
+    }
 
     // Stream al cliente
     const stream = fileStream.Body as NodeJS.ReadableStream;

@@ -4,6 +4,7 @@ import {Play, Sparkles, Send, Share2, ChevronRight, Bot, User, Loader2, FileText
 import { cn, mediaProxyUrl } from '../lib/utils'
 import { useEscapeKey } from '../hooks/useEscapeKey'
 import { apiRequest, api, type RequestOptions } from '../lib/api'
+import { downloadFile, supportsStreamingDownload } from '../lib/download'
 import { useToast } from '../lib/toast'
 import VideoPlayer from '../components/video/VideoPlayer'
 import ZoomTimeline from '../components/video/ZoomTimeline'
@@ -99,6 +100,7 @@ export default function VideoDetail() {
   const [shareCopied, setShareCopied] = useState(false)
   const [isGeneratingShare, setIsGeneratingShare] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null)
   useEscapeKey(isShareModalOpen, () => setIsShareModalOpen(false))
 
   // Persiste las regiones de zoom con debounce (edición en la UI).
@@ -547,24 +549,23 @@ export default function VideoDetail() {
   const handleDownload = async () => {
     if (!id || isDownloading) return
     setIsDownloading(true)
+    setDownloadProgress(supportsStreamingDownload() ? 0 : null)
     try {
-      const { blob, filename: serverFilename } = await api.download(`/videos/${id}/download`)
-      const filename = serverFilename ?? (video?.title || 'video') + '.webm'
-
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
-      toast.success('Video descargado')
+      const ext = video?.storage_key?.split('.').pop() || 'webm'
+      const suggested = `${(video?.title || 'video').replace(/[\\/:*?"<>|]/g, '_')}.${ext}`
+      const mode = await downloadFile(`/videos/${id}/download`, {
+        filename: suggested,
+        onProgress: (p) => setDownloadProgress(p.percent),
+      })
+      toast.success(mode === 'streamed' ? 'Video descargado' : 'Descarga iniciada — revisa tu navegador')
     } catch (err) {
+      // Cancelar el diálogo de guardado (AbortError) no es un error real.
+      if (err instanceof DOMException && err.name === 'AbortError') return
       console.error('Error downloading video:', err)
       toast.error('Error al descargar el video. Intenta de nuevo.')
     } finally {
       setIsDownloading(false)
+      setDownloadProgress(null)
     }
   }
 
@@ -643,7 +644,7 @@ export default function VideoDetail() {
             isTranscribing={isTranscribing} onTranscribe={handleTranscribe}
             isLiked={isLiked} likeCount={likeCount} onLike={handleLike}
             isBookmarked={isBookmarked} onBookmark={handleBookmark}
-            onShare={handleShare} isDownloading={isDownloading} onDownload={handleDownload}
+            onShare={handleShare} isDownloading={isDownloading} downloadProgress={downloadProgress} onDownload={handleDownload}
           />
         </div>
 

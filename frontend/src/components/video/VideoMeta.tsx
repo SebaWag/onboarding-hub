@@ -17,6 +17,7 @@ interface VideoMetaProps {
   onBookmark: () => void
   onShare: () => void
   isDownloading: boolean
+  downloadProgress?: number | null
   onDownload: () => void
 }
 
@@ -26,7 +27,7 @@ export default function VideoMeta({
   isTranscribing, onTranscribe: handleTranscribe,
   isLiked, likeCount, onLike: handleLike,
   isBookmarked, onBookmark: handleBookmark,
-  onShare: handleShare, isDownloading, onDownload: handleDownload,
+  onShare: handleShare, isDownloading, downloadProgress, onDownload: handleDownload,
 }: VideoMetaProps) {
   return (
     <>
@@ -92,9 +93,27 @@ export default function VideoMeta({
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 text-surface-300 hover:text-white hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
               >
                 {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                {isDownloading ? 'Descargando...' : 'Descargar'}
+                {isDownloading
+                  ? (typeof downloadProgress === 'number' ? `Descargando ${downloadProgress}%` : 'Descargando...')
+                  : 'Descargar'}
               </button>
             </div>
+
+            {/* Barra de progreso (descarga en streaming, Chromium) */}
+            {isDownloading && typeof downloadProgress === 'number' && (
+              <div
+                className="mt-3 w-full h-1.5 rounded-full bg-white/10 overflow-hidden"
+                role="progressbar"
+                aria-valuenow={downloadProgress}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div
+                  className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 transition-all"
+                  style={{ width: `${downloadProgress}%` }}
+                />
+              </div>
+            )}
           </div>
     </>
   )
