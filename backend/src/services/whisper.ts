@@ -1,7 +1,10 @@
 import fs from 'fs'
 import path from 'path'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
 import { v4 as uuidv4 } from 'uuid'
-import { execSync } from 'child_process';
+
+const execFileAsync = promisify(execFile)
 
 interface TranscriptionSegment {
   start: number
@@ -22,51 +25,87 @@ interface Chapter {
   duration: string
 }
 
+// Tiempo máximo de espera del servidor whisper.cpp (10 min por defecto).
+const DEFAULT_REQUEST_TIMEOUT_MS = 600_000
+// Tiempo máximo para extraer el audio del video con ffmpeg.
+const FFMPEG_TIMEOUT_MS = 120_000
+
+// Tipo de la respuesta nativa de `fetch` sin depender del global `Response`.
+type FetchResponse = Awaited<ReturnType<typeof fetch>>
+
 class WhisperService {
   private whisperUrl: string
+  private requestTimeoutMs: number
 
   constructor() {
     this.whisperUrl = process.env.WHISPER_URL || 'http://localhost:8178'
+    this.requestTimeoutMs = Number(process.env.WHISPER_TIMEOUT_MS) || DEFAULT_REQUEST_TIMEOUT_MS
   }
 
   async transcribe(filePath: string): Promise<TranscriptionResult> {
+    if (!fs.existsSync(filePath)) {
+      throw new Error('File not found: ' + filePath)
+    }
+
+    console.log('Transcribing file:', filePath)
+
+    // El audio se envía al servidor whisper.cpp con `fetch` + `FormData` nativos.
+    // NO se lanza un subproceso: antes se usaba `execSync(curl ...)`, que producía
+    // procesos hijo que quedaban como <defunct> (zombies) si no se recolectaban y,
+    // además, interpolaba la ruta del archivo dentro de una cadena de shell
+    // (riesgo de inyección). Con la API nativa desaparecen ambos problemas y la
+    // llamada no bloquea el event loop.
+    const audioBuffer = await fs.promises.readFile(filePath)
+
+    const form = new FormData()
+    form.append('file', new Blob([audioBuffer]), path.basename(filePath))
+    form.append('temperature', '0.0')
+    form.append('temperature_inc', '0.2')
+    form.append('response_format', 'verbose_json')
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.requestTimeoutMs)
+
+    let response: FetchResponse
     try {
-      if (!fs.existsSync(filePath)) {
-        throw new Error('File not found: ' + filePath)
-      }
-
-      console.log('Transcribing file:', filePath)
-
-      // Use child_process to call curl - most reliable way to send multipart to whisper.cpp
-      const curlCmd = `curl -s -X POST "${this.whisperUrl}/inference" \
-        -F "file=@${filePath}" \
-        -F "temperature=0.0" \
-        -F "temperature_inc=0.2" \
-        -F "response_format=verbose_json"`
-
-      const resultRaw = execSync(curlCmd, { maxBuffer: 50 * 1024 * 1024, timeout: 600000 }).toString()
-      const result = JSON.parse(resultRaw)
-
-      console.log('Transcription complete:', result.text?.length || 0, 'chars')
-
-      // whisper.cpp returns segments with start/end in seconds
-      const segments: TranscriptionSegment[] = (result.segments || []).map((seg: any) => ({
-        start: seg.start || 0,
-        end: seg.end || 0,
-        text: (seg.text || '').trim(),
-      }))
-
-      const duration = result.duration || (segments.length > 0 ? segments[segments.length - 1].end : 0)
-
-      return {
-        text: result.text || segments.map(s => s.text).join(' '),
-        segments,
-        duration,
-        language: result.language || result.detected_language || 'es',
-      }
+      response = await fetch(`${this.whisperUrl}/inference`, {
+        method: 'POST',
+        body: form,
+        signal: controller.signal,
+      })
     } catch (error: any) {
-      console.error('Whisper transcription error:', error.message)
-      throw error
+      if (error?.name === 'AbortError') {
+        throw new Error(`Whisper request timed out after ${this.requestTimeoutMs} ms`)
+      }
+      throw new Error(`Whisper request failed: ${error?.message ?? error}`)
+    } finally {
+      clearTimeout(timer)
+    }
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '')
+      throw new Error(
+        `Whisper server responded ${response.status} ${response.statusText}: ${detail.slice(0, 300)}`
+      )
+    }
+
+    const result = (await response.json()) as any
+    console.log('Transcription complete:', result?.text?.length || 0, 'chars')
+
+    // whisper.cpp returns segments with start/end in seconds
+    const segments: TranscriptionSegment[] = (result.segments || []).map((seg: any) => ({
+      start: seg.start || 0,
+      end: seg.end || 0,
+      text: (seg.text || '').trim(),
+    }))
+
+    const duration = result.duration || (segments.length > 0 ? segments[segments.length - 1].end : 0)
+
+    return {
+      text: result.text || segments.map(s => s.text).join(' '),
+      segments,
+      duration,
+      language: result.language || result.detected_language || 'es',
     }
   }
 
@@ -81,25 +120,25 @@ class WhisperService {
 
       console.log('Extracting audio from:', videoPath)
 
-      execSync('ffmpeg -i "' + videoPath + '" -vn -acodec pcm_s16le -ar 16000 -ac 1 "' + audioPath + '" -y', {
-        stdio: 'pipe',
-        timeout: 120000,
-      })
+      // `execFile` (sin shell) evita interpolar la ruta dentro de una cadena de
+      // shell y no bloquea el event loop, a diferencia de `execSync`.
+      await execFileAsync(
+        'ffmpeg',
+        ['-i', videoPath, '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', audioPath, '-y'],
+        { timeout: FFMPEG_TIMEOUT_MS, maxBuffer: 32 * 1024 * 1024 }
+      )
 
       console.log('Audio extracted to:', audioPath)
 
-      const result = await this.transcribe(audioPath)
-
+      return await this.transcribe(audioPath)
+    } finally {
       if (fs.existsSync(audioPath)) {
-        fs.unlinkSync(audioPath)
+        try {
+          fs.unlinkSync(audioPath)
+        } catch {
+          // el archivo temporal ya no existe o no se puede borrar: no es fatal
+        }
       }
-
-      return result
-    } catch (error) {
-      if (fs.existsSync(audioPath)) {
-        fs.unlinkSync(audioPath)
-      }
-      throw error
     }
   }
 
